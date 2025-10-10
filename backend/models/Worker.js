@@ -5,7 +5,9 @@ const WorkerSchema = new mongoose.Schema({
   roleType: { type: String, required: true },
   role: { type: String, required: true },
   site: { type: String, required: true },
-  perDaySalary: { type: Number, required: true }, 
+  contactNo: { type: String, required: true },
+  perDaySalary: { type: Number, required: true },
+   
 });
 
 export default mongoose.model("Worker", WorkerSchema);

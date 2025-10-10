@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import logo from "../assets/logo.png";
 
 function Navbar() {
   const [user, setUser] = useState(null);
@@ -12,54 +13,88 @@ function Navbar() {
     }
   }, []);
 
-  if (!user) return null; 
+  if (!user) return null;
 
   const handleLogout = () => {
-    localStorage.removeItem("user"); 
+    localStorage.removeItem("user");
     setUser(null);
-    navigate("/"); 
+    navigate("/");
   };
+
+  const isAdminOrManager = user.role === "admin" || user.role === "manager";
+  const isWorker = user.role === "worker";
 
   return (
     <nav
-      style={{position: "fixed",         
+      style={{
+        position: "fixed",
         top: 0,
         left: 0,
         width: "100%",
-         zIndex: 1000, 
+        zIndex: 1000,
         background: "#2C3E50",
-        padding: "12px 0px",
+        padding: "10px 18px",
         display: "flex",
         justifyContent: "space-between",
         alignItems: "center",
         color: "white",
+        boxSizing: "border-box",
       }}
     >
-      <h2 style={{ margin: 0, color: "#f39c12" }}>🏗️ Attendance System</h2>
+     
+      <Link
+        to="/"
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: "12px",
+          textDecoration: "none",
+          color: "inherit",
+        }}
+      >
+        <img
+          src={logo}
+          alt="Bartons Builders Limited logo"
+          style={{
+            width: 44,
+            height: 44,
+            objectFit: "contain",
+            borderRadius: 6,
+            background: "transparent",
+          }}
+        />
+        <span
+          style={{
+            margin: 8,
+            color: "#f39c12",
+            fontWeight: 700,
+            fontSize: 24,
+          }}
+        >
+          Bartons Builders Limited
+        </span>
+      </Link>
 
-      <div style={{ display: "flex", gap: "20px", alignItems: "center" }}>
+    
+      <div style={{ display: "flex", gap: "18px", alignItems: "center" }}>
+        {isAdminOrManager && (
+          <>
+            <Link to="/dashboard" style={linkStyle}>
+              Dashboard
+            </Link>
+            <Link to="/workers" style={linkStyle}>
+              Workers
+            </Link>
+            <Link to="/attendance" style={linkStyle}>
+              Attendance
+            </Link>
+          </>
+        )}
+
        
-        {(user.role === "admin" || user.role === "manager") && (
-          <Link to="/dashboard" style={linkStyle}>
-            Dashboard
-          </Link>
-        )}
-
-        {(user.role === "admin" || user.role === "manager") && (
-          <Link to="/workers" style={linkStyle}>
-            Workers
-          </Link>
-        )}
-  {(user.role === "admin" || user.role === "manager") && (
-          <Link to="/attendance" style={linkStyle}>
-            Attendance
-          </Link>
-        )}
-
         <Link to="/reports" style={linkStyle}>
           Reports
         </Link>
-       
 
         <Link to="/profile" style={linkStyle}>
           Profile
@@ -71,10 +106,10 @@ function Navbar() {
             background: "#e74c3c",
             color: "white",
             border: "none",
-            padding: "6px 12px",
-            borderRadius: "5px",
+            padding: "8px 12px",
+            borderRadius: "6px",
             cursor: "pointer",
-            fontWeight: "500",
+            fontWeight: 600,
           }}
         >
           Logout
@@ -87,7 +122,8 @@ function Navbar() {
 const linkStyle = {
   color: "white",
   textDecoration: "none",
-  fontWeight: "500",
+  fontWeight: 500,
+  padding: "6px 8px",
 };
 
 export default Navbar;

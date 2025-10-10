@@ -3,7 +3,6 @@ import Worker from "../models/Worker.js";
 
 const router = express.Router();
 
-
 router.get("/", async (req, res) => {
   try {
     const workers = await Worker.find();
@@ -26,16 +25,29 @@ router.get("/count", async (req, res) => {
 
 router.post("/", async (req, res) => {
   try {
-    const { name, roleType, role, site, perDaySalary } = req.body;
+    const { name, roleType, role, site, perDaySalary, contactNo } = req.body;
 
-    const newWorker = new Worker({ name, roleType, role, site, perDaySalary });
+    
+    if (!/^\d{10}$/.test(contactNo)) {
+      return res.status(400).json({ message: "Invalid contact number. Must be 10 digits." });
+    }
+
+    const newWorker = new Worker({
+      name,
+      roleType,
+      role,
+      site,
+      perDaySalary,
+      contactNo,
+    });
+
     await newWorker.save();
     res.status(201).json(newWorker);
   } catch (error) {
+    console.error(error);
     res.status(500).json({ message: "Error adding worker" });
   }
 });
-
 
 router.delete("/:id", async (req, res) => {
   try {
@@ -43,19 +55,23 @@ router.delete("/:id", async (req, res) => {
     if (!worker) return res.status(404).json({ message: "Worker not found" });
     res.json({ message: "Worker deleted successfully" });
   } catch (error) {
+    console.error(error);
     res.status(500).json({ message: "Error deleting worker" });
   }
 });
 
-
 router.put("/:id", async (req, res) => {
   try {
-    const { name, roleType, role, site, perDaySalary } = req.body;
+    const { name, roleType, role, site, perDaySalary, contactNo } = req.body;
+
+    if (!/^\d{10}$/.test(contactNo)) {
+      return res.status(400).json({ message: "Invalid contact number. Must be 10 digits." });
+    }
 
     const updatedWorker = await Worker.findByIdAndUpdate(
       req.params.id,
-      { name, roleType, role, site, perDaySalary },
-      { new: true } 
+      { name, roleType, role, site, perDaySalary, contactNo },
+      { new: true }
     );
 
     if (!updatedWorker)
@@ -63,6 +79,7 @@ router.put("/:id", async (req, res) => {
 
     res.json(updatedWorker);
   } catch (error) {
+    console.error(error);
     res.status(500).json({ message: "Error updating worker" });
   }
 });

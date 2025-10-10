@@ -1,56 +1,58 @@
 import express from "express";
-import bcrypt from "bcryptjs";
+import dotenv from "dotenv";
 import jwt from "jsonwebtoken";
-import User from "../models/User.js";
+import Worker from "../models/Worker.js";
 
+dotenv.config();
 const router = express.Router();
 
-router.post("/register", async (req, res) => {
-  try {
-    const { name, email, password, role } = req.body;
-
-    let user = await User.findOne({ email });
-    if (user) return res.status(400).json({ msg: "❌ User already exists" });
-
-    const newUser = new User({ name, email, password, role });
-    await newUser.save();
-
-    res.json({ msg: "✅ Registration successful" });
-  } catch (err) {
-    console.error("Registration Error:", err.message);
-    res.status(500).json({ msg: "Server error" });
-  }
-});
-
-
 router.post("/login", async (req, res) => {
+  const { email, password, name, contactNo } = req.body;
+
   try {
-    const { email, password } = req.body;
+   
+    if (email === process.env.ADMIN_EMAIL && password === process.env.ADMIN_PASSWORD) {
+      const token = jwt.sign({ role: "admin" }, process.env.JWT_SECRET, {
+        expiresIn: process.env.JWT_EXPIRES_IN,
+      });
+      return res.json({
+        msg: "Admin login successful",
+        token,
+        user: { name: "Admin", email, role: "admin" },
+      });
+    }
 
-    const user = await User.findOne({ email });
-    if (!user) return res.status(400).json({ msg: "❌ Invalid Email" });
 
-    const isMatch = await bcrypt.compare(password, user.password);
-    if (!isMatch) return res.status(400).json({ msg: "❌ Invalid Password" });
+    if (email === process.env.MANAGER_EMAIL && password === process.env.MANAGER_PASSWORD) {
+      const token = jwt.sign({ role: "manager" }, process.env.JWT_SECRET, {
+        expiresIn: process.env.JWT_EXPIRES_IN,
+      });
+      return res.json({
+        msg: "Manager login successful",
+        token,
+        user: { name: "Manager", email, role: "manager" },
+      });
+    }
 
-    const token = jwt.sign(
-      { id: user._id, role: user.role },
-      process.env.JWT_SECRET,
-      { expiresIn: "1h" }
-    );
+   
+    if (name && contactNo) {
+      const worker = await Worker.findOne({ name, contactNo });
+      if (!worker) return res.status(404).json({ msg: "Worker not found" });
 
-    res.json({
-      msg: "✅ Login successful",
-      token,
-      user: {
-        _id: user._id,
-        name: user.name,
-        email: user.email,
-        role: user.role
-      }
-    });
+      const token = jwt.sign({ id: worker._id, role: "worker" }, process.env.JWT_SECRET, {
+        expiresIn: process.env.JWT_EXPIRES_IN,
+      });
+
+      return res.json({
+        msg: "Worker login successful",
+        token,
+        user: { _id: worker._id, name: worker.name, role: "worker", site: worker.site },
+      });
+    }
+
+    return res.status(400).json({ msg: "Invalid login credentials" });
   } catch (err) {
-    console.error("Login Error:", err.message);
+    console.error("Login error:", err);
     res.status(500).json({ msg: "Server error" });
   }
 });

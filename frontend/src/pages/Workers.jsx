@@ -3,6 +3,7 @@ import React, { useEffect, useState } from "react";
 function Workers() {
   const [workers, setWorkers] = useState([]);
   const [name, setName] = useState("");
+  const [contactNo, setContactNo] = useState(""); 
   const [roleType, setRoleType] = useState("");
   const [role, setRole] = useState("");
   const [site, setSite] = useState("");
@@ -18,7 +19,6 @@ function Workers() {
     Worker: ["Male", "Female"],
   };
 
-
   const fetchWorkers = () => {
     fetch("http://localhost:8000/api/workers")
       .then((res) => res.json())
@@ -30,14 +30,18 @@ function Workers() {
     fetchWorkers();
   }, []);
 
- 
   const handleSubmit = (e) => {
     e.preventDefault();
 
-    const payload = { name, roleType, role, site, perDaySalary };
+    if (!/^\d{10}$/.test(contactNo)) {
+      alert("Please enter a valid 10-digit contact number.");
+      return;
+    }
+
+    const payload = { name, roleType, role, site, perDaySalary, contactNo };
 
     if (editingId) {
-     
+      
       fetch(`http://localhost:8000/api/workers/${editingId}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
@@ -52,7 +56,7 @@ function Workers() {
         })
         .catch((err) => console.error(err));
     } else {
-    
+      
       fetch("http://localhost:8000/api/workers", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -69,13 +73,13 @@ function Workers() {
 
   const resetForm = () => {
     setName("");
+    setContactNo("");
     setRoleType("");
     setRole("");
     setSite("");
     setPerDaySalary("");
     setEditingId(null);
   };
-
 
   const deleteWorker = (id) => {
     fetch(`http://localhost:8000/api/workers/${id}`, { method: "DELETE" })
@@ -84,9 +88,9 @@ function Workers() {
       .catch((err) => console.error(err));
   };
 
-  
   const editWorker = (worker) => {
     setName(worker.name);
+    setContactNo(worker.contactNo);
     setRoleType(worker.roleType);
     setRole(worker.role);
     setSite(worker.site);
@@ -98,7 +102,11 @@ function Workers() {
     <div className="workers-container">
       <h2>👷 Workers List</h2>
 
-      <form onSubmit={handleSubmit} style={{ marginBottom: "20px" }} className="workers-form">
+      <form
+        onSubmit={handleSubmit}
+        style={{ marginBottom: "20px" }}
+        className="workers-form"
+      >
         <input
           type="text"
           placeholder="Enter worker name"
@@ -107,6 +115,8 @@ function Workers() {
           required
           style={{ marginRight: "10px", padding: "9px" }}
         />
+
+      
 
         <select
           value={roleType}
@@ -154,7 +164,15 @@ function Workers() {
             </option>
           ))}
         </select>
-
+  <input
+          type="text"
+          placeholder="Enter contact number"
+          value={contactNo}
+          onChange={(e) => setContactNo(e.target.value)}
+          required
+          maxLength="10"
+          style={{ marginRight: "10px", padding: "9px" }}
+        />
         <input
           type="number"
           placeholder="Per Day Salary"
@@ -164,9 +182,16 @@ function Workers() {
           style={{ marginRight: "10px", padding: "9px" }}
         />
 
-        <button type="submit">{editingId ? "Update Worker" : "Add Worker"}</button>
+        <button type="submit">
+          {editingId ? "Update Worker" : "Add Worker"}
+        </button>
+
         {editingId && (
-          <button type="button" onClick={resetForm} style={{ marginLeft: "10px" }}>
+          <button
+            type="button"
+            onClick={resetForm}
+            style={{ marginLeft: "10px" }}
+          >
             Cancel
           </button>
         )}
@@ -187,6 +212,7 @@ function Workers() {
                 <th>Role Type</th>
                 <th>Sub Role</th>
                 <th>Site</th>
+                <th>Contact No</th> 
                 <th>Per Day Salary</th>
                 <th>Action</th>
               </tr>
@@ -201,6 +227,7 @@ function Workers() {
                     <td>{w.roleType}</td>
                     <td>{w.role}</td>
                     <td>{w.site}</td>
+                    <td>{w.contactNo}</td> 
                     <td>₹{w.perDaySalary}</td>
                     <td>
                       <button

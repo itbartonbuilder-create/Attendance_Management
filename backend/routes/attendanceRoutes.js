@@ -83,5 +83,14 @@ router.get("/reports", async (req, res) => {
     res.status(500).json({ success: false, message: err.message });
   }
 });
+router.get("/workers", async (req, res) => {
+  try {
+    const workers = await Worker.find({}, "name site perDaySalary roleType role");
+    res.json(workers);
+  } catch (err) {
+    console.error("🚨 Error fetching workers:", err.message);
+    res.status(500).json({ message: err.message });
+  }
+});
 
 export default router;
