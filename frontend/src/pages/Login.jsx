@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import logo from "../assets/logo.png";
-import loginPage from "../assets/loginPage.jpeg";
+import loginpage from "../assets/loginpage.jpeg";
 
 function Login() {
   const [role, setRole] = useState("admin");
@@ -49,7 +49,7 @@ function Login() {
     <div
       className="login-container"
       style={{
-        backgroundImage: `url(${loginPage})`,
+        backgroundImage: `url(${loginpage})`,
         backgroundSize: "cover",
         backgroundPosition: "center",
         minHeight: "100vh",
@@ -100,7 +100,7 @@ function Login() {
           </h1>
         </div>
 
-        
+        {/* selection */}
         <div className="role-selection" style={{ marginBottom: "20px" }}>
           <label style={{ marginRight: "15px" }}>
             <input
