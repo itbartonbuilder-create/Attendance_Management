@@ -1,24 +1,25 @@
 import React, { useEffect, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useLocation } from "react-router-dom";
 import logo from "../assets/logo.png";
 
 function Navbar() {
   const [user, setUser] = useState(null);
   const navigate = useNavigate();
+  const location = useLocation(); // current path check ke liye
 
   useEffect(() => {
     const savedUser = localStorage.getItem("user");
-    if (savedUser) {
-      setUser(JSON.parse(savedUser));
-    }
+    if (savedUser) setUser(JSON.parse(savedUser));
   }, []);
 
+  // Hide navbar on login page
+  if (location.pathname === "/" || location.pathname === "/login") return null;
   if (!user) return null;
 
   const handleLogout = () => {
     localStorage.removeItem("user");
     setUser(null);
-    navigate("/");
+    navigate("/login");
   };
 
   const isAdminOrManager = user.role === "admin" || user.role === "manager";
@@ -41,9 +42,8 @@ function Navbar() {
         boxSizing: "border-box",
       }}
     >
-     
       <Link
-        to="/"
+        to="/dashboard"
         style={{
           display: "flex",
           alignItems: "center",
@@ -75,7 +75,6 @@ function Navbar() {
         </span>
       </Link>
 
-    
       <div style={{ display: "flex", gap: "18px", alignItems: "center" }}>
         {isAdminOrManager && (
           <>
@@ -91,11 +90,16 @@ function Navbar() {
           </>
         )}
 
-       
+        {isWorker && (
+          <Link to="/dashboard" style={linkStyle}>
+            Dashboard
+          </Link>
+        )}
+
+        {/* Reports & Profile always visible */}
         <Link to="/reports" style={linkStyle}>
           Reports
         </Link>
-
         <Link to="/profile" style={linkStyle}>
           Profile
         </Link>
