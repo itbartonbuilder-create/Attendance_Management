@@ -1,12 +1,12 @@
 import React, { useEffect, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useLocation } from "react-router-dom";
 import logo from "../assets/logo.png";
-
 
 function Navbar() {
   const [user, setUser] = useState(null);
   const [menuOpen, setMenuOpen] = useState(false);
   const navigate = useNavigate();
+  const location = useLocation(); // added
 
   useEffect(() => {
     const savedUser = localStorage.getItem("user");
@@ -14,7 +14,8 @@ function Navbar() {
       setUser(JSON.parse(savedUser));
     }
   }, []);
-    // Hide navbar completely on login page
+
+  // Hide navbar completely on login page or root
   if (location.pathname === "/" || location.pathname === "/login") return null;
 
   if (!user) return null;
