@@ -24,22 +24,19 @@ function Login() {
           "https://attendance-management-backend-vh2w.onrender.com/api/auth/login",
           { email, password }
         );
-      }
-
-      else {
+      } else {
         res = await axios.post(
           "https://attendance-management-backend-vh2w.onrender.com/api/auth/login",
           { name, contactNo }
         );
       }
 
+      console.log("Login Response:", res.data.user);
+
       localStorage.setItem("user", JSON.stringify(res.data.user));
 
       alert(`✅ Login Successful — Welcome ${res.data.user.name || "User"}`);
-
-      if (res.data.user.role === "admin") navigate("/dashboard");
-      else if (res.data.user.role === "manager") navigate("/dashboard");
-      else navigate("/dashboard");
+      navigate("/dashboard");
     } catch (err) {
       alert(err.response?.data?.msg || "❌ Login failed. Please try again.");
     }
@@ -60,13 +57,8 @@ function Login() {
     >
       <div
         className="login-box"
-        style={{
-          backdropFilter: "blur(10px)",
-          borderRadius: "16px",
-          
-        }}
+        style={{ backdropFilter: "blur(10px)", borderRadius: "16px" }}
       >
-   
         <div
           style={{
             display: "flex",
@@ -78,18 +70,11 @@ function Login() {
         >
           <img
             src={logo}
-            alt="Bartons Builders Limited logo"
-            style={{
-              width: 44,
-              height: 55,
-              objectFit: "contain",
-              borderRadius: 6,
-              background: "transparent",
-            }}
+            alt="Logo"
+            style={{ width: 44, height: 55, objectFit: "contain" }}
           />
           <h1
             style={{
-            
               fontWeight: "bold",
               color: "white",
               textShadow: "0 2px 8px rgba(0,0,0,0.4)",
@@ -100,9 +85,8 @@ function Login() {
           </h1>
         </div>
 
-        {/* selection */}
         <div className="role-selection" style={{ marginBottom: "20px" }}>
-          <label style={{ marginRight: "15px" }}>
+          <label>
             <input
               type="radio"
               name="role"
@@ -113,7 +97,7 @@ function Login() {
             Admin
           </label>
 
-          <label style={{ marginRight: "15px" }}>
+          <label style={{ marginLeft: "15px" }}>
             <input
               type="radio"
               name="role"
@@ -124,7 +108,7 @@ function Login() {
             Manager
           </label>
 
-          <label style={{ marginRight: "15px" }}>
+          <label style={{ marginLeft: "15px" }}>
             <input
               type="radio"
               name="role"
@@ -135,6 +119,7 @@ function Login() {
             Worker
           </label>
         </div>
+
         <form onSubmit={handleLogin}>
           {(role === "admin" || role === "manager") && (
             <>
@@ -158,15 +143,7 @@ function Login() {
                 />
                 <span
                   onClick={() => setShowPassword(!showPassword)}
-                  style={{
-                    position: "absolute",
-                    right: "12px",
-                    top: "18px",
-                    cursor: "pointer",
-                    fontSize: "18px",
-                    color: "#fff",
-                    userSelect: "none",
-                  }}
+                  style={eyeStyle}
                 >
                   {showPassword ? "🙈" : "👁️"}
                 </span>
@@ -184,53 +161,20 @@ function Login() {
                 required
                 style={inputStyle}
               />
-<div style={{ position: "relative" }}>
-              <input
-                type="text"
-                placeholder="Enter Contact Number"
-                value={contactNo}
-                onChange={(e) => setContactNo(e.target.value)}
-                required
-                style={inputStyle}
-              />
-                <span
-                  onClick={() => setShowPassword(!showPassword)}
-                  style={{
-                    position: "absolute",
-                    right: "12px",
-                    top: "18px",
-                    cursor: "pointer",
-                    fontSize: "18px",
-                    color: "#fff",
-                    userSelect: "none",
-                  }}
-                >
-                  {showPassword ? "🙈" : "👁️"}
-                </span>
-                </div>
+              <div style={{ position: "relative" }}>
+                <input
+                  type="text"
+                  placeholder="Enter Contact Number"
+                  value={contactNo}
+                  onChange={(e) => setContactNo(e.target.value)}
+                  required
+                  style={inputStyle}
+                />
+              </div>
             </>
           )}
-          <button
-            type="submit"
-            style={{
-              width: "100%",
-              padding: "12px",
-              marginTop: "15px",
-              border: "none",
-              borderRadius: "8px",
-              backgroundColor: "#007bff",
-              color: "white",
-              fontWeight: "bold",
-              cursor: "pointer",
-              transition: "0.3s",
-            }}
-            onMouseOver={(e) =>
-              (e.target.style.backgroundColor = "#0056b3")
-            }
-            onMouseOut={(e) =>
-              (e.target.style.backgroundColor = "#007bff")
-            }
-          >
+
+          <button type="submit" style={buttonStyle}>
             Login
           </button>
         </form>
@@ -249,6 +193,28 @@ const inputStyle = {
   color: "white",
   outline: "none",
   fontSize: "17px",
+};
+
+const eyeStyle = {
+  position: "absolute",
+  right: "12px",
+  top: "18px",
+  cursor: "pointer",
+  fontSize: "18px",
+  color: "#fff",
+  userSelect: "none",
+};
+
+const buttonStyle = {
+  width: "100%",
+  padding: "12px",
+  marginTop: "15px",
+  border: "none",
+  borderRadius: "8px",
+  backgroundColor: "#007bff",
+  color: "white",
+  fontWeight: "bold",
+  cursor: "pointer",
 };
 
 export default Login;
