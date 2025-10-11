@@ -5,15 +5,24 @@ import logo from "../assets/logo.png";
 function Navbar() {
   const [user, setUser] = useState(null);
   const navigate = useNavigate();
-  const location = useLocation(); // current path check ke liye
+  const location = useLocation();
 
+  // Load user from localStorage on mount
   useEffect(() => {
     const savedUser = localStorage.getItem("user");
-    if (savedUser) setUser(JSON.parse(savedUser));
+    if (savedUser) {
+      try {
+        setUser(JSON.parse(savedUser));
+      } catch (e) {
+        console.error("Invalid user data in localStorage");
+      }
+    }
   }, []);
 
-  // Hide navbar on login page
+  // Hide navbar completely on login page
   if (location.pathname === "/" || location.pathname === "/login") return null;
+
+  // If no user found, hide navbar (avoid crash)
   if (!user) return null;
 
   const handleLogout = () => {
@@ -42,6 +51,7 @@ function Navbar() {
         boxSizing: "border-box",
       }}
     >
+      {/* Logo + Brand */}
       <Link
         to="/dashboard"
         style={{
@@ -75,12 +85,16 @@ function Navbar() {
         </span>
       </Link>
 
+      {/* Nav Links */}
       <div style={{ display: "flex", gap: "18px", alignItems: "center" }}>
+        {/* Show Dashboard always */}
+        <Link to="/dashboard" style={linkStyle}>
+          Dashboard
+        </Link>
+
+        {/* Admin/Manager only links */}
         {isAdminOrManager && (
           <>
-            <Link to="/dashboard" style={linkStyle}>
-              Dashboard
-            </Link>
             <Link to="/workers" style={linkStyle}>
               Workers
             </Link>
@@ -90,13 +104,7 @@ function Navbar() {
           </>
         )}
 
-        {isWorker && (
-          <Link to="/dashboard" style={linkStyle}>
-            Dashboard
-          </Link>
-        )}
-
-        {/* Reports & Profile always visible */}
+        {/* Always visible */}
         <Link to="/reports" style={linkStyle}>
           Reports
         </Link>
