@@ -21,7 +21,7 @@ function Dashboard() {
 
   const fetchAllWorkers = async () => {
     try {
-      const res = await axios.get("http://localhost:8000/api/workers");
+      const res = await axios.get("https://attendance-management-backend-vh2w.onrender.com/api/workers");
       setAllWorkers(res.data);
 
       const uniqueSites = [...new Set(res.data.map((w) => w.site))];
