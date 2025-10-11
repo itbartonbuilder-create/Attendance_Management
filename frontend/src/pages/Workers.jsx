@@ -20,7 +20,7 @@ function Workers() {
   };
 
   const fetchWorkers = () => {
-    fetch("http://localhost:8000/api/workers")
+    fetch("https://attendance-management-backend-vh2w.onrender.com/api/workers")
       .then((res) => res.json())
       .then((data) => setWorkers(data))
       .catch((err) => console.error(err));
@@ -42,7 +42,7 @@ function Workers() {
 
     if (editingId) {
       
-      fetch(`http://localhost:8000/api/workers/${editingId}`, {
+      fetch(`https://attendance-management-backend-vh2w.onrender.com/api/workers/${editingId}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
@@ -57,7 +57,7 @@ function Workers() {
         .catch((err) => console.error(err));
     } else {
       
-      fetch("http://localhost:8000/api/workers", {
+      fetch("https://attendance-management-backend-vh2w.onrender.com/api/workers", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
@@ -82,7 +82,7 @@ function Workers() {
   };
 
   const deleteWorker = (id) => {
-    fetch(`http://localhost:8000/api/workers/${id}`, { method: "DELETE" })
+    fetch(`https://attendance-management-backend-vh2w.onrender.com/api/workers/${id}`, { method: "DELETE" })
       .then((res) => res.json())
       .then(() => setWorkers(workers.filter((w) => w._id !== id)))
       .catch((err) => console.error(err));
