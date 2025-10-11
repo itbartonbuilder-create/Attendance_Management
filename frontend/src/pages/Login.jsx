@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import logo from "../assets/logo.png";
-import loginpage from "../assets/loginpage.jpeg";
+import loginPage from "../assets/loginPage.jpeg";
 
 function Login() {
   const [role, setRole] = useState("admin");
@@ -49,7 +49,7 @@ function Login() {
     <div
       className="login-container"
       style={{
-        backgroundImage: `url(${loginpage})`,
+        backgroundImage: `url(${loginPage})`,
         backgroundSize: "cover",
         backgroundPosition: "center",
         minHeight: "100vh",
