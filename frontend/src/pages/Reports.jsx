@@ -14,7 +14,7 @@ function AttendanceReport() {
   const [workerSummary, setWorkerSummary] = useState(null);
   const [showReport, setShowReport] = useState(false);
 
-  const API_URL = "http://localhost:8000/api/attendance";
+  const API_URL = "https://attendance-management-backend-vh2w.onrender.com/api/attendance";
 
 
   const fetchWorkersBySite = async (site) => {
