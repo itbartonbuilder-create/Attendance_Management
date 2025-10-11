@@ -2,8 +2,10 @@ import React, { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import logo from "../assets/logo.png";
 
+
 function Navbar() {
   const [user, setUser] = useState(null);
+  const [menuOpen, setMenuOpen] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -22,108 +24,51 @@ function Navbar() {
   };
 
   const isAdminOrManager = user.role === "admin" || user.role === "manager";
-  const isWorker = user.role === "worker";
 
   return (
-    <nav
-      style={{
-        position: "fixed",
-        top: 0,
-        left: 0,
-        width: "100%",
-        zIndex: 1000,
-        background: "#2C3E50",
-        padding: "10px 18px",
-        display: "flex",
-        justifyContent: "space-between",
-        alignItems: "center",
-        color: "white",
-        boxSizing: "border-box",
-      }}
-    >
-     
-      <Link
-        to="/"
-        style={{
-          display: "flex",
-          alignItems: "center",
-          gap: "12px",
-          textDecoration: "none",
-          color: "inherit",
-        }}
-      >
-        <img
-          src={logo}
-          alt="Bartons Builders Limited logo"
-          style={{
-            width: 44,
-            height: 44,
-            objectFit: "contain",
-            borderRadius: 6,
-            background: "transparent",
-          }}
-        />
-        <span
-          style={{
-            margin: 8,
-            color: "#f39c12",
-            fontWeight: 700,
-            fontSize: 24,
-          }}
-        >
-          Bartons Builders Limited
-        </span>
-      </Link>
+    <nav className="navbar">
+      <div className="navbar-left">
+        <Link to="/" className="navbar-logo">
+          <img src={logo} alt="Bartons Builders Limited" />
+          <span>Bartons Builders Limited</span>
+        </Link>
+      </div>
 
-    
-      <div style={{ display: "flex", gap: "18px", alignItems: "center" }}>
+      <button
+        className="menu-toggle"
+        onClick={() => setMenuOpen(!menuOpen)}
+      >
+        ☰
+      </button>
+
+      <div className={`navbar-links ${menuOpen ? "active" : ""}`}>
         {isAdminOrManager && (
           <>
-            <Link to="/dashboard" style={linkStyle}>
+            <Link to="/dashboard" className="nav-link">
               Dashboard
             </Link>
-            <Link to="/workers" style={linkStyle}>
+            <Link to="/workers" className="nav-link">
               Workers
             </Link>
-            <Link to="/attendance" style={linkStyle}>
+            <Link to="/attendance" className="nav-link">
               Attendance
             </Link>
           </>
         )}
 
-       
-        <Link to="/reports" style={linkStyle}>
+        <Link to="/reports" className="nav-link">
           Reports
         </Link>
-
-        <Link to="/profile" style={linkStyle}>
+        <Link to="/profile" className="nav-link">
           Profile
         </Link>
 
-        <button
-          onClick={handleLogout}
-          style={{
-            background: "#e74c3c",
-            color: "white",
-            border: "none",
-            padding: "8px 12px",
-            borderRadius: "6px",
-            cursor: "pointer",
-            fontWeight: 600,
-          }}
-        >
+        <button className="logout-btn" onClick={handleLogout}>
           Logout
         </button>
       </div>
     </nav>
   );
 }
-
-const linkStyle = {
-  color: "white",
-  textDecoration: "none",
-  fontWeight: 500,
-  padding: "6px 8px",
-};
 
 export default Navbar;
