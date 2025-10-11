@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
 import dashboardImg from "../assets/dashboard.jpg";
+import "../App.css";
 
 function Dashboard() {
   const [user, setUser] = useState(null);
@@ -35,48 +36,9 @@ function Dashboard() {
 
   if (!user) return <h2>❌ Not Authorized</h2>;
 
-  return (
-    <div className="dashboard">
-      <header className="dashboard-header">
-        <h1>{user.role.charAt(0).toUpperCase() + user.role.slice(1)} Dashboard</h1>
-        <div className="user-info">
-          <span>{user.name}</span>
-          <span className="role">({user.role})</span>
-        </div>
-      </header>
-
-      <div className="dashboard-hero">
-        <img src={dashboardImg} alt="dashboard" className="dashboard-image" />
-        <div className="overlay">
-          <h2>
-            Welcome, {user.name} 👋
-          </h2>
-          <p>
-            {user.role === "worker"
-              ? "Welcome to your dashboard — check reports or profile."
-              : "Manage your team and site operations efficiently."}
-          </p>
-        </div>
-      </div>
-
-      {user.role !== "worker" && (
-        <section className="stats-section">
-          <div className="stat-card blue">
-            <h3>Total Workers</h3>
-            <p>{allWorkers.length}</p>
-          </div>
-          <div className="stat-card green">
-            <h3>Total Sites</h3>
-            <p>{totalSites}</p>
-          </div>
-          <div className="stat-card red">
-            <h3>Productivity Index</h3>
-            <p>95%</p>
-          </div>
-        </section>
-      )}
-
-      {user.role === "worker" && (
+  const renderStatsSection = () => {
+    if (user.role === "worker") {
+      return (
         <section className="stats-section">
           <div className="stat-card blue">
             <h3>Current Site</h3>
@@ -87,7 +49,93 @@ function Dashboard() {
             <p>{user.role}</p>
           </div>
         </section>
-      )}
+      );
+    }
+
+    // Admin or Manager stats
+    return (
+      <section className="stats-section">
+        <div className="stat-card blue">
+          <h3>Total Workers</h3>
+          <p>{allWorkers.length}</p>
+        </div>
+        <div className="stat-card green">
+          <h3>Total Sites</h3>
+          <p>{totalSites}</p>
+        </div>
+        <div className="stat-card red">
+          <h3>Productivity Index</h3>
+          <p>95%</p>
+        </div>
+      </section>
+    );
+  };
+
+  const renderWorkerTable = () => {
+    if (user.role === "admin" || user.role === "manager") {
+      return (
+        <section className="table-section">
+          <h2>👷 All Workers Overview</h2>
+          <table>
+            <thead>
+              <tr>
+                <th>Name</th>
+                <th>Role Type</th>
+                <th>Sub Role</th>
+                <th>Site</th>
+                <th>Contact</th>
+                <th>Salary/Day</th>
+              </tr>
+            </thead>
+            <tbody>
+              {allWorkers.map((worker, index) => (
+                <tr key={index}>
+                  <td>{worker.name}</td>
+                  <td>{worker.roleType}</td>
+                  <td>{worker.role}</td>
+                  <td>{worker.site}</td>
+                  <td>{worker.contactNo}</td>
+                  <td>₹{worker.perDaySalary}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </section>
+      );
+    }
+    return null;
+  };
+
+  return (
+    <div className="dashboard">
+      <header className="dashboard-header">
+        <h1>
+          {user.role.charAt(0).toUpperCase() + user.role.slice(1)} Dashboard
+        </h1>
+        <div className="user-info">
+          <span>{user.name}</span>
+          <span className="role">({user.role})</span>
+        </div>
+      </header>
+
+      <div className="dashboard-hero">
+        <img src={dashboardImg} alt="dashboard" className="dashboard-image" />
+        <div className="overlay">
+          <h2>
+            {user.role === "worker"
+              ? `Hello ${user.name} 👋`
+              : `Welcome, ${user.name} 👋`}
+          </h2>
+          <p>
+            {user.role === "worker"
+              ? "Welcome to your dashboard — check reports or profile."
+              : "Manage your team and site operations efficiently."}
+          </p>
+        </div>
+      </div>
+
+      {renderStatsSection()}
+      {renderWorkerTable()}
     </div>
   );
 }
