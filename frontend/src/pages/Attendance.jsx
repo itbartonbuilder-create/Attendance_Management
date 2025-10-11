@@ -9,7 +9,7 @@ function Attendance() {
 
   const fetchWorkersBySite = async (site) => {
     try {
-      const res = await axios.get("http://localhost:8000/api/workers");
+      const res = await axios.get("https://attendance-management-backend-vh2w.onrender.com/api/workers");
       const filtered = res.data.filter((w) => w.site === site);
       const initial = filtered.map((w, index) => ({
         srNo: index + 1,
@@ -36,7 +36,7 @@ function Attendance() {
 
   const submitAttendance = async () => {
     try {
-      await axios.post("http://localhost:8000/api/attendance", {
+      await axios.post("https://attendance-management-backend-vh2w.onrender.com/api/attendance", {
         date,
         site: selectedSite,
         records: workers.map((w) => ({
