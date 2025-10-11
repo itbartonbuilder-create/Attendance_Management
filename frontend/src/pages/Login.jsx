@@ -170,6 +170,12 @@ function Login() {
                   required
                   style={inputStyle}
                 />
+                 <span
+                  onClick={() => setShowPassword(!showPassword)}
+                  style={eyeStyle}
+                >
+                  {showPassword ? "🙈" : "👁️"}
+                </span>
               </div>
             </>
           )}
