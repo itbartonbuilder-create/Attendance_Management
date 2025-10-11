@@ -1,14 +1,28 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import logo from "../assets/logo.png";
 
 function Navbar() {
+  const [user, setUser] = useState(null);
   const navigate = useNavigate();
+
+  useEffect(() => {
+    const savedUser = localStorage.getItem("user");
+    if (savedUser) {
+      setUser(JSON.parse(savedUser));
+    }
+  }, []);
+
+  if (!user) return null;
 
   const handleLogout = () => {
     localStorage.removeItem("user");
-    navigate("/login");
+    setUser(null);
+    navigate("/");
   };
+
+  const isAdminOrManager = user.role === "admin" || user.role === "manager";
+  const isWorker = user.role === "worker";
 
   return (
     <nav
@@ -27,6 +41,7 @@ function Navbar() {
         boxSizing: "border-box",
       }}
     >
+     
       <Link
         to="/"
         style={{
@@ -60,19 +75,27 @@ function Navbar() {
         </span>
       </Link>
 
+    
       <div style={{ display: "flex", gap: "18px", alignItems: "center" }}>
-        <Link to="/dashboard" style={linkStyle}>
-          Dashboard
-        </Link>
-        <Link to="/workers" style={linkStyle}>
-          Workers
-        </Link>
-        <Link to="/attendance" style={linkStyle}>
-          Attendance
-        </Link>
+        {isAdminOrManager && (
+          <>
+            <Link to="/dashboard" style={linkStyle}>
+              Dashboard
+            </Link>
+            <Link to="/workers" style={linkStyle}>
+              Workers
+            </Link>
+            <Link to="/attendance" style={linkStyle}>
+              Attendance
+            </Link>
+          </>
+        )}
+
+       
         <Link to="/reports" style={linkStyle}>
           Reports
         </Link>
+
         <Link to="/profile" style={linkStyle}>
           Profile
         </Link>
