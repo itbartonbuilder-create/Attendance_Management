@@ -6,14 +6,15 @@ function Navbar() {
   const [user, setUser] = useState(null);
   const [menuOpen, setMenuOpen] = useState(false);
   const navigate = useNavigate();
-  const location = useLocation(); // added
+  const location = useLocation();
 
+  // ✅ FIX: reload user every time route changes (especially after login)
   useEffect(() => {
     const savedUser = localStorage.getItem("user");
     if (savedUser) {
       setUser(JSON.parse(savedUser));
     }
-  }, []);
+  }, [location.pathname]);
 
   // Hide navbar completely on login page or root
   if (location.pathname === "/" || location.pathname === "/login") return null;
@@ -23,7 +24,7 @@ function Navbar() {
   const handleLogout = () => {
     localStorage.removeItem("user");
     setUser(null);
-    navigate("/");
+    navigate("/login");
   };
 
   const isAdminOrManager = user.role === "admin" || user.role === "manager";
@@ -31,16 +32,13 @@ function Navbar() {
   return (
     <nav className="navbar">
       <div className="navbar-left">
-        <Link to="/" className="navbar-logo">
+        <Link to="/dashboard" className="navbar-logo">
           <img src={logo} alt="Bartons Builders Limited" />
           <span>Bartons Builders Limited</span>
         </Link>
       </div>
 
-      <button
-        className="menu-toggle"
-        onClick={() => setMenuOpen(!menuOpen)}
-      >
+      <button className="menu-toggle" onClick={() => setMenuOpen(!menuOpen)}>
         ☰
       </button>
 
