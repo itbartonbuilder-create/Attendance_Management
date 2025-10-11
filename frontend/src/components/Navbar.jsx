@@ -14,6 +14,8 @@ function Navbar() {
       setUser(JSON.parse(savedUser));
     }
   }, []);
+    // Hide navbar completely on login page
+  if (location.pathname === "/" || location.pathname === "/login") return null;
 
   if (!user) return null;
 
