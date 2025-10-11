@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
 import dashboard from "../assets/dashboard.jpg";
+import "../App.css";
+
 
 function Dashboard() {
   const [user, setUser] = useState(null);
@@ -21,6 +23,7 @@ function Dashboard() {
 
   const fetchAllWorkers = async () => {
     try {
+      
       const res = await axios.get("https://attendance-management-backend-vh2w.onrender.com/api/workers");
       setAllWorkers(res.data);
 
@@ -32,6 +35,7 @@ function Dashboard() {
   };
 
   if (!user) return <h2>❌ Not Authorized</h2>;
+
 
   if (user.role === "admin") {
     return (
@@ -98,6 +102,7 @@ function Dashboard() {
     );
   }
 
+
   if (user.role === "manager") {
     return (
       <div className="dashboard">
@@ -157,7 +162,6 @@ function Dashboard() {
     );
   }
 
-
   if (user.role === "worker") {
     return (
       <div className="dashboard">
@@ -180,7 +184,7 @@ function Dashboard() {
         <section className="stats-section">
           <div className="stat-card blue">
             <h3>Current Site</h3>
-            <p>{user.site }</p>
+            <p>{user.site || "Not Assigned"}</p>
           </div>
           <div className="stat-card green">
             <h3>Role</h3>
@@ -190,7 +194,6 @@ function Dashboard() {
       </div>
     );
   }
-
 
   return <h2>❌ Invalid Role</h2>;
 }
