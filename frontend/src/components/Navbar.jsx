@@ -1,10 +1,16 @@
 import React, { useEffect, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useLocation } from "react-router-dom";
 import logo from "../assets/logo.png";
 
 function Navbar() {
   const [user, setUser] = useState(null);
   const navigate = useNavigate();
+  const location = useLocation(); // ✅ get current page path
+
+  // ✅ Hide Navbar on login page ("/" or "/login")
+  if (location.pathname === "/" || location.pathname === "/login") {
+    return null;
+  }
 
   useEffect(() => {
     const savedUser = localStorage.getItem("user");
@@ -18,7 +24,7 @@ function Navbar() {
   const handleLogout = () => {
     localStorage.removeItem("user");
     setUser(null);
-    navigate("/");
+    navigate("/login");
   };
 
   const isAdminOrManager = user.role === "admin" || user.role === "manager";
@@ -41,9 +47,8 @@ function Navbar() {
         boxSizing: "border-box",
       }}
     >
-     
       <Link
-        to="/"
+        to="/dashboard"
         style={{
           display: "flex",
           alignItems: "center",
@@ -75,7 +80,6 @@ function Navbar() {
         </span>
       </Link>
 
-    
       <div style={{ display: "flex", gap: "18px", alignItems: "center" }}>
         {isAdminOrManager && (
           <>
@@ -91,7 +95,6 @@ function Navbar() {
           </>
         )}
 
-       
         <Link to="/reports" style={linkStyle}>
           Reports
         </Link>
