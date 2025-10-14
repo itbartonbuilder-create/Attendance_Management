@@ -243,7 +243,7 @@ function AttendanceReport() {
         )}
 
         {user?.role !== "worker" && (
-          <label>
+          <label  style={{ marginLeft: "20px" }}>
             👷 Worker:
             <select
               value={selectedWorker}
