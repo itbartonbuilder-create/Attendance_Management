@@ -8,17 +8,14 @@ function Navbar() {
   const navigate = useNavigate();
   const location = useLocation();
 
-  // ✅ FIX: reload user every time route changes (especially after login)
+  // Reload user every time route changes
   useEffect(() => {
     const savedUser = localStorage.getItem("user");
-    if (savedUser) {
-      setUser(JSON.parse(savedUser));
-    }
+    if (savedUser) setUser(JSON.parse(savedUser));
   }, [location.pathname]);
 
-  // Hide navbar completely on login page or root
+  // Hide navbar on login/root page
   if (location.pathname === "/" || location.pathname === "/login") return null;
-
   if (!user) return null;
 
   const handleLogout = () => {
@@ -27,51 +24,109 @@ function Navbar() {
     navigate("/login");
   };
 
-  const isAdminOrManager = user.role === "admin" || user.role === "manager";
+  const { role } = user;
 
   return (
-    <nav className="navbar">
+    <nav className="navbar" style={navStyle}>
+      {/* Logo */}
       <div className="navbar-left">
-        <Link to="/dashboard" className="navbar-logo">
-          <img src={logo} alt="Bartons Builders Limited" />
-          <span>Bartons Builders Limited</span>
+        <Link to="/dashboard" className="navbar-logo" style={logoStyle}>
+          <img src={logo} alt="Bartons Builders Limited" style={{ width: 44, height: 44 }} />
+          <span style={{ marginLeft: 8 }}>Bartons Builders Limited</span>
         </Link>
       </div>
 
-      <button className="menu-toggle" onClick={() => setMenuOpen(!menuOpen)}>
+      {/* Menu Toggle (for mobile) */}
+      <button className="menu-toggle" onClick={() => setMenuOpen(!menuOpen)} style={menuButtonStyle}>
         ☰
       </button>
 
-      <div className={`navbar-links ${menuOpen ? "active" : ""}`}>
-        {isAdminOrManager && (
+      {/* Links */}
+      <div className={`navbar-links ${menuOpen ? "active" : ""}`} style={{ display: menuOpen ? "flex" : "flex", gap: 16, alignItems: "center" }}>
+        {/* Admin Links */}
+        {role === "admin" && (
           <>
-            <Link to="/dashboard" className="nav-link">
-              Dashboard
-            </Link>
-            <Link to="/workers" className="nav-link">
-              Workers
-            </Link>
-            <Link to="/attendance" className="nav-link">
-              Attendance
-            </Link>
+            <Link to="/dashboard" style={linkStyle}>Dashboard</Link>
+            <Link to="/workers" style={linkStyle}>Workers</Link>
+            <Link to="/attendance" style={linkStyle}>Attendance</Link>
+            <Link to="/managers" style={linkStyle}>Managers</Link>
+            <Link to="/reports" style={linkStyle}>Reports</Link>
+            <Link to="/profile" style={linkStyle}>Profile</Link>
           </>
         )}
-       <Link to="/managers" className="nav-link">
-  Managers
-</Link>
-        <Link to="/reports" className="nav-link">
-          Reports
-        </Link>
-        <Link to="/profile" className="nav-link">
-          Profile
-        </Link>
 
-        <button className="logout-btn" onClick={handleLogout}>
-          Logout
-        </button>
+        {/* Manager Links */}
+        {role === "manager" && (
+          <>
+            <Link to="/dashboard" style={linkStyle}>Dashboard</Link>
+            <Link to="/workers" style={linkStyle}>Workers</Link>
+            <Link to="/attendance" style={linkStyle}>Attendance</Link>
+            <Link to="/reports" style={linkStyle}>Reports</Link>
+            <Link to="/profile" style={linkStyle}>Profile</Link>
+          </>
+        )}
+
+        {/* Worker Links */}
+        {role === "worker" && (
+          <>
+            <Link to="/reports" style={linkStyle}>Reports</Link>
+            <Link to="/profile" style={linkStyle}>Profile</Link>
+          </>
+        )}
+
+        {/* Logout */}
+        <button onClick={handleLogout} style={logoutStyle}>Logout</button>
       </div>
     </nav>
   );
 }
+
+// Styles
+const navStyle = {
+  position: "fixed",
+  top: 0,
+  left: 0,
+  width: "100%",
+  zIndex: 1000,
+  background: "#2C3E50",
+  padding: "10px 20px",
+  display: "flex",
+  justifyContent: "space-between",
+  alignItems: "center",
+  color: "white",
+};
+
+const logoStyle = {
+  display: "flex",
+  alignItems: "center",
+  textDecoration: "none",
+  color: "white",
+  fontWeight: "bold",
+};
+
+const linkStyle = {
+  color: "white",
+  textDecoration: "none",
+  fontWeight: 500,
+  padding: "6px 8px",
+};
+
+const logoutStyle = {
+  background: "#e74c3c",
+  color: "white",
+  border: "none",
+  padding: "6px 10px",
+  borderRadius: 6,
+  cursor: "pointer",
+  fontWeight: 600,
+};
+
+const menuButtonStyle = {
+  background: "none",
+  border: "none",
+  color: "white",
+  fontSize: 24,
+  cursor: "pointer",
+};
 
 export default Navbar;
