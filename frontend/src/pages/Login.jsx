@@ -182,6 +182,7 @@ function Login() {
                 <option value="Vashali">Vashali</option>
                 <option value="Faridabad">Faridabad</option>
               </select>
+               <div style={{ position: "relative" }}>
               <input
                 type="text"
                 placeholder="Enter Contact Number"
@@ -189,6 +190,10 @@ function Login() {
                 onChange={(e) => setContactNo(e.target.value)}
                 required
                 style={inputStyle}
+                 <span onClick={() => setShowPassword(!showPassword)} style={eyeStyle}>
+                  {showPassword ? "🙈" : "👁️"}
+                </span>
+              </div>
               />
             </>
           )}
@@ -204,6 +209,7 @@ function Login() {
                 required
                 style={inputStyle}
               />
+              <div style={{ position: "relative" }}>
               <input
                 type="text"
                 placeholder="Enter Contact Number"
@@ -211,6 +217,10 @@ function Login() {
                 onChange={(e) => setContactNo(e.target.value)}
                 required
                 style={inputStyle}
+                 <span onClick={() => setShowPassword(!showPassword)} style={eyeStyle}>
+                  {showPassword ? "🙈" : "👁️"}
+                </span>
+              </div>
               />
             </>
           )}
