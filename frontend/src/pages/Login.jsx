@@ -9,7 +9,7 @@ function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
-  const [name, setName] = useState(""); // Worker or manager name/site
+  const [name, setName] = useState(""); // Worker name or Manager site
   const [contactNo, setContactNo] = useState("");
   const navigate = useNavigate();
 
@@ -36,16 +36,17 @@ function Login() {
         );
       }
 
-     
-      const userData = {
-        ...res.data.user,
-        displayName:
-          res.data.user.name || res.data.user.site || res.data.user.name || "User",
-      };
+  
+      let displayName = "User";
+      if (role === "admin") displayName = res.data.user.name || "Admin";
+      else if (role === "manager") displayName = res.data.user.site || "Manager";
+      else if (role === "worker") displayName = res.data.user.name || "Worker";
 
+    
+      const userData = { ...res.data.user, displayName };
       localStorage.setItem("user", JSON.stringify(userData));
 
-      alert(`✅ Login Successful — Welcome ${res.data.user.name || "User"}`);
+      alert(`✅ Login Successful — Welcome ${displayName}`);
       navigate("/dashboard");
     } catch (err) {
       alert(err.response?.data?.msg || "❌ Login failed. Please try again.");
@@ -54,7 +55,6 @@ function Login() {
 
   return (
     <div
-      className="login-container"
       style={{
         backgroundImage: `url(${loginPage})`,
         backgroundSize: "cover",
@@ -66,7 +66,6 @@ function Login() {
       }}
     >
       <div
-        className="login-box"
         style={{
           backdropFilter: "blur(10px)",
           borderRadius: "16px",
@@ -75,7 +74,7 @@ function Login() {
           boxShadow: "0 4px 12px rgba(0,0,0,0.4)",
         }}
       >
-       
+        {/* Logo + Title */}
         <div
           style={{
             display: "flex",
@@ -87,8 +86,14 @@ function Login() {
         >
           <img
             src={logo}
-            alt="Logo"
-            style={{ width: 44, height: 55, objectFit: "contain" }}
+            alt="Bartons Builders Limited logo"
+            style={{
+              width: 44,
+              height: 55,
+              objectFit: "contain",
+              borderRadius: 6,
+              background: "transparent",
+            }}
           />
           <h1
             style={{
@@ -103,8 +108,9 @@ function Login() {
           </h1>
         </div>
 
-        <div className="role-selection" style={{ marginBottom: "20px", textAlign: "center", color: "white" }}>
-          <label>
+      
+        <div style={{ marginBottom: "20px", textAlign: "center", color: "white" }}>
+          <label style={{ marginRight: "15px" }}>
             <input
               type="radio"
               name="role"
@@ -115,7 +121,7 @@ function Login() {
             Admin
           </label>
 
-          <label style={{ marginLeft: "15px" }}>
+          <label style={{ marginRight: "15px" }}>
             <input
               type="radio"
               name="role"
@@ -126,7 +132,7 @@ function Login() {
             Manager
           </label>
 
-          <label style={{ marginLeft: "15px" }}>
+          <label>
             <input
               type="radio"
               name="role"
@@ -138,8 +144,9 @@ function Login() {
           </label>
         </div>
 
+     
         <form onSubmit={handleLogin}>
-          {/* Admin */}
+          {/* Admin login */}
           {role === "admin" && (
             <>
               <input
@@ -166,7 +173,7 @@ function Login() {
             </>
           )}
 
-          {/* Manager */}
+          {/* Manager login */}
           {role === "manager" && (
             <>
               <select
@@ -182,23 +189,18 @@ function Login() {
                 <option value="Faridabad">Faridabad</option>
               </select>
 
-              <div style={{ position: "relative" }}>
-                <input
-                  type="text"
-                  placeholder="Enter Contact Number"
-                  value={contactNo}
-                  onChange={(e) => setContactNo(e.target.value)}
-                  required
-                  style={inputStyle}
-                />
-                <span onClick={() => setShowPassword(!showPassword)} style={eyeStyle}>
-                  {showPassword ? "🙈" : "👁️"}
-                </span>
-              </div>
+              <input
+                type="text"
+                placeholder="Enter Contact Number"
+                value={contactNo}
+                onChange={(e) => setContactNo(e.target.value)}
+                required
+                style={inputStyle}
+              />
             </>
           )}
 
-          {/* Worker */}
+          {/* Worker login */}
           {role === "worker" && (
             <>
               <input
@@ -209,19 +211,14 @@ function Login() {
                 required
                 style={inputStyle}
               />
-              <div style={{ position: "relative" }}>
-                <input
-                  type="text"
-                  placeholder="Enter Contact Number"
-                  value={contactNo}
-                  onChange={(e) => setContactNo(e.target.value)}
-                  required
-                  style={inputStyle}
-                />
-                <span onClick={() => setShowPassword(!showPassword)} style={eyeStyle}>
-                  {showPassword ? "🙈" : "👁️"}
-                </span>
-              </div>
+              <input
+                type="text"
+                placeholder="Enter Contact Number"
+                value={contactNo}
+                onChange={(e) => setContactNo(e.target.value)}
+                required
+                style={inputStyle}
+              />
             </>
           )}
 
