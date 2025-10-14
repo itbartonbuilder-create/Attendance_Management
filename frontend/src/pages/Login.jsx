@@ -9,7 +9,7 @@ function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
-  const [name, setName] = useState("");
+  const [name, setName] = useState(""); // Worker or manager name/site
   const [contactNo, setContactNo] = useState("");
   const navigate = useNavigate();
 
@@ -29,19 +29,23 @@ function Login() {
           "https://attendance-management-backend-vh2w.onrender.com/api/auth/login",
           { site: name, contactNo }
         );
-      }
-      else {
+      } else {
         res = await axios.post(
           "https://attendance-management-backend-vh2w.onrender.com/api/auth/login",
           { name, contactNo }
         );
       }
 
-      console.log("Login Response:", res.data.user);
+     
+      const userData = {
+        ...res.data.user,
+        displayName:
+          res.data.user.name || res.data.user.site || res.data.user.name || "User",
+      };
 
-      localStorage.setItem("user", JSON.stringify(res.data.user));
+      localStorage.setItem("user", JSON.stringify(userData));
 
-      alert(`✅ Login Successful — Welcome ${res.data.user.name || "User"}`);
+      alert(`✅ Login Successful — Welcome ${userData.displayName}`);
       navigate("/dashboard");
     } catch (err) {
       alert(err.response?.data?.msg || "❌ Login failed. Please try again.");
@@ -63,8 +67,15 @@ function Login() {
     >
       <div
         className="login-box"
-        style={{ backdropFilter: "blur(10px)", borderRadius: "16px" }}
+        style={{
+          backdropFilter: "blur(10px)",
+          borderRadius: "16px",
+          padding: "30px",
+          width: "350px",
+          boxShadow: "0 4px 12px rgba(0,0,0,0.4)",
+        }}
       >
+       
         <div
           style={{
             display: "flex",
@@ -85,13 +96,14 @@ function Login() {
               color: "white",
               textShadow: "0 2px 8px rgba(0,0,0,0.4)",
               margin: 0,
+              fontSize: "18px",
             }}
           >
             Bartons Builders Limited
           </h1>
         </div>
 
-        <div className="role-selection" style={{ marginBottom: "20px" }}>
+        <div className="role-selection" style={{ marginBottom: "20px", textAlign: "center", color: "white" }}>
           <label>
             <input
               type="radio"
@@ -127,17 +139,17 @@ function Login() {
         </div>
 
         <form onSubmit={handleLogin}>
+          {/* Admin */}
           {role === "admin" && (
             <>
               <input
                 type="email"
-                placeholder={`Enter ${role} Email`}
+                placeholder="Enter Admin Email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
                 style={inputStyle}
               />
-
               <div style={{ position: "relative" }}>
                 <input
                   type={showPassword ? "text" : "password"}
@@ -147,51 +159,46 @@ function Login() {
                   required
                   style={inputStyle}
                 />
-                <span
-                  onClick={() => setShowPassword(!showPassword)}
-                  style={eyeStyle}
-                >
+                <span onClick={() => setShowPassword(!showPassword)} style={eyeStyle}>
                   {showPassword ? "🙈" : "👁️"}
                 </span>
               </div>
             </>
           )}
-{role === "manager" && (
+
+          {/* Manager */}
+          {role === "manager" && (
             <>
               <select
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 required
-                style={{
-                  ...inputStyle,
-                  width: "100%",
-                  color: name ? "white" : "gray",
-                }}
+                style={{ ...inputStyle, width: "100%", color: name ? "white" : "gray" }}
               >
                 <option value="">Select Site</option>
-      <option value="Bangalore">Bangalore</option>
-      <option value="Japuriya">Japuriya</option>
-      <option value="Vashali">Vashali</option>
-      <option value="Faridabad">Faridabad</option>
+                <option value="Bangalore">Bangalore</option>
+                <option value="Japuriya">Japuriya</option>
+                <option value="Vashali">Vashali</option>
+                <option value="Faridabad">Faridabad</option>
               </select>
-<div style={{ position: "relative" }}>
-              <input
-                type="text"
-                placeholder="Enter Contact Number"
-                value={contactNo}
-                onChange={(e) => setContactNo(e.target.value)}
-                required
-                style={inputStyle}
-              />
-                 <span
-                  onClick={() => setShowPassword(!showPassword)}
-                  style={eyeStyle}
-                >
+
+              <div style={{ position: "relative" }}>
+                <input
+                  type="text"
+                  placeholder="Enter Contact Number"
+                  value={contactNo}
+                  onChange={(e) => setContactNo(e.target.value)}
+                  required
+                  style={inputStyle}
+                />
+                <span onClick={() => setShowPassword(!showPassword)} style={eyeStyle}>
                   {showPassword ? "🙈" : "👁️"}
                 </span>
               </div>
             </>
           )}
+
+          {/* Worker */}
           {role === "worker" && (
             <>
               <input
@@ -211,10 +218,7 @@ function Login() {
                   required
                   style={inputStyle}
                 />
-                 <span
-                  onClick={() => setShowPassword(!showPassword)}
-                  style={eyeStyle}
-                >
+                <span onClick={() => setShowPassword(!showPassword)} style={eyeStyle}>
                   {showPassword ? "🙈" : "👁️"}
                 </span>
               </div>
