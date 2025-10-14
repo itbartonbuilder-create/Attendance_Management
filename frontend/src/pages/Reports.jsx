@@ -18,8 +18,8 @@ function AttendanceReport() {
   const [workerSummary, setWorkerSummary] = useState(null);
   const [showReport, setShowReport] = useState(false);
 
-  const API_URL = "https://attendance-management-backend-vh2w.onrender.com/api/attendance"; 
-
+  const API_URL =
+    "https://attendance-management-backend-vh2w.onrender.com/api/attendance";
 
   useEffect(() => {
     const savedUser = localStorage.getItem("user");
@@ -31,19 +31,15 @@ function AttendanceReport() {
     setUser(u);
 
    
-    if (u.role === "worker") {
-      alert("❌ Access denied for workers.");
-      navigate("/dashboard");
-      return;
-    }
-
- 
     if (u.role === "manager") {
       setSelectedSite(u.site);
-      fetchWorkersBySite(u.site, u.role); 
+      fetchWorkersBySite(u.site, "manager");
+    } else if (u.role === "worker") {
+      setSelectedSite(u.site);
+      setSelectedWorker(u._id);
+      fetchWorkersBySite(u.site, "worker");
     }
   }, [navigate]);
-
 
   const fetchWorkersBySite = async (site, role = user?.role) => {
     try {
@@ -52,6 +48,8 @@ function AttendanceReport() {
 
       if (role === "manager") {
         filtered = filtered.filter((w) => w.site === site);
+      } else if (role === "worker") {
+        filtered = filtered.filter((w) => w._id === user._id);
       } else if (site) {
         filtered = filtered.filter((w) => w.site === site);
       }
@@ -67,7 +65,7 @@ function AttendanceReport() {
     setSelectedSite(site);
     setSelectedWorker("");
     setShowReport(false);
-    if (site) fetchWorkersBySite(site); 
+    if (site) fetchWorkersBySite(site);
     else setWorkers([]);
   };
 
@@ -88,13 +86,24 @@ function AttendanceReport() {
       );
 
       if (res.data.success) {
-        const worker = workers.find((w) => w._id === selectedWorker);
-        const salary = worker ? worker.perDaySalary : 0;
+        let workerName = "";
+        let salary = 0;
+
+  
+        if (user.role === "worker") {
+          workerName = user.name;
+          salary = user.perDaySalary || 0;
+        } else {
+          const worker = workers.find((w) => w._id === selectedWorker);
+          workerName = worker?.name || "";
+          salary = worker?.perDaySalary || 0;
+        }
 
         setWorkerHistory(res.data.history);
         setWorkerSummary({
           ...res.data.summary,
           perDaySalary: salary,
+          name: workerName,
         });
       } else {
         setWorkerHistory([]);
@@ -116,9 +125,9 @@ function AttendanceReport() {
     doc.setFontSize(16);
     doc.text("Attendance Report", 14, 15);
     doc.setFontSize(11);
-    const worker = workers.find((w) => w._id === selectedWorker);
+
     doc.text(
-      `Site: ${selectedSite || "N/A"} | Worker: ${worker?.name || "N/A"}`,
+      `Site: ${selectedSite || "N/A"} | Worker: ${workerSummary?.name || "N/A"}`,
       14,
       25
     );
@@ -233,22 +242,24 @@ function AttendanceReport() {
           </label>
         )}
 
-        <label>
-          👷 Worker:
-          <select
-            value={selectedWorker}
-            onChange={handleWorkerChange}
-            disabled={!selectedSite}
-            style={{ padding: "6px", marginLeft: "10px" }}
-          >
-            <option value="">-- Select Worker --</option>
-            {workers.map((w) => (
-              <option key={w._id} value={w._id}>
-                {w.name}
-              </option>
-            ))}
-          </select>
-        </label>
+        {user?.role !== "worker" && (
+          <label>
+            👷 Worker:
+            <select
+              value={selectedWorker}
+              onChange={handleWorkerChange}
+              disabled={!selectedSite}
+              style={{ padding: "6px", marginLeft: "10px" }}
+            >
+              <option value="">-- Select Worker --</option>
+              {workers.map((w) => (
+                <option key={w._id} value={w._id}>
+                  {w.name}
+                </option>
+              ))}
+            </select>
+          </label>
+        )}
 
         <button
           onClick={fetchHistoryByDateRange}
@@ -268,6 +279,7 @@ function AttendanceReport() {
 
       {showReport && (
         <>
+          <h3>👷 Worker: {workerSummary?.name || "N/A"}</h3>
           <h3>
             🧾 Attendance History ({startDate} → {endDate})
           </h3>
@@ -361,7 +373,8 @@ function AttendanceReport() {
                 </div>
                 <div>
                   💵 <strong>Total Payment:</strong> ₹
-                  {(workerSummary.Present || 0) * (workerSummary.perDaySalary || 0)}
+                  {(workerSummary.Present || 0) *
+                    (workerSummary.perDaySalary || 0)}
                 </div>
               </div>
             </>
