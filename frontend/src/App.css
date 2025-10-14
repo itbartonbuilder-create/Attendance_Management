@@ -366,7 +366,7 @@ select{
     border-radius: 8px;
     border: 1px solid #ddd;
     outline: none;
-    font-size: 16px;
+    font-size: 14px;
     transition: 0.3s;
     margin-right: 15px;
 }
