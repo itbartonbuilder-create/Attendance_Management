@@ -77,7 +77,7 @@ function Login() {
             alignItems: "center",
             justifyContent: "center",
             gap: "12px",
-            marginBottom: "25px",
+            marginBottom: "15px",
           }}
         >
           <img src={logo} alt="Logo" style={{ width: 44, height: 55, objectFit: "contain" }} />
