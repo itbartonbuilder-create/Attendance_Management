@@ -1,14 +1,14 @@
 import React, { useEffect, useState } from "react";
+import "../App.css";
 
 function Workers() {
   const [workers, setWorkers] = useState([]);
   const [name, setName] = useState("");
-  const [contactNo, setContactNo] = useState(""); 
+  const [contactNo, setContactNo] = useState("");
   const [roleType, setRoleType] = useState("");
   const [role, setRole] = useState("");
   const [site, setSite] = useState("");
   const [perDaySalary, setPerDaySalary] = useState("");
-
   const [editingId, setEditingId] = useState(null);
 
   const [sites] = useState(["Bangalore", "Japuriya", "Vashali", "Faridabad"]);
@@ -19,11 +19,30 @@ function Workers() {
     Worker: ["Male", "Female"],
   };
 
+
+  const user = JSON.parse(localStorage.getItem("user"));
+
+  useEffect(() => {
+    if (!user || (user.role !== "admin" && user.role !== "manager")) {
+      alert("❌ You are not authorized to access this page!");
+      window.location.href = "/login";
+    }
+  }, [user]);
+
   const fetchWorkers = () => {
     fetch("https://attendance-management-backend-vh2w.onrender.com/api/workers")
       .then((res) => res.json())
-      .then((data) => setWorkers(data))
-      .catch((err) => console.error(err));
+      .then((data) => {
+        if (user.role === "manager") {
+         
+          const filtered = data.filter((w) => w.site === user.site);
+          setWorkers(filtered);
+        } else {
+        
+          setWorkers(data);
+        }
+      })
+      .catch((err) => console.error("Error fetching workers:", err));
   };
 
   useEffect(() => {
@@ -38,10 +57,22 @@ function Workers() {
       return;
     }
 
-    const payload = { name, roleType, role, site, perDaySalary, contactNo };
+    const payload = {
+      name,
+      roleType,
+      role,
+      site: user.role === "manager" ? user.site : site,
+      perDaySalary,
+      contactNo,
+    };
 
     if (editingId) {
-      
+      const workerToEdit = workers.find((w) => w._id === editingId);
+      if (user.role === "manager" && workerToEdit.site !== user.site) {
+        alert("❌ You cannot edit workers from another site!");
+        return;
+      }
+
       fetch(`https://attendance-management-backend-vh2w.onrender.com/api/workers/${editingId}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
@@ -49,14 +80,11 @@ function Workers() {
       })
         .then((res) => res.json())
         .then((updatedWorker) => {
-          setWorkers(
-            workers.map((w) => (w._id === editingId ? updatedWorker : w))
-          );
+          setWorkers(workers.map((w) => (w._id === editingId ? updatedWorker : w)));
           resetForm();
         })
-        .catch((err) => console.error(err));
+        .catch((err) => console.error("Error updating worker:", err));
     } else {
-      
       fetch("https://attendance-management-backend-vh2w.onrender.com/api/workers", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -67,7 +95,7 @@ function Workers() {
           setWorkers((prev) => [...prev, newWorker]);
           resetForm();
         })
-        .catch((err) => console.error(err));
+        .catch((err) => console.error("Error adding worker:", err));
     }
   };
 
@@ -82,13 +110,25 @@ function Workers() {
   };
 
   const deleteWorker = (id) => {
-    fetch(`https://attendance-management-backend-vh2w.onrender.com/api/workers/${id}`, { method: "DELETE" })
+    const workerToDelete = workers.find((w) => w._id === id);
+    if (user.role === "manager" && workerToDelete.site !== user.site) {
+      alert("❌ You cannot delete workers from another site!");
+      return;
+    }
+
+    fetch(`https://attendance-management-backend-vh2w.onrender.com/api/workers/${id}`, {
+      method: "DELETE",
+    })
       .then((res) => res.json())
       .then(() => setWorkers(workers.filter((w) => w._id !== id)))
-      .catch((err) => console.error(err));
+      .catch((err) => console.error("Error deleting worker:", err));
   };
 
   const editWorker = (worker) => {
+    if (user.role === "manager" && worker.site !== user.site) {
+      alert("❌ You cannot edit workers from another site!");
+      return;
+    }
     setName(worker.name);
     setContactNo(worker.contactNo);
     setRoleType(worker.roleType);
@@ -98,15 +138,13 @@ function Workers() {
     setEditingId(worker._id);
   };
 
+  const displaySites = user.role === "manager" ? [user.site] : sites;
+
   return (
     <div className="workers-container">
       <h2>👷 Workers List</h2>
 
-      <form
-        onSubmit={handleSubmit}
-        style={{ marginBottom: "20px" }}
-        className="workers-form"
-      >
+      <form onSubmit={handleSubmit} className="workers-form" style={{ marginBottom: "20px" }}>
         <input
           type="text"
           placeholder="Enter worker name"
@@ -115,8 +153,6 @@ function Workers() {
           required
           style={{ marginRight: "10px", padding: "9px" }}
         />
-
-      
 
         <select
           value={roleType}
@@ -151,20 +187,23 @@ function Workers() {
             ))}
         </select>
 
-        <select
-          value={site}
-          onChange={(e) => setSite(e.target.value)}
-          required
-          style={{ marginRight: "10px", padding: "9px" }}
-        >
-          <option value="">Select Site</option>
-          {sites.map((s) => (
-            <option key={s} value={s}>
-              {s}
-            </option>
-          ))}
-        </select>
-  <input
+        {user.role === "admin" && (
+          <select
+            value={site}
+            onChange={(e) => setSite(e.target.value)}
+            required
+            style={{ marginRight: "10px", padding: "9px" }}
+          >
+            <option value="">Select Site</option>
+            {sites.map((s) => (
+              <option key={s} value={s}>
+                {s}
+              </option>
+            ))}
+          </select>
+        )}
+
+        <input
           type="text"
           placeholder="Enter contact number"
           value={contactNo}
@@ -173,6 +212,7 @@ function Workers() {
           maxLength="10"
           style={{ marginRight: "10px", padding: "9px" }}
         />
+
         <input
           type="number"
           placeholder="Per Day Salary"
@@ -182,29 +222,19 @@ function Workers() {
           style={{ marginRight: "10px", padding: "9px" }}
         />
 
-        <button type="submit">
-          {editingId ? "Update Worker" : "Add Worker"}
-        </button>
+        <button type="submit">{editingId ? "Update Worker" : "Add Worker"}</button>
 
         {editingId && (
-          <button
-            type="button"
-            onClick={resetForm}
-            style={{ marginLeft: "10px" }}
-          >
+          <button type="button" onClick={resetForm} style={{ marginLeft: "10px" }}>
             Cancel
           </button>
         )}
       </form>
 
-      {sites.map((s) => (
+      {displaySites.map((s) => (
         <div key={s}>
           <h3 style={{ marginTop: "20px" }}>🏗 Site: {s}</h3>
-          <table
-            border="1"
-            cellPadding="8"
-            style={{ width: "100%", borderCollapse: "collapse" }}
-          >
+          <table border="1" cellPadding="8" style={{ width: "100%", borderCollapse: "collapse" }}>
             <thead style={{ background: "#2C3E50", color: "white" }}>
               <tr>
                 <th>ID</th>
@@ -212,7 +242,7 @@ function Workers() {
                 <th>Role Type</th>
                 <th>Sub Role</th>
                 <th>Site</th>
-                <th>Contact No</th> 
+                <th>Contact No</th>
                 <th>Per Day Salary</th>
                 <th>Action</th>
               </tr>
@@ -227,7 +257,7 @@ function Workers() {
                     <td>{w.roleType}</td>
                     <td>{w.role}</td>
                     <td>{w.site}</td>
-                    <td>{w.contactNo}</td> 
+                    <td>{w.contactNo}</td>
                     <td>₹{w.perDaySalary}</td>
                     <td>
                       <button
