@@ -89,7 +89,7 @@ function Attendance() {
   };
 
   return (
-    <div className="attendance-container" style={{ padding: 20 }}>
+    <div className="attendance-container" >
       <h2>📝 Mark Attendance</h2>
 
       <label>
