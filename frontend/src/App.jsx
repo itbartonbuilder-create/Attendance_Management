@@ -9,6 +9,7 @@ import Reports from "./pages/Reports";
 import Attendance from "./pages/Attendance";
 import Profile from "./pages/Profile";
 import Login from "./pages/Login";
+import Managers from "./pages/Managers";
 
 function App() {
   return (
@@ -24,6 +25,7 @@ function App() {
         <Route path="/reports" element={<Reports />} />
         <Route path="/profile" element={<Profile />} />
         <Route path="/login" element={<Login />} />
+        <Route path="/managers" element={<Managers />} />
       </Routes>
     </Router>
   );
