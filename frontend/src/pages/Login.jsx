@@ -87,7 +87,7 @@ function Login() {
               color: "white",
               textShadow: "0 2px 8px rgba(0,0,0,0.4)",
               margin: 0,
-              fontSize: "24px",
+              fontSize: "25px",
             }}
           >
             Bartons Builders Limited
