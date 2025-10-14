@@ -249,7 +249,7 @@ function AttendanceReport() {
               value={selectedWorker}
               onChange={handleWorkerChange}
               disabled={!selectedSite}
-              style={{ padding: "6px", marginLeft: "10px" }}
+              style={{ padding: "6px", marginLeft: "20px" }}
             >
               <option value="">-- Select Worker --</option>
               {workers.map((w) => (
