@@ -45,7 +45,7 @@ function Login() {
 
       localStorage.setItem("user", JSON.stringify(userData));
 
-      alert(`✅ Login Successful — Welcome ${userData.displayName}`);
+      alert(`✅ Login Successful — Welcome ${res.data.user.name || "User"}`);
       navigate("/dashboard");
     } catch (err) {
       alert(err.response?.data?.msg || "❌ Login failed. Please try again.");
