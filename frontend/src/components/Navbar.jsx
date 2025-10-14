@@ -56,7 +56,9 @@ function Navbar() {
             </Link>
           </>
         )}
-       
+       <Link to="/managers" style={linkStyle}>
+  Managers
+</Link>
         <Link to="/reports" className="nav-link">
           Reports
         </Link>
