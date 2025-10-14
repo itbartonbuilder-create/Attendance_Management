@@ -1,9 +1,13 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import axios from "axios";
 import { jsPDF } from "jspdf";
 import autoTable from "jspdf-autotable";
+import { useNavigate } from "react-router-dom";
+import "../App.css";
 
 function AttendanceReport() {
+  const navigate = useNavigate();
+  const [user, setUser] = useState(null);
   const [sites] = useState(["Bangalore", "Japuriya", "Vashali", "Faridabad"]);
   const [selectedSite, setSelectedSite] = useState("");
   const [workers, setWorkers] = useState([]);
@@ -14,20 +18,64 @@ function AttendanceReport() {
   const [workerSummary, setWorkerSummary] = useState(null);
   const [showReport, setShowReport] = useState(false);
 
-  const API_URL = "https://attendance-management-backend-vh2w.onrender.com/api/attendance";
+  const API_URL = "https://attendance-management-backend-vh2w.onrender.com/api/attendance"; 
 
 
-  const fetchWorkersBySite = async (site) => {
+  useEffect(() => {
+    const savedUser = localStorage.getItem("user");
+    if (!savedUser) {
+      navigate("/login");
+      return;
+    }
+    const u = JSON.parse(savedUser);
+    setUser(u);
+
+   
+    if (u.role === "worker") {
+      alert("❌ Access denied for workers.");
+      navigate("/dashboard");
+      return;
+    }
+
+ 
+    if (u.role === "manager") {
+      setSelectedSite(u.site);
+      fetchWorkersBySite(u.site, u.role); 
+    }
+  }, [navigate]);
+
+
+  const fetchWorkersBySite = async (site, role = user?.role) => {
     try {
       const res = await axios.get(`${API_URL}/workers`);
-      const filtered = res.data.filter((w) => w.site === site);
+      let filtered = res.data;
+
+      if (role === "manager") {
+        filtered = filtered.filter((w) => w.site === site);
+      } else if (site) {
+        filtered = filtered.filter((w) => w.site === site);
+      }
+
       setWorkers(filtered);
     } catch (err) {
       console.error("Error fetching workers:", err);
     }
   };
 
- 
+  const handleSiteChange = (e) => {
+    const site = e.target.value;
+    setSelectedSite(site);
+    setSelectedWorker("");
+    setShowReport(false);
+    if (site) fetchWorkersBySite(site); 
+    else setWorkers([]);
+  };
+
+  const handleWorkerChange = (e) => {
+    setSelectedWorker(e.target.value);
+    setShowReport(false);
+  };
+
   const fetchHistoryByDateRange = async () => {
     if (!selectedWorker || !startDate || !endDate) {
       alert("⚠️ Please select site, worker, start date, and end date.");
@@ -62,21 +110,6 @@ function AttendanceReport() {
     }
   };
 
-  const handleSiteChange = (e) => {
-    const site = e.target.value;
-    setSelectedSite(site);
-    setSelectedWorker("");
-    setShowReport(false);
-    if (site) fetchWorkersBySite(site);
-    else setWorkers([]);
-  };
-
-  const handleWorkerChange = (e) => {
-    setSelectedWorker(e.target.value);
-    setShowReport(false);
-  };
-
- 
   const downloadPDF = () => {
     const doc = new jsPDF();
 
@@ -164,10 +197,7 @@ function AttendanceReport() {
             type="date"
             value={startDate}
             onChange={(e) => setStartDate(e.target.value)}
-            style={{
-              marginLeft: "8px",
-              padding: "6px",
-            }}
+            style={{ marginLeft: "8px", padding: "6px" }}
           />
         </label>
 
@@ -177,28 +207,31 @@ function AttendanceReport() {
             type="date"
             value={endDate}
             onChange={(e) => setEndDate(e.target.value)}
-            style={{
-              marginLeft: "8px",
-              padding: "6px",
-            }}
+            style={{ marginLeft: "8px", padding: "6px" }}
           />
         </label>
 
-        <label>
-          🏗️ Site:
-          <select
-            value={selectedSite}
-            onChange={handleSiteChange}
-            style={{ padding: "6px", marginLeft: "10px" }}
-          >
-            <option value="">-- Select Site --</option>
-            {sites.map((s) => (
-              <option key={s} value={s}>
-                {s}
-              </option>
-            ))}
-          </select>
-        </label>
+        {user?.role === "admin" ? (
+          <label>
+            🏗️ Site:
+            <select
+              value={selectedSite}
+              onChange={handleSiteChange}
+              style={{ padding: "6px", marginLeft: "10px" }}
+            >
+              <option value="">-- Select Site --</option>
+              {sites.map((s) => (
+                <option key={s} value={s}>
+                  {s}
+                </option>
+              ))}
+            </select>
+          </label>
+        ) : (
+          <label>
+            🏗️ Site: <strong>{selectedSite}</strong>
+          </label>
+        )}
 
         <label>
           👷 Worker:
@@ -226,6 +259,7 @@ function AttendanceReport() {
             border: "none",
             borderRadius: "5px",
             cursor: "pointer",
+            marginLeft: "10px",
           }}
         >
           🔍 Get Report
@@ -325,9 +359,9 @@ function AttendanceReport() {
                   💰 <strong>Per Day Salary:</strong> ₹
                   {workerSummary.perDaySalary}
                 </div>
-                <div>💵 <strong>Total Payment:</strong> ₹
-                  {(workerSummary.Present || 0) *
-                    (workerSummary.perDaySalary || 0)}
+                <div>
+                  💵 <strong>Total Payment:</strong> ₹
+                  {(workerSummary.Present || 0) * (workerSummary.perDaySalary || 0)}
                 </div>
               </div>
             </>
