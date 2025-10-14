@@ -180,7 +180,7 @@ const inputStyle = {
 const eyeStyle = {
   position: "absolute",
   right: "12px",
-  top: "18px",
+  top: "10px",
   cursor: "pointer",
   fontSize: "18px",
   color: "#fff",
