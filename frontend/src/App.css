@@ -344,6 +344,7 @@ select{
 }
 .attendance-container label{
   font-size: 22px;
+  margin-right: 28px;
 }
 .attendance-container input{
       padding: 9px 8px;
