@@ -63,7 +63,7 @@ function Login() {
     >
       <div
         style={{
-          backdropFilter: "blur(10px)",
+          backdropFilter: "blur(30px)",
           borderRadius: "16px",
           padding: "30px",
           width: "350px",
