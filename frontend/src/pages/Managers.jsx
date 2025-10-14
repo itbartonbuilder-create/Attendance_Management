@@ -12,7 +12,7 @@ function Managers() {
   const [sites] = useState(["Bangalore", "Japuriya", "Vashali", "Faridabad"]);
 
   const fetchManagers = () => {
-    fetch("http://localhost:8000/api/managers")
+    fetch("https://attendance-management-backend-vh2w.onrender.com/api/managers")
       .then((res) => res.json())
       .then((data) => setManagers(data))
       .catch((err) => console.error("Error fetching managers:", err));
@@ -33,7 +33,7 @@ function Managers() {
     const payload = { name, email, contactNo, site };
 
     if (editingId) {
-      fetch(`http://localhost:8000/api/managers/${editingId}`, {
+      fetch(`https://attendance-management-backend-vh2w.onrender.com/api/managers/${editingId}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
@@ -45,7 +45,7 @@ function Managers() {
         })
         .catch((err) => console.error("Error updating manager:", err));
     } else {
-      fetch("http://localhost:8000/api/managers", {
+      fetch("https://attendance-management-backend-vh2w.onrender.com/api/managers", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
@@ -68,7 +68,7 @@ function Managers() {
   };
 
   const deleteManager = (id) => {
-    fetch(`http://localhost:8000/api/managers/${id}`, {
+    fetch(`https://attendance-management-backend-vh2w.onrender.com/api/managers/${id}`, {
       method: "DELETE",
     })
       .then(() => setManagers(managers.filter((m) => m._id !== id)))
@@ -203,3 +203,4 @@ function Managers() {
 }
 
 export default Managers;
+
