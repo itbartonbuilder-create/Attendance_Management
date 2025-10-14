@@ -96,15 +96,15 @@ function Login() {
 
         {/* Role Selection */}
         <div style={{ marginBottom: "20px", textAlign: "center", color: "white" }}>
-          <label style={{ marginRight: "15px", fontSize: "21px" }}>
+          <label style={{ marginRight: "15px", fontSize: "19px" }}>
             <input type="radio" name="role" value="admin" checked={role === "admin"} 
               onChange={(e) => setRole(e.target.value)} /> Admin
           </label>
-          <label style={{ marginRight: "15px", fontSize: "21px" }}>
+          <label style={{ marginRight: "15px", fontSize: "19px" }}>
             <input type="radio" name="role" value="manager" checked={role === "manager"} 
               onChange={(e) => setRole(e.target.value)} /> Manager
           </label>
-          <label style={{fontSize: "21px" }}>
+          <label style={{fontSize: "19px" }}>
             <input type="radio" name="role" value="worker" checked={role === "worker"}
               onChange={(e) => setRole(e.target.value)} /> Worker
           </label>
