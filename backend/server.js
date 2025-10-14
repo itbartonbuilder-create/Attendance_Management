@@ -3,6 +3,7 @@ import cors from "cors";
 import dotenv from "dotenv";
 import connectDB from "./config/db.js";
 import attendanceRoutes from "./routes/reports.js";
+import managerRoutes from "./routes/managerRoutes.js";
 // import statsRoute from "./routes/Statistics.js";
 
 dotenv.config();
@@ -20,6 +21,7 @@ import reportsRoutes from "./routes/reports.js";
 app.use("/api/attendance/reports", reportsRoutes);
 // app.use("/api/attendance", statsRoute);
 app.use("/api/attendance", attendanceRoutes);
+app.use("/api/managers", managerRoutes);
 
 
 app.get("/", (req, res) => res.send("🚀 Attendance Management Backend is Running!"));
