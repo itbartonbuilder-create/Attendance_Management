@@ -9,7 +9,7 @@ function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
-  const [name, setName] = useState(""); // Worker name or Manager site
+  const [name, setName] = useState("");
   const [contactNo, setContactNo] = useState("");
   const navigate = useNavigate();
 
@@ -36,17 +36,15 @@ function Login() {
         );
       }
 
-  
-      let displayName = "User";
-      if (role === "admin") displayName = res.data.user.name || "Admin";
-      else if (role === "manager") displayName = res.data.user.site || "Manager";
-      else if (role === "worker") displayName = res.data.user.name || "Worker";
+      // ✅ Fix: displayName properly set
+      const userData = {
+        ...res.data.user,
+        displayName: res.data.user.name || res.data.user.site || "User",
+      };
 
-    
-      const userData = { ...res.data.user, displayName };
       localStorage.setItem("user", JSON.stringify(userData));
 
-      alert(`✅ Login Successful — Welcome ${displayName}`);
+      alert(`✅ Login Successful — Welcome ${userData.displayName}`);
       navigate("/dashboard");
     } catch (err) {
       alert(err.response?.data?.msg || "❌ Login failed. Please try again.");
@@ -74,7 +72,6 @@ function Login() {
           boxShadow: "0 4px 12px rgba(0,0,0,0.4)",
         }}
       >
-        {/* Logo + Title */}
         <div
           style={{
             display: "flex",
@@ -84,17 +81,7 @@ function Login() {
             marginBottom: "25px",
           }}
         >
-          <img
-            src={logo}
-            alt="Bartons Builders Limited logo"
-            style={{
-              width: 44,
-              height: 55,
-              objectFit: "contain",
-              borderRadius: 6,
-              background: "transparent",
-            }}
-          />
+          <img src={logo} alt="Logo" style={{ width: 44, height: 55, objectFit: "contain" }} />
           <h1
             style={{
               fontWeight: "bold",
@@ -108,123 +95,50 @@ function Login() {
           </h1>
         </div>
 
-      
         <div style={{ marginBottom: "20px", textAlign: "center", color: "white" }}>
           <label style={{ marginRight: "15px" }}>
-            <input
-              type="radio"
-              name="role"
-              value="admin"
-              checked={role === "admin"}
-              onChange={(e) => setRole(e.target.value)}
-            />{" "}
-            Admin
+            <input type="radio" name="role" value="admin" checked={role === "admin"} onChange={(e) => setRole(e.target.value)} /> Admin
           </label>
-
           <label style={{ marginRight: "15px" }}>
-            <input
-              type="radio"
-              name="role"
-              value="manager"
-              checked={role === "manager"}
-              onChange={(e) => setRole(e.target.value)}
-            />{" "}
-            Manager
+            <input type="radio" name="role" value="manager" checked={role === "manager"} onChange={(e) => setRole(e.target.value)} /> Manager
           </label>
-
           <label>
-            <input
-              type="radio"
-              name="role"
-              value="worker"
-              checked={role === "worker"}
-              onChange={(e) => setRole(e.target.value)}
-            />{" "}
-            Worker
+            <input type="radio" name="role" value="worker" checked={role === "worker"} onChange={(e) => setRole(e.target.value)} /> Worker
           </label>
         </div>
 
-     
         <form onSubmit={handleLogin}>
-          {/* Admin login */}
           {role === "admin" && (
             <>
-              <input
-                type="email"
-                placeholder="Enter Admin Email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-                style={inputStyle}
-              />
+              <input type="email" placeholder="Enter Admin Email" value={email} onChange={(e) => setEmail(e.target.value)} required style={inputStyle} />
               <div style={{ position: "relative" }}>
-                <input
-                  type={showPassword ? "text" : "password"}
-                  placeholder="Enter Password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  required
-                  style={inputStyle}
-                />
-                <span onClick={() => setShowPassword(!showPassword)} style={eyeStyle}>
-                  {showPassword ? "🙈" : "👁️"}
-                </span>
+                <input type={showPassword ? "text" : "password"} placeholder="Enter Password" value={password} onChange={(e) => setPassword(e.target.value)} required style={inputStyle} />
+                <span onClick={() => setShowPassword(!showPassword)} style={eyeStyle}>{showPassword ? "🙈" : "👁️"}</span>
               </div>
             </>
           )}
 
-          {/* Manager login */}
           {role === "manager" && (
             <>
-              <select
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                required
-                style={{ ...inputStyle, width: "100%", color: name ? "white" : "gray" }}
-              >
+              <select value={name} onChange={(e) => setName(e.target.value)} required style={{ ...inputStyle, width: "100%", color: name ? "white" : "gray" }}>
                 <option value="">Select Site</option>
                 <option value="Bangalore">Bangalore</option>
                 <option value="Japuriya">Japuriya</option>
                 <option value="Vashali">Vashali</option>
                 <option value="Faridabad">Faridabad</option>
               </select>
-
-              <input
-                type="text"
-                placeholder="Enter Contact Number"
-                value={contactNo}
-                onChange={(e) => setContactNo(e.target.value)}
-                required
-                style={inputStyle}
-              />
+              <input type="text" placeholder="Enter Contact Number" value={contactNo} onChange={(e) => setContactNo(e.target.value)} required style={inputStyle} />
             </>
           )}
 
-          {/* Worker login */}
           {role === "worker" && (
             <>
-              <input
-                type="text"
-                placeholder="Enter Worker Name"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                required
-                style={inputStyle}
-              />
-              <input
-                type="text"
-                placeholder="Enter Contact Number"
-                value={contactNo}
-                onChange={(e) => setContactNo(e.target.value)}
-                required
-                style={inputStyle}
-              />
+              <input type="text" placeholder="Enter Worker Name" value={name} onChange={(e) => setName(e.target.value)} required style={inputStyle} />
+              <input type="text" placeholder="Enter Contact Number" value={contactNo} onChange={(e) => setContactNo(e.target.value)} required style={inputStyle} />
             </>
           )}
 
-          <button type="submit" style={buttonStyle}>
-            Login
-          </button>
+          <button type="submit" style={buttonStyle}>Login</button>
         </form>
       </div>
     </div>
