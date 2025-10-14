@@ -19,12 +19,18 @@ function Login() {
     try {
       let res;
 
-      if (role === "admin" || role === "manager") {
+      if (role === "admin") {
         res = await axios.post(
           "https://attendance-management-backend-vh2w.onrender.com/api/auth/login",
           { email, password }
         );
-      } else {
+      } else if (role === "manager") {
+        res = await axios.post(
+          "https://attendance-management-backend-vh2w.onrender.com/api/auth/login",
+          { site: name, contactNo }
+        );
+      }
+      else {
         res = await axios.post(
           "https://attendance-management-backend-vh2w.onrender.com/api/auth/login",
           { name, contactNo }
@@ -121,7 +127,7 @@ function Login() {
         </div>
 
         <form onSubmit={handleLogin}>
-          {(role === "admin" || role === "manager") && (
+          {role === "admin" && (
             <>
               <input
                 type="email"
@@ -150,7 +156,42 @@ function Login() {
               </div>
             </>
           )}
-
+{role === "manager" && (
+            <>
+              <select
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                required
+                style={{
+                  ...inputStyle,
+                  width: "100%",
+                  color: name ? "white" : "gray",
+                }}
+              >
+                <option value="">Select Site</option>
+      <option value="Bangalore">Bangalore</option>
+      <option value="Japuriya">Japuriya</option>
+      <option value="Vashali">Vashali</option>
+      <option value="Faridabad">Faridabad</option>
+              </select>
+<div style={{ position: "relative" }}>
+              <input
+                type="text"
+                placeholder="Enter Contact Number"
+                value={contactNo}
+                onChange={(e) => setContactNo(e.target.value)}
+                required
+                style={inputStyle}
+              />
+                 <span
+                  onClick={() => setShowPassword(!showPassword)}
+                  style={eyeStyle}
+                >
+                  {showPassword ? "🙈" : "👁️"}
+                </span>
+              </div>
+            </>
+          )}
           {role === "worker" && (
             <>
               <input
