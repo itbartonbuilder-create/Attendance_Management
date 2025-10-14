@@ -357,8 +357,8 @@ select{
         margin-right: 20px;
 }
 .report-container label{
-  font-size: 22px;
-  margin-left: 15px;
+      font-size: 20px;
+    margin-left: 6px;
 }
 .report-container input{
   padding: 9px 8px;
