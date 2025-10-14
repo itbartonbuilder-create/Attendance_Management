@@ -97,13 +97,16 @@ function Login() {
         {/* Role Selection */}
         <div style={{ marginBottom: "20px", textAlign: "center", color: "white" }}>
           <label style={{ marginRight: "15px" }}>
-            <input type="radio" name="role" value="admin" checked={role === "admin"} onChange={(e) => setRole(e.target.value)} /> Admin
+            <input type="radio" name="role" value="admin" checked={role === "admin"} 
+              onChange={(e) => setRole(e.target.value)} /> Admin
           </label>
           <label style={{ marginRight: "15px" }}>
-            <input type="radio" name="role" value="manager" checked={role === "manager"} onChange={(e) => setRole(e.target.value)} /> Manager
+            <input type="radio" name="role" value="manager" checked={role === "manager"} 
+              onChange={(e) => setRole(e.target.value)} /> Manager
           </label>
           <label>
-            <input type="radio" name="role" value="worker" checked={role === "worker"} onChange={(e) => setRole(e.target.value)} /> Worker
+            <input type="radio" name="role" value="worker" checked={role === "worker"} 
+              onChange={(e) => setRole(e.target.value)} /> Worker
           </label>
         </div>
 
@@ -112,9 +115,11 @@ function Login() {
           {/* Admin */}
           {role === "admin" && (
             <>
-              <input type="email" placeholder="Enter Admin Email" value={email} onChange={(e) => setEmail(e.target.value)} required style={inputStyle} />
+              <input type="email" placeholder="Enter Admin Email" value={email}
+                onChange={(e) => setEmail(e.target.value)} required style={inputStyle} />
               <div style={{ position: "relative" }}>
-                <input type={showPassword ? "text" : "password"} placeholder="Enter Password" value={password} onChange={(e) => setPassword(e.target.value)} required style={inputStyle} />
+                <input type={showPassword ? "text" : "password"} placeholder="Enter Password" value={password} 
+                  onChange={(e) => setPassword(e.target.value)} required style={inputStyle} />
                 <span onClick={() => setShowPassword(!showPassword)} style={eyeStyle}>{showPassword ? "🙈" : "👁️"}</span>
               </div>
             </>
@@ -123,7 +128,8 @@ function Login() {
           {/* Manager */}
           {role === "manager" && (
             <>
-              <select value={name} onChange={(e) => setName(e.target.value)} required style={{ ...inputStyle, width: "100%", color: name ? "white" : "gray" }}>
+              <select value={name} onChange={(e) => setName(e.target.value)} 
+                required style={{ ...inputStyle, width: "100%", color: name ? "white" : "gray" }}>
                 <option value="">Select Site</option>
                 <option value="Bangalore">Bangalore</option>
                 <option value="Japuriya">Japuriya</option>
@@ -131,7 +137,9 @@ function Login() {
                 <option value="Faridabad">Faridabad</option>
               </select>
               <div style={{ position: "relative" }}>
-                <input type="text" placeholder="Enter Contact Number" value={contactNo} onChange={(e) => setContactNo(e.target.value)} required style={inputStyle} />
+                <input type="text" placeholder="Enter Contact Number" value={contactNo}
+                  onChange={(e) => setContactNo(e.target.value)} required style={inputStyle} />
+                <span onClick={() => setShowPassword(!showPassword)} style={eyeStyle}>{showPassword ? "🙈" : "👁️"}</span>
               </div>
             </>
           )}
@@ -139,9 +147,12 @@ function Login() {
           {/* Worker */}
           {role === "worker" && (
             <>
-              <input type="text" placeholder="Enter Worker Name" value={name} onChange={(e) => setName(e.target.value)} required style={inputStyle} />
+              <input type="text" placeholder="Enter Worker Name" value={name} 
+                onChange={(e) => setName(e.target.value)} required style={inputStyle} />
               <div style={{ position: "relative" }}>
-                <input type="text" placeholder="Enter Contact Number" value={contactNo} onChange={(e) => setContactNo(e.target.value)} required style={inputStyle} />
+                <input type="text" placeholder="Enter Contact Number" value={contactNo}
+                  onChange={(e) => setContactNo(e.target.value)} required style={inputStyle} />
+                <span onClick={() => setShowPassword(!showPassword)} style={eyeStyle}>{showPassword ? "🙈" : "👁️"}</span>
               </div>
             </>
           )}
