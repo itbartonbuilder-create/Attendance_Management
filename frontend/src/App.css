@@ -449,12 +449,12 @@ select{
 
 
 .dashboard-hero {
-  position: relative;
-  margin: 20px auto;
-  max-width: 95%;
-  border-radius: 12px;
-  overflow: hidden;
-  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.2);
+   position: relative;
+    margin: 22px auto;
+    max-width: 100%;
+    border-radius: 0px;
+    overflow: hidden;
+
 }
 
 .dashboard-image {
