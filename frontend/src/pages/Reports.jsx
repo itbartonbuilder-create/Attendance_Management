@@ -27,20 +27,23 @@ function AttendanceReport() {
       navigate("/login");
       return;
     }
+
     const u = JSON.parse(savedUser);
     setUser(u);
 
-   
     if (u.role === "manager") {
       setSelectedSite(u.site);
       fetchWorkersBySite(u.site, "manager");
     } else if (u.role === "worker") {
       setSelectedSite(u.site);
       setSelectedWorker(u._id);
-      fetchWorkersBySite(u.site, "worker");
+      fetchWorkerDetails(u._id); 
+    } else if (u.role === "admin") {
+      setWorkers([]);
     }
   }, [navigate]);
 
+ 
   const fetchWorkersBySite = async (site, role = user?.role) => {
     try {
       const res = await axios.get(`${API_URL}/workers`);
@@ -48,8 +51,6 @@ function AttendanceReport() {
 
       if (role === "manager") {
         filtered = filtered.filter((w) => w.site === site);
-      } else if (role === "worker") {
-        filtered = filtered.filter((w) => w._id === user._id);
       } else if (site) {
         filtered = filtered.filter((w) => w.site === site);
       }
@@ -57,6 +58,20 @@ function AttendanceReport() {
       setWorkers(filtered);
     } catch (err) {
       console.error("Error fetching workers:", err);
+    }
+  };
+
+  const fetchWorkerDetails = async (workerId) => {
+    try {
+      const res = await axios.get(`${API_URL}/workers`);
+      const found = res.data.find((w) => w._id === workerId);
+      if (found) {
+        setWorkers([found]);
+       
+        setUser((prev) => ({ ...prev, perDaySalary: found.perDaySalary }));
+      }
+    } catch (err) {
+      console.error("Error fetching worker details:", err);
     }
   };
 
@@ -89,10 +104,9 @@ function AttendanceReport() {
         let workerName = "";
         let salary = 0;
 
-  
         if (user.role === "worker") {
           workerName = user.name;
-          salary = user.perDaySalary || 0;
+          salary = user.perDaySalary || workers[0]?.perDaySalary || 0;
         } else {
           const worker = workers.find((w) => w._id === selectedWorker);
           workerName = worker?.name || "";
@@ -243,13 +257,13 @@ function AttendanceReport() {
         )}
 
         {user?.role !== "worker" && (
-          <label  style={{ marginLeft: "20px" }}>
+          <label>
             👷 Worker:
             <select
               value={selectedWorker}
               onChange={handleWorkerChange}
               disabled={!selectedSite}
-              style={{ padding: "6px", marginLeft: "20px" }}
+              style={{ padding: "6px", marginLeft: "10px" }}
             >
               <option value="">-- Select Worker --</option>
               {workers.map((w) => (
