@@ -8,13 +8,15 @@ function Navbar() {
   const navigate = useNavigate();
   const location = useLocation();
 
-  // Reload user every time route changes
   useEffect(() => {
     const savedUser = localStorage.getItem("user");
     if (savedUser) setUser(JSON.parse(savedUser));
   }, [location.pathname]);
 
-  // Hide navbar on login/root page
+  useEffect(() => {
+    setMenuOpen(false);
+  }, [location.pathname]);
+
   if (location.pathname === "/" || location.pathname === "/login") return null;
   if (!user) return null;
 
@@ -28,7 +30,7 @@ function Navbar() {
 
   return (
     <nav className="navbar" style={navStyle}>
-      {/* Logo */}
+    
       <div className="navbar-left">
         <Link to="/dashboard" className="navbar-logo" style={logoStyle}>
           <img src={logo} alt="Bartons Builders Limited" style={{ width: 44, height: 44 }} />
@@ -36,14 +38,40 @@ function Navbar() {
         </Link>
       </div>
 
-      {/* Menu Toggle (for mobile) */}
-      <button className="menu-toggle" onClick={() => setMenuOpen(!menuOpen)} style={menuButtonStyle}>
-        ☰
+      <button
+        className="menu-toggle"
+        onClick={() => setMenuOpen(!menuOpen)}
+        style={{
+          ...menuButtonStyle,
+          display: window.innerWidth <= 768 ? "block" : "none",
+        }}
+      >
+        {menuOpen ? "✕" : "☰"}
       </button>
 
-      {/* Links */}
-      <div className={`navbar-links ${menuOpen ? "active" : ""}`} style={{ display: menuOpen ? "flex" : "flex", gap: 16, alignItems: "center" }}>
-        {/* Admin Links */}
+      <div
+        className={`navbar-links ${menuOpen ? "active" : ""}`}
+        style={{
+          ...linkContainerStyle,
+          ...(window.innerWidth <= 768
+            ? {
+                display: menuOpen ? "flex" : "none",
+                flexDirection: "column",
+                background: "#2C3E50",
+                position: "absolute",
+                top: "60px",
+                left: 0,
+                width: "100%",
+                padding: "10px 0",
+              }
+            : {
+                display: "flex",
+                flexDirection: "row",
+                position: "static",
+              }),
+        }}
+      >
+       
         {role === "admin" && (
           <>
             <Link to="/dashboard" style={linkStyle}>Dashboard</Link>
@@ -55,7 +83,6 @@ function Navbar() {
           </>
         )}
 
-        {/* Manager Links */}
         {role === "manager" && (
           <>
             <Link to="/dashboard" style={linkStyle}>Dashboard</Link>
@@ -66,7 +93,6 @@ function Navbar() {
           </>
         )}
 
-        {/* Worker Links */}
         {role === "worker" && (
           <>
             <Link to="/reports" style={linkStyle}>Reports</Link>
@@ -74,14 +100,13 @@ function Navbar() {
           </>
         )}
 
-        {/* Logout */}
         <button onClick={handleLogout} style={logoutStyle}>Logout</button>
       </div>
     </nav>
   );
 }
 
-// Styles
+
 const navStyle = {
   position: "fixed",
   top: 0,
@@ -89,7 +114,7 @@ const navStyle = {
   width: "100%",
   zIndex: 1000,
   background: "#2C3E50",
-  padding: "10px 20px",
+  padding: "24px 20px",
   display: "flex",
   justifyContent: "space-between",
   alignItems: "center",
@@ -102,6 +127,11 @@ const logoStyle = {
   textDecoration: "none",
   color: "white",
   fontWeight: "bold",
+};
+
+const linkContainerStyle = {
+  gap: 16,
+  alignItems: "center",
 };
 
 const linkStyle = {
