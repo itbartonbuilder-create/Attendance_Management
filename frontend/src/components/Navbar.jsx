@@ -59,7 +59,7 @@ function Navbar() {
                 flexDirection: "column",
                 background: "#2C3E50",
                 position: "absolute",
-                top: "60px",
+                top: "74px",
                 left: 0,
                 width: "100%",
                 padding: "10px 0",
