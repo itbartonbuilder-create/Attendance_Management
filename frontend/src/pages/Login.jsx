@@ -66,7 +66,7 @@ function Login() {
           backdropFilter: "blur(30px)",
           borderRadius: "16px",
           padding: "30px",
-          width: "350px",
+          width: "312px",
           boxShadow: "0 4px 12px rgba(0,0,0,0.4)",
         }}
       >
@@ -87,7 +87,7 @@ function Login() {
               color: "white",
               textShadow: "0 2px 8px rgba(0,0,0,0.4)",
               margin: 0,
-              fontSize: "25px",
+              fontSize: "22px",
             }}
           >
             Bartons Builders Limited
