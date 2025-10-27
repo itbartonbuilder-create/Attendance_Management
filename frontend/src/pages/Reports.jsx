@@ -11,11 +11,10 @@ function AttendanceReport() {
   const [sites] = useState(["Bangalore", "Japuriya", "Vashali", "Faridabad"]);
   const [selectedSite, setSelectedSite] = useState("");
   const [workers, setWorkers] = useState([]);
-  const [selectedWorker, setSelectedWorker] = useState("");
+  const [selectedWorkers, setSelectedWorkers] = useState([]);
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
-  const [workerHistory, setWorkerHistory] = useState([]);
-  const [workerSummary, setWorkerSummary] = useState(null);
+  const [workerData, setWorkerData] = useState([]);
   const [showReport, setShowReport] = useState(false);
 
   const API_URL =
@@ -34,155 +33,163 @@ function AttendanceReport() {
     if (u.role === "manager") {
       setSelectedSite(u.site);
       fetchWorkersBySite(u.site, "manager");
-    } else if (u.role === "worker") {
-      setSelectedSite(u.site);
-      setSelectedWorker(u._id);
-      fetchWorkerDetails(u._id); 
     } else if (u.role === "admin") {
       setWorkers([]);
     }
   }, [navigate]);
 
- 
+
   const fetchWorkersBySite = async (site, role = user?.role) => {
     try {
       const res = await axios.get(`${API_URL}/workers`);
       let filtered = res.data;
-
-      if (role === "manager") {
-        filtered = filtered.filter((w) => w.site === site);
-      } else if (site) {
-        filtered = filtered.filter((w) => w.site === site);
-      }
-
+      if (role === "manager") filtered = filtered.filter((w) => w.site === site);
+      else if (site) filtered = filtered.filter((w) => w.site === site);
       setWorkers(filtered);
     } catch (err) {
       console.error("Error fetching workers:", err);
     }
   };
 
-  const fetchWorkerDetails = async (workerId) => {
-    try {
-      const res = await axios.get(`${API_URL}/workers`);
-      const found = res.data.find((w) => w._id === workerId);
-      if (found) {
-        setWorkers([found]);
-       
-        setUser((prev) => ({ ...prev, perDaySalary: found.perDaySalary }));
-      }
-    } catch (err) {
-      console.error("Error fetching worker details:", err);
-    }
-  };
 
   const handleSiteChange = (e) => {
     const site = e.target.value;
     setSelectedSite(site);
-    setSelectedWorker("");
     setShowReport(false);
     if (site) fetchWorkersBySite(site);
     else setWorkers([]);
   };
 
-  const handleWorkerChange = (e) => {
-    setSelectedWorker(e.target.value);
-    setShowReport(false);
-  };
 
-  const fetchHistoryByDateRange = async () => {
-    if (!selectedWorker || !startDate || !endDate) {
-      alert("⚠️ Please select site, worker, start date, and end date.");
+  const fetchAllWorkerHistory = async () => {
+    if (!selectedSite || !startDate || !endDate) {
+      alert("⚠️ Please select site, start date, and end date.");
       return;
     }
 
-    try {
-      const res = await axios.get(
-        `${API_URL}/worker-history/${selectedWorker}?start=${startDate}&end=${endDate}`
-      );
+    const allData = [];
 
-      if (res.data.success) {
-        let workerName = "";
-        let salary = 0;
+    for (let w of workers) {
+      try {
+        const res = await axios.get(
+          `${API_URL}/worker-history/${w._id}?start=${startDate}&end=${endDate}`
+        );
 
-        if (user.role === "worker") {
-          workerName = user.name;
-          salary = user.perDaySalary || workers[0]?.perDaySalary || 0;
+        if (res.data.success) {
+          allData.push({
+            worker: w,
+            history: res.data.history,
+            summary: {
+              ...res.data.summary,
+              perDaySalary: w.perDaySalary,
+            },
+          });
         } else {
-          const worker = workers.find((w) => w._id === selectedWorker);
-          workerName = worker?.name || "";
-          salary = worker?.perDaySalary || 0;
+          allData.push({
+            worker: w,
+            history: [],
+            summary: {
+              Present: 0,
+              Absent: 0,
+              Leave: 0,
+              perDaySalary: w.perDaySalary,
+            },
+          });
         }
-
-        setWorkerHistory(res.data.history);
-        setWorkerSummary({
-          ...res.data.summary,
-          perDaySalary: salary,
-          name: workerName,
-        });
-      } else {
-        setWorkerHistory([]);
-        setWorkerSummary(null);
+      } catch (err) {
+        console.error("Error fetching worker history:", err);
       }
-
-      setShowReport(true);
-    } catch (err) {
-      console.error(err);
-      setWorkerHistory([]);
-      setWorkerSummary(null);
-      setShowReport(true);
     }
+
+    setWorkerData(allData);
+    setShowReport(true);
+  };
+
+
+  const handleCheckboxChange = (workerId) => {
+    setSelectedWorkers((prev) =>
+      prev.includes(workerId)
+        ? prev.filter((id) => id !== workerId)
+        : [...prev, workerId]
+    );
   };
 
   const downloadPDF = () => {
-    const doc = new jsPDF();
+    if (selectedWorkers.length === 0) {
+      alert("⚠️ Please select at least one worker to download PDF.");
+      return;
+    }
+
+    const doc = new jsPDF({ unit: "mm", format: "a4" });
+    let yPos = 15;
 
     doc.setFontSize(16);
-    doc.text("Attendance Report", 14, 15);
+    doc.text("Attendance Report", 14, yPos);
     doc.setFontSize(11);
+    doc.text(`Site: ${selectedSite}`, 14, (yPos += 10));
+    doc.text(`Date Range: ${startDate} to ${endDate}`, 14, (yPos += 6));
+    yPos += 6;
 
-    doc.text(
-      `Site: ${selectedSite || "N/A"} | Worker: ${workerSummary?.name || "N/A"}`,
-      14,
-      25
-    );
-    doc.text(`Date Range: ${startDate} → ${endDate}`, 14, 32);
+    workerData
+      .filter((wd) => selectedWorkers.includes(wd.worker._id))
+      .forEach((wd, idx) => {
+        if (yPos > 250) {
+          doc.addPage();
+          yPos = 20;
+        }
 
-    if (workerHistory.length > 0) {
-      autoTable(doc, {
-        startY: 40,
-        head: [["Sr No", "Date", "Status"]],
-        body: workerHistory.map((h, i) => [i + 1, h.date, h.status]),
+        doc.setFontSize(13);
+        doc.text(`${idx + 1}. ${wd.worker.name}`, 14, yPos);
+        yPos += 5;
+
+      
+        if (wd.history.length > 0) {
+          autoTable(doc, {
+            startY: yPos,
+            head: [["Sr No", "Date", "Status"]],
+            body: wd.history.map((h, i) => [i + 1, h.date, h.status]),
+            styles: { fontSize: 10 },
+            margin: { left: 14 },
+          });
+        } else {
+          doc.text("No attendance records found.", 14, yPos + 5);
+        }
+
+        const yAfterTable = doc.lastAutoTable
+          ? doc.lastAutoTable.finalY + 10
+          : yPos + 15;
+
+       
+        autoTable(doc, {
+          startY: yAfterTable,
+          head: [["Status", "Count"]],
+          body: [
+            ["Present", wd.summary.Present || 0],
+            ["Absent", wd.summary.Absent || 0],
+            ["Leave", wd.summary.Leave || 0],
+          ],
+          styles: { fontSize: 10 },
+          margin: { left: 14 },
+        });
+
+        const totalPayment =
+          (wd.summary.Present || 0) * (wd.summary.perDaySalary || 0);
+        const y2 = doc.lastAutoTable.finalY + 8;
+        doc.setFontSize(11);
+        doc.text(`Per Day Salary: Rs. ${wd.summary.perDaySalary}`, 14, y2);
+        doc.text(`Total Payment: Rs. ${totalPayment}`, 14, y2 + 6);
+
+        yPos = y2 + 14;
+
+        if (idx < selectedWorkers.length - 1 && yPos > 250) {
+          doc.addPage();
+          yPos = 20;
+        }
       });
-    } else {
-      doc.text("No attendance records found for selected range.", 14, 40);
-    }
 
-    if (workerSummary) {
-      const y = doc.lastAutoTable ? doc.lastAutoTable.finalY + 15 : 60;
-      doc.setFontSize(13);
-      doc.text("Attendance Summary", 14, y);
-      autoTable(doc, {
-        startY: y + 5,
-        head: [["Status", "Count"]],
-        body: [
-          ["Present", workerSummary.Present || 0],
-          ["Absent", workerSummary.Absent || 0],
-          ["Leave", workerSummary.Leave || 0],
-        ],
-      });
-
-      const totalPayment =
-        (workerSummary.Present || 0) * (workerSummary.perDaySalary || 0);
-
-      const y2 = doc.lastAutoTable.finalY + 15;
-      doc.setFontSize(12);
-      doc.text(`Per Day Salary: ₹${workerSummary.perDaySalary}`, 14, y2);
-      doc.text(`Total Payment: ₹${totalPayment}`, 14, y2 + 7);
-    }
-
-    const fileName = `Attendance_Report_${selectedSite}_${startDate}_to_${endDate}.pdf`;
-    doc.save(fileName);
+    doc.save(`Attendance_Report_${selectedSite}_${startDate}_to_${endDate}.pdf`);
   };
+
 
   return (
     <div className="report-container">
@@ -224,7 +231,7 @@ function AttendanceReport() {
           />
         </label>
 
-        <label>
+        <label style={{ marginLeft: "15px" }}>
           🗓️ End Date:
           <input
             type="date"
@@ -235,7 +242,7 @@ function AttendanceReport() {
         </label>
 
         {user?.role === "admin" ? (
-          <label>
+          <label style={{ marginLeft: "15px" }}>
             🏗️ Site:
             <select
               value={selectedSite}
@@ -251,32 +258,13 @@ function AttendanceReport() {
             </select>
           </label>
         ) : (
-          <label>
+          <label style={{ marginLeft: "15px" }}>
             🏗️ Site: <strong>{selectedSite}</strong>
           </label>
         )}
 
-        {user?.role !== "worker" && (
-          <label>
-            👷 Worker:
-            <select
-              value={selectedWorker}
-              onChange={handleWorkerChange}
-              disabled={!selectedSite}
-              style={{ padding: "6px", marginLeft: "10px" }}
-            >
-              <option value="">-- Select Worker --</option>
-              {workers.map((w) => (
-                <option key={w._id} value={w._id}>
-                  {w.name}
-                </option>
-              ))}
-            </select>
-          </label>
-        )}
-
         <button
-          onClick={fetchHistoryByDateRange}
+          onClick={fetchAllWorkerHistory}
           style={{
             padding: "8px 20px",
             backgroundColor: "#2C3E50",
@@ -293,105 +281,57 @@ function AttendanceReport() {
 
       {showReport && (
         <>
-          <h3>👷 Worker: {workerSummary?.name || "N/A"}</h3>
           <h3>
-            🧾 Attendance History ({startDate} → {endDate})
+            👷 All Workers Attendance ({startDate} to {endDate})
           </h3>
 
-          <table
-            border="1"
-            cellPadding="8"
-            style={{
-              width: "100%",
-              borderCollapse: "collapse",
-              marginTop: "10px",
-            }}
-          >
-            <thead style={{ background: "#2C3E50", color: "white" }}>
-              <tr>
-                <th>Sr No</th>
-                <th>Date</th>
-                <th>Status</th>
-              </tr>
-            </thead>
-            <tbody>
-              {workerHistory.length === 0 ? (
+          {workerData.length === 0 ? (
+            <p>No records found.</p>
+          ) : (
+            <table
+              border="1"
+              cellPadding="8"
+              style={{
+                width: "100%",
+                borderCollapse: "collapse",
+                marginTop: "10px",
+              }}
+            >
+              <thead style={{ background: "#2C3E50", color: "white" }}>
                 <tr>
-                  <td colSpan="3" style={{ textAlign: "center" }}>
-                    No records found.
-                  </td>
+                  <th>Select</th>
+                  <th>Worker Name</th>
+                  <th>Present</th>
+                  <th>Absent</th>
+                  <th>Leave</th>
+                  <th>Per Day Salary</th>
+                  <th>Total Payment</th>
                 </tr>
-              ) : (
-                workerHistory.map((h, i) => (
-                  <tr key={i}>
-                    <td>{i + 1}</td>
-                    <td>{h.date}</td>
-                    <td>{h.status}</td>
+              </thead>
+              <tbody>
+                {workerData.map((wd) => (
+                  <tr key={wd.worker._id}>
+                    <td>
+                      <input
+                        type="checkbox"
+                        checked={selectedWorkers.includes(wd.worker._id)}
+                        onChange={() => handleCheckboxChange(wd.worker._id)}
+                      />
+                    </td>
+                    <td>{wd.worker.name}</td>
+                    <td>{wd.summary.Present}</td>
+                    <td>{wd.summary.Absent}</td>
+                    <td>{wd.summary.Leave}</td>
+                    <td>Rs. {wd.summary.perDaySalary}</td>
+                    <td>
+                      Rs.{" "}
+                      {(wd.summary.Present || 0) *
+                        (wd.summary.perDaySalary || 0)}
+                    </td>
                   </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-
-          {workerSummary && (
-            <>
-              <h3 style={{ marginTop: "25px" }}>📈 Attendance Summary</h3>
-              <table
-                border="1"
-                cellPadding="8"
-                style={{
-                  width: "50%",
-                  borderCollapse: "collapse",
-                  marginTop: "10px",
-                }}
-              >
-                <thead style={{ background: "#34495E", color: "white" }}>
-                  <tr>
-                    <th>Status</th>
-                    <th>Count</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr>
-                    <td>Present</td>
-                    <td>{workerSummary.Present}</td>
-                  </tr>
-                  <tr>
-                    <td>Absent</td>
-                    <td>{workerSummary.Absent}</td>
-                  </tr>
-                  <tr>
-                    <td>Leave</td>
-                    <td>{workerSummary.Leave}</td>
-                  </tr>
-                </tbody>
-              </table>
-
-              <div
-                style={{
-                  display: "flex",
-                  justifyContent: "center",
-                  alignItems: "center",
-                  gap: "40px",
-                  marginTop: "25px",
-                  padding: "15px 25px",
-                  borderRadius: "10px",
-                  backgroundColor: "#1E2A38",
-                  color: "#ecf0f1",
-                  fontSize: "18px",
-                }}
-              >
-                <div>
-                  💰 <strong>Per Day Salary:</strong> ₹
-                  {workerSummary.perDaySalary}
-                </div>
-                <div>
-                  💵 <strong>Total Payment:</strong> ₹
-                  {(workerSummary.Present || 0) *
-                    (workerSummary.perDaySalary || 0)}
-                </div>
-              </div>
-            </>
+                ))}
+              </tbody>
+            </table>
           )}
         </>
       )}
