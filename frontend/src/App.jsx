@@ -10,11 +10,14 @@ import Attendance from "./pages/Attendance";
 import Profile from "./pages/Profile";
 import Login from "./pages/Login";
 import Managers from "./pages/Managers";
+import Footer from "./components/Footer";
 
 function App() {
   return (
     <Router>
+      <div className="app-container">
       <Navbar />
+         <div className="main-content">
       <Routes>
        <Route path="/" element={<Login />} /> 
         
@@ -27,6 +30,9 @@ function App() {
         <Route path="/login" element={<Login />} />
         <Route path="/managers" element={<Managers />} />
       </Routes>
+            </div>
+        <Footer />
+      </div>
     </Router>
   );
 }
