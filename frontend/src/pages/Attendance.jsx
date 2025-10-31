@@ -16,72 +16,111 @@ function Attendance() {
       navigate("/login");
       return;
     }
+
     const u = JSON.parse(savedUser);
     setUser(u);
-
- 
-    if (u.role === "manager") {
-      setSelectedSite(u.site);
-    }
-   
+    if (u.role === "manager") setSelectedSite(u.site);
     if (u.role === "worker") {
       alert("❌ Access denied for workers.");
       navigate("/dashboard");
     }
   }, [navigate]);
 
+
   const fetchWorkersBySite = async (site) => {
     try {
-      const res = await axios.get("https://attendance-management-backend-vh2w.onrender.com/api/workers"); // replace with Render URL
+      const res = await axios.get(
+        "https://attendance-management-backend-vh2w.onrender.com/api/workers"
+      );
+
       let filtered = res.data;
-      if (user.role === "manager") {
-        
-        filtered = filtered.filter((w) => w.site === user.site);
-      } else if (site) {
-       
-        filtered = filtered.filter((w) => w.site === site);
-      }
-      const initial = filtered.map((w, index) => ({
-        srNo: index + 1,
+      if (user.role === "manager") filtered = filtered.filter((w) => w.site === user.site);
+      else if (site) filtered = filtered.filter((w) => w.site === site);
+
+      const formatted = filtered.map((w, i) => ({
+        srNo: i + 1,
         workerId: w._id,
         name: w.name,
         roleType: w.roleType,
         role: w.role,
         status: "",
       }));
-      setWorkers(initial);
+
+      setWorkers(formatted);
     } catch (err) {
       console.error("Error fetching workers:", err);
       alert("❌ Error fetching workers.");
     }
   };
 
+  const fetchExistingAttendance = async (site, selectedDate) => {
+    if (!site || !selectedDate) return;
+
+    try {
+      const res = await axios.get(
+        "https://attendance-management-backend-vh2w.onrender.com/api/attendance/reports",
+        { params: { date: selectedDate, site } }
+      );
+
+      if (res.data?.records?.length > 0) {
+        setWorkers((prev) =>
+          prev.map((w) => {
+            const match = res.data.records.find((r) => r.workerId === w.workerId);
+            return match ? { ...w, status: match.status } : w;
+          })
+        );
+      } else {
+        setWorkers((prev) => prev.map((w) => ({ ...w, status: "" })));
+      }
+    } catch (err) {
+      console.error("Error fetching attendance:", err);
+    }
+  };
+
+
   useEffect(() => {
-    if (selectedSite) fetchWorkersBySite(selectedSite);
-    else setWorkers([]);
-  }, [selectedSite, user]);
+    if (!selectedSite || !user) return;
+    (async () => {
+      await fetchWorkersBySite(selectedSite);
+      await fetchExistingAttendance(selectedSite, date);
+    })();
+  }, [selectedSite, date, user]);
+
 
   const handleStatusChange = (id, status) => {
-    setWorkers(workers.map((w) => (w.workerId === id ? { ...w, status } : w)));
+    setWorkers((prev) => prev.map((w) => (w.workerId === id ? { ...w, status } : w)));
   };
 
   const submitAttendance = async () => {
+    if (!date || !selectedSite) {
+      alert("⚠️ Please select a date and site before submitting.");
+      return;
+    }
+
     try {
-      await axios.post("https://attendance-management-backend-vh2w.onrender.com/api/attendance", {
-        date,
-        site: selectedSite,
-        records: workers.map((w) => ({
-          workerId: w.workerId,
-          name: w.name,
-          roleType: w.roleType,
-          role: w.role,
-          status: w.status,
-        })),
-      });
-      alert("✅ Attendance Saved Successfully!");
-      setDate(new Date().toISOString().split("T")[0]);
-      if (user.role === "admin") setSelectedSite("");
-      setWorkers([]);
+      const res = await axios.post(
+        "https://attendance-management-backend-vh2w.onrender.com/api/attendance",
+        {
+          date,
+          site: selectedSite,
+          records: workers.map((w) => ({
+            workerId: w.workerId,
+            name: w.name,
+            roleType: w.roleType,
+            role: w.role,
+            status: w.status,
+          })),
+        }
+      );
+
+      alert(res.data.message || "✅ Attendance saved successfully!");
+
+      
+      setTimeout(() => {
+        setWorkers([]);
+        setDate("");
+        setSelectedSite(user.role === "manager" ? user.site : "");
+      }, 1000);
     } catch (err) {
       console.error(err);
       alert("❌ Error saving attendance.");
@@ -89,9 +128,10 @@ function Attendance() {
   };
 
   return (
-    <div className="attendance-container" >
+    <div className="attendance-container">
       <h2>📝 Mark Attendance</h2>
 
+    
       <label>
         Select Date:{" "}
         <input
@@ -102,6 +142,7 @@ function Attendance() {
         />
       </label>
 
+ 
       {user?.role === "admin" && (
         <label>
           Select Site:{" "}
@@ -120,6 +161,7 @@ function Attendance() {
         </label>
       )}
 
+   
       {workers.length > 0 && (
         <table
           border="1"
@@ -174,11 +216,20 @@ function Attendance() {
         </table>
       )}
 
+    
       {workers.length > 0 && (
         <button
           className="submit-btn"
           onClick={submitAttendance}
-          style={{ marginTop: 15, padding: "10px 20px", cursor: "pointer" }}
+          style={{
+            marginTop: 15,
+            padding: "10px 20px",
+            cursor: "pointer",
+            background: "#27ae60",
+            color: "#fff",
+            border: "none",
+            borderRadius: "8px",
+          }}
         >
           ✅ Submit Attendance
         </button>
