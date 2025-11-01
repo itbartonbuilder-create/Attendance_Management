@@ -35,9 +35,30 @@ function AttendanceReport() {
       fetchWorkersBySite(u.site, "manager");
     } else if (u.role === "admin") {
       setWorkers([]);
+    } else if (u.role === "worker") {
+      setSelectedSite(u.site);
+
+      // 🔹 FIX: Fetch worker full data from backend (to include perDaySalary)
+      const fetchWorkerDetails = async () => {
+        try {
+          const res = await axios.get(`${API_URL}/workers`);
+          const found = res.data.find(
+            (w) => w._id === u._id || w.email === u.email
+          );
+          if (found) {
+            setWorkers([found]);
+          } else {
+            setWorkers([u]); // fallback
+          }
+        } catch (err) {
+          console.error("Error fetching worker details:", err);
+          setWorkers([u]);
+        }
+      };
+
+      fetchWorkerDetails();
     }
   }, [navigate]);
-
 
   const fetchWorkersBySite = async (site, role = user?.role) => {
     try {
@@ -51,7 +72,6 @@ function AttendanceReport() {
     }
   };
 
-
   const handleSiteChange = (e) => {
     const site = e.target.value;
     setSelectedSite(site);
@@ -59,7 +79,6 @@ function AttendanceReport() {
     if (site) fetchWorkersBySite(site);
     else setWorkers([]);
   };
-
 
   const fetchAllWorkerHistory = async () => {
     if (!selectedSite || !startDate || !endDate) {
@@ -105,7 +124,6 @@ function AttendanceReport() {
     setShowReport(true);
   };
 
-
   const handleCheckboxChange = (workerId) => {
     setSelectedWorkers((prev) =>
       prev.includes(workerId)
@@ -142,7 +160,6 @@ function AttendanceReport() {
         doc.text(`${idx + 1}. ${wd.worker.name}`, 14, yPos);
         yPos += 5;
 
-      
         if (wd.history.length > 0) {
           autoTable(doc, {
             startY: yPos,
@@ -159,7 +176,6 @@ function AttendanceReport() {
           ? doc.lastAutoTable.finalY + 10
           : yPos + 15;
 
-       
         autoTable(doc, {
           startY: yAfterTable,
           head: [["Status", "Count"]],
@@ -189,7 +205,6 @@ function AttendanceReport() {
 
     doc.save(`Attendance_Report_${selectedSite}_${startDate}_to_${endDate}.pdf`);
   };
-
 
   return (
     <div className="report-container">
