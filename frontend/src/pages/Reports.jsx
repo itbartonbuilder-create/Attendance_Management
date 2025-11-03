@@ -20,6 +20,7 @@ function AttendanceReport() {
   const API_URL =
     "https://attendance-management-backend-vh2w.onrender.com/api/attendance";
 
+  // ✅ Role-based data loading
   useEffect(() => {
     const savedUser = localStorage.getItem("user");
     if (!savedUser) {
@@ -36,23 +37,36 @@ function AttendanceReport() {
     } else if (u.role === "admin") {
       setWorkers([]);
     } else if (u.role === "worker") {
+      // ✅ Worker: only their own data
       setSelectedSite(u.site);
 
-      // 🔹 FIX: Fetch worker full data from backend (to include perDaySalary)
       const fetchWorkerDetails = async () => {
         try {
-          const res = await axios.get(`${API_URL}/workers`);
-          const found = res.data.find(
-            (w) => w._id === u._id || w.email === u.email
-          );
-          if (found) {
-            setWorkers([found]);
-          } else {
-            setWorkers([u]); // fallback
+          let workerInfo = null;
+
+          // Try direct worker route first
+          try {
+            const res = await axios.get(`${API_URL}/worker/${u._id}`);
+            if (res.data && res.data._id) {
+              workerInfo = res.data;
+            }
+          } catch (err) {
+            console.warn("Direct worker route failed, using all workers fallback");
           }
+
+          // Fallback: all workers
+          if (!workerInfo) {
+            const all = await axios.get(`${API_URL}/workers`);
+            workerInfo = all.data.find((w) => w._id === u._id);
+          }
+
+          if (!workerInfo) workerInfo = u;
+          if (!workerInfo.perDaySalary) workerInfo.perDaySalary = u.perDaySalary || 0;
+
+          setWorkers([workerInfo]);
         } catch (err) {
           console.error("Error fetching worker details:", err);
-          setWorkers([u]);
+          setWorkers([{ ...u, perDaySalary: u.perDaySalary || 0 }]);
         }
       };
 
@@ -60,6 +74,7 @@ function AttendanceReport() {
     }
   }, [navigate]);
 
+  // ✅ Fetch workers by site (for admin/manager)
   const fetchWorkersBySite = async (site, role = user?.role) => {
     try {
       const res = await axios.get(`${API_URL}/workers`);
@@ -80,6 +95,7 @@ function AttendanceReport() {
     else setWorkers([]);
   };
 
+  // ✅ Fetch attendance history
   const fetchAllWorkerHistory = async () => {
     if (!selectedSite || !startDate || !endDate) {
       alert("⚠️ Please select site, start date, and end date.");
@@ -132,8 +148,9 @@ function AttendanceReport() {
     );
   };
 
+  // ✅ PDF Download
   const downloadPDF = () => {
-    if (selectedWorkers.length === 0) {
+    if (user?.role !== "worker" && selectedWorkers.length === 0) {
       alert("⚠️ Please select at least one worker to download PDF.");
       return;
     }
@@ -148,60 +165,63 @@ function AttendanceReport() {
     doc.text(`Date Range: ${startDate} to ${endDate}`, 14, (yPos += 6));
     yPos += 6;
 
-    workerData
-      .filter((wd) => selectedWorkers.includes(wd.worker._id))
-      .forEach((wd, idx) => {
-        if (yPos > 250) {
-          doc.addPage();
-          yPos = 20;
-        }
+    const dataToPrint =
+      user?.role === "worker"
+        ? workerData // worker prints their own data
+        : workerData.filter((wd) => selectedWorkers.includes(wd.worker._id));
 
-        doc.setFontSize(13);
-        doc.text(`${idx + 1}. ${wd.worker.name}`, 14, yPos);
-        yPos += 5;
+    dataToPrint.forEach((wd, idx) => {
+      if (yPos > 250) {
+        doc.addPage();
+        yPos = 20;
+      }
 
-        if (wd.history.length > 0) {
-          autoTable(doc, {
-            startY: yPos,
-            head: [["Sr No", "Date", "Status"]],
-            body: wd.history.map((h, i) => [i + 1, h.date, h.status]),
-            styles: { fontSize: 10 },
-            margin: { left: 14 },
-          });
-        } else {
-          doc.text("No attendance records found.", 14, yPos + 5);
-        }
+      doc.setFontSize(13);
+      doc.text(`${idx + 1}. ${wd.worker.name}`, 14, yPos);
+      yPos += 5;
 
-        const yAfterTable = doc.lastAutoTable
-          ? doc.lastAutoTable.finalY + 10
-          : yPos + 15;
-
+      if (wd.history.length > 0) {
         autoTable(doc, {
-          startY: yAfterTable,
-          head: [["Status", "Count"]],
-          body: [
-            ["Present", wd.summary.Present || 0],
-            ["Absent", wd.summary.Absent || 0],
-            ["Leave", wd.summary.Leave || 0],
-          ],
+          startY: yPos,
+          head: [["Sr No", "Date", "Status"]],
+          body: wd.history.map((h, i) => [i + 1, h.date, h.status]),
           styles: { fontSize: 10 },
           margin: { left: 14 },
         });
+      } else {
+        doc.text("No attendance records found.", 14, yPos + 5);
+      }
 
-        const totalPayment =
-          (wd.summary.Present || 0) * (wd.summary.perDaySalary || 0);
-        const y2 = doc.lastAutoTable.finalY + 8;
-        doc.setFontSize(11);
-        doc.text(`Per Day Salary: Rs. ${wd.summary.perDaySalary}`, 14, y2);
-        doc.text(`Total Payment: Rs. ${totalPayment}`, 14, y2 + 6);
+      const yAfterTable = doc.lastAutoTable
+        ? doc.lastAutoTable.finalY + 10
+        : yPos + 15;
 
-        yPos = y2 + 14;
-
-        if (idx < selectedWorkers.length - 1 && yPos > 250) {
-          doc.addPage();
-          yPos = 20;
-        }
+      autoTable(doc, {
+        startY: yAfterTable,
+        head: [["Status", "Count"]],
+        body: [
+          ["Present", wd.summary.Present || 0],
+          ["Absent", wd.summary.Absent || 0],
+          ["Leave", wd.summary.Leave || 0],
+        ],
+        styles: { fontSize: 10 },
+        margin: { left: 14 },
       });
+
+      const totalPayment =
+        (wd.summary.Present || 0) * (wd.summary.perDaySalary || 0);
+      const y2 = doc.lastAutoTable.finalY + 8;
+      doc.setFontSize(11);
+      doc.text(`Per Day Salary: Rs. ${wd.summary.perDaySalary}`, 14, y2);
+      doc.text(`Total Payment: Rs. ${totalPayment}`, 14, y2 + 6);
+
+      yPos = y2 + 14;
+
+      if (idx < dataToPrint.length - 1 && yPos > 250) {
+        doc.addPage();
+        yPos = 20;
+      }
+    });
 
     doc.save(`Attendance_Report_${selectedSite}_${startDate}_to_${endDate}.pdf`);
   };
@@ -297,7 +317,7 @@ function AttendanceReport() {
       {showReport && (
         <>
           <h3>
-            👷 All Workers Attendance ({startDate} to {endDate})
+            👷 Attendance Report ({startDate} to {endDate})
           </h3>
 
           {workerData.length === 0 ? (
@@ -314,7 +334,7 @@ function AttendanceReport() {
             >
               <thead style={{ background: "#2C3E50", color: "white" }}>
                 <tr>
-                  <th>Select</th>
+                  {user?.role !== "worker" && <th>Select</th>}
                   <th>Worker Name</th>
                   <th>Present</th>
                   <th>Absent</th>
@@ -326,13 +346,15 @@ function AttendanceReport() {
               <tbody>
                 {workerData.map((wd) => (
                   <tr key={wd.worker._id}>
-                    <td>
-                      <input
-                        type="checkbox"
-                        checked={selectedWorkers.includes(wd.worker._id)}
-                        onChange={() => handleCheckboxChange(wd.worker._id)}
-                      />
-                    </td>
+                    {user?.role !== "worker" && (
+                      <td>
+                        <input
+                          type="checkbox"
+                          checked={selectedWorkers.includes(wd.worker._id)}
+                          onChange={() => handleCheckboxChange(wd.worker._id)}
+                        />
+                      </td>
+                    )}
                     <td>{wd.worker.name}</td>
                     <td>{wd.summary.Present}</td>
                     <td>{wd.summary.Absent}</td>
