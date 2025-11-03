@@ -138,9 +138,17 @@ function Login() {
                 <option value="Faridabad">Faridabad</option>
               </select>
               <div style={{ position: "relative" }}>
-                <input type="text" placeholder="Enter Contact Number" value={contactNo} 
-                  onChange={(e) => setContactNo(e.target.value)} required style={inputStyle} />
-                 <span onClick={() => setShowPassword(!showPassword)} style={eyeStyle}>{showPassword ? "🙈" : "👁️"}</span>
+                <input
+  type={showPassword ? "text" : "password"}
+  placeholder="Enter Contact Number"
+  value={contactNo}
+  onChange={(e) => setContactNo(e.target.value)}
+  required
+  style={inputStyle}
+/>
+<span onClick={() => setShowPassword(!showPassword)} style={eyeStyle}>
+  {showPassword ? "🙈" : "👁️"}
+</span>
               </div>
             </>
           )}
@@ -151,9 +159,11 @@ function Login() {
               <input type="text" placeholder="Enter Worker Name" value={name} 
                 onChange={(e) => setName(e.target.value)} required style={inputStyle} />
               <div style={{ position: "relative" }}>
-                <input type="text" placeholder="Enter Contact Number" value={contactNo}
-                  onChange={(e) => setContactNo(e.target.value)} required style={inputStyle} />
-                 <span onClick={() => setShowPassword(!showPassword)} style={eyeStyle}>{showPassword ? "🙈" : "👁️"}</span>
+                <input type={showPassword ? "text" : "password"} placeholder="Enter Contact Number" value={contactNo} 
+                  onChange={(e) => setContactNo(e.target.value)} required style={inputStyle}/>
+<span onClick={() => setShowPassword(!showPassword)} style={eyeStyle}>
+  {showPassword ? "🙈" : "👁️"}
+</span>
               </div>
             </>
           )}
