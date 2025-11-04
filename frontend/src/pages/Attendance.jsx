@@ -26,7 +26,6 @@ function Attendance() {
     }
   }, [navigate]);
 
-
   const fetchWorkersBySite = async (site) => {
     try {
       const res = await axios.get(
@@ -77,7 +76,6 @@ function Attendance() {
     }
   };
 
-
   useEffect(() => {
     if (!selectedSite || !user) return;
     (async () => {
@@ -85,7 +83,6 @@ function Attendance() {
       await fetchExistingAttendance(selectedSite, date);
     })();
   }, [selectedSite, date, user]);
-
 
   const handleStatusChange = (id, status) => {
     setWorkers((prev) => prev.map((w) => (w.workerId === id ? { ...w, status } : w)));
@@ -114,13 +111,6 @@ function Attendance() {
       );
 
       alert(res.data.message || "✅ Attendance saved successfully!");
-
-      
-      setTimeout(() => {
-        setWorkers([]);
-        setDate("");
-        setSelectedSite(user.role === "manager" ? user.site : "");
-      }, 1000);
     } catch (err) {
       console.error(err);
       alert("❌ Error saving attendance.");
@@ -131,7 +121,6 @@ function Attendance() {
     <div className="attendance-container">
       <h2>📝 Mark Attendance</h2>
 
-    
       <label>
         Select Date:{" "}
         <input
@@ -142,7 +131,6 @@ function Attendance() {
         />
       </label>
 
- 
       {user?.role === "admin" && (
         <label>
           Select Site:{" "}
@@ -161,7 +149,6 @@ function Attendance() {
         </label>
       )}
 
-   
       {workers.length > 0 && (
         <table
           border="1"
@@ -216,7 +203,6 @@ function Attendance() {
         </table>
       )}
 
-    
       {workers.length > 0 && (
         <button
           className="submit-btn"
