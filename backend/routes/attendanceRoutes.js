@@ -4,7 +4,7 @@ import Worker from "../models/Worker.js";
 
 const router = express.Router();
 
-// 🔹 GET: Fetch all workers
+
 router.get("/workers", async (req, res) => {
   try {
     const workers = await Worker.find({}, "name site perDaySalary roleType role");
@@ -15,30 +15,31 @@ router.get("/workers", async (req, res) => {
   }
 });
 
-// 🔹 POST: Save or update attendance
+
 router.post("/", async (req, res) => {
   try {
     const { date, site, records } = req.body;
     if (!date || !site)
       return res.status(400).json({ success: false, message: "Date & Site are required" });
 
-    // Ensure date is set to start of day UTC (but treat site+date combo unique)
     const localDate = new Date(date);
     localDate.setHours(0, 0, 0, 0);
 
+  
     const formattedRecords = records.map((r) => ({
       workerId: r.workerId,
       name: r.name,
       roleType: r.roleType,
       role: r.role,
       status: r.status,
+      hoursWorked: r.hoursWorked || 0,
+      salary: r.salary || 0,
     }));
 
-    // ✅ Check attendance only for this site + date combo
     let existing = await Attendance.findOne({ date: localDate, site });
 
     if (existing) {
-      // Update only if exists for this site and date
+     
       existing.records = formattedRecords;
       await existing.save();
       return res.json({
@@ -48,7 +49,7 @@ router.post("/", async (req, res) => {
       });
     }
 
-    // Otherwise create new record for this site
+   
     const attendance = new Attendance({
       date: localDate,
       site,
@@ -68,7 +69,6 @@ router.post("/", async (req, res) => {
   }
 });
 
-// 🔹 GET: Fetch attendance report by date + site
 router.get("/reports", async (req, res) => {
   try {
     const { date, site } = req.query;
