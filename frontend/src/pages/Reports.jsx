@@ -214,6 +214,35 @@ function AttendanceReport() {
     doc.save(`Attendance_Report_${selectedSite}_${startDate}_to_${endDate}.pdf`);
   };
 
+  // ✅ CSV / Excel Export
+  const downloadCSV = () => {
+    if (workerData.length === 0) {
+      alert("⚠️ No report data to export.");
+      return;
+    }
+
+    let csv =
+      "Worker Name,Present,Absent,Leave,Total Hours,Overtime Hours,Per Day Salary,Total Payment\n";
+
+    workerData.forEach((wd) => {
+      const baseSalary =
+        (wd.summary.Present || 0) * (wd.summary.perDaySalary || 0);
+      const overtimePay =
+        (wd.summary.overtimeHours || 0) * (wd.summary.perDaySalary / 8);
+      const totalPayment = baseSalary + overtimePay;
+
+      csv += `${wd.worker.name},${wd.summary.Present},${wd.summary.Absent},${wd.summary.Leave},${wd.summary.totalHours},${wd.summary.overtimeHours},${wd.summary.perDaySalary},${totalPayment.toFixed(2)}\n`;
+    });
+
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `Attendance_Report_${selectedSite}_${startDate}_to_${endDate}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
   return (
     <div className="report-container">
       <h2
@@ -226,20 +255,38 @@ function AttendanceReport() {
       >
         📊 Attendance Report
         {showReport && (
-          <button
-            onClick={downloadPDF}
-            style={{
-              background: "#27ae60",
-              color: "white",
-              padding: "8px 16px",
-              border: "none",
-              borderRadius: "6px",
-              cursor: "pointer",
-              fontSize: "14px",
-            }}
-          >
-            📥 Download PDF
-          </button>
+          <div>
+            <button
+              onClick={downloadCSV}
+              style={{
+                background: "#2980b9",
+                color: "white",
+                padding: "8px 16px",
+                border: "none",
+                borderRadius: "6px",
+                cursor: "pointer",
+                fontSize: "20px",
+                marginRight: "10px",
+              }}
+            >
+              📄 Export CSV
+            </button>
+
+            <button
+              onClick={downloadPDF}
+              style={{
+                background: "#27ae60",
+                color: "white",
+                padding: "8px 16px",
+                border: "none",
+                borderRadius: "6px",
+                fontSize: "20px",
+                cursor: "pointer",
+              }}
+            >
+              📥 Download PDF
+            </button>
+          </div>
         )}
       </h2>
 
@@ -338,7 +385,8 @@ function AttendanceReport() {
               <tbody>
                 {workerData.map((wd) => {
                   const baseSalary =
-                    (wd.summary.Present || 0) * (wd.summary.perDaySalary || 0);
+                    (wd.summary.Present || 0) *
+                    (wd.summary.perDaySalary || 0);
                   const overtimePay =
                     (wd.summary.overtimeHours || 0) *
                     (wd.summary.perDaySalary / 8);
@@ -351,7 +399,9 @@ function AttendanceReport() {
                           <input
                             type="checkbox"
                             checked={selectedWorkers.includes(wd.worker._id)}
-                            onChange={() => handleCheckboxChange(wd.worker._id)}
+                            onChange={() =>
+                              handleCheckboxChange(wd.worker._id)
+                            }
                           />
                         </td>
                       )}
