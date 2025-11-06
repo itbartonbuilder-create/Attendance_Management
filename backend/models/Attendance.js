@@ -10,11 +10,13 @@ const AttendanceSchema = new mongoose.Schema({
       roleType: { type: String, required: true },
       role: { type: String, required: true },
       status: { type: String, enum: ["Present", "Absent", "Leave"], required: true },
+      hoursWorked: { type: Number, default: 0 },   
+      salary: { type: Number, default: 0 },        
     },
   ],
 });
 
-// ✅ Ensure combination of date + site is unique (no overwrite across sites)
+
 AttendanceSchema.index({ date: 1, site: 1 }, { unique: true });
 
 export default mongoose.model("Attendance", AttendanceSchema);
