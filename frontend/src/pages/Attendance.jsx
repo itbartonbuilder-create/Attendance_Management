@@ -26,7 +26,6 @@ function Attendance() {
     }
   }, [navigate]);
 
-  // Fetch Workers
   const fetchWorkersBySite = async (site) => {
     try {
       const res = await axios.get(
@@ -43,11 +42,7 @@ function Attendance() {
         name: w.name,
         roleType: w.roleType,
         role: w.role,
-        perDaySalary: w.perDaySalary,
         status: "",
-        workType: "day", // default full day
-        hoursWorked: 8,
-        salary: w.perDaySalary || 0,
       }));
 
       setWorkers(formatted);
@@ -57,7 +52,6 @@ function Attendance() {
     }
   };
 
-  // Fetch existing attendance
   const fetchExistingAttendance = async (site, selectedDate) => {
     if (!site || !selectedDate) return;
 
@@ -71,21 +65,11 @@ function Attendance() {
         setWorkers((prev) =>
           prev.map((w) => {
             const match = res.data.records.find((r) => r.workerId === w.workerId);
-            return match
-              ? {
-                  ...w,
-                  status: match.status,
-                  hoursWorked: match.hoursWorked || 8,
-                  salary: match.salary || w.perDaySalary,
-                  workType: match.hoursWorked && match.hoursWorked !== 8 ? "hours" : "day",
-                }
-              : w;
+            return match ? { ...w, status: match.status } : w;
           })
         );
       } else {
-        setWorkers((prev) =>
-          prev.map((w) => ({ ...w, status: "", hoursWorked: 8, salary: w.perDaySalary }))
-        );
+        setWorkers((prev) => prev.map((w) => ({ ...w, status: "" })));
       }
     } catch (err) {
       console.error("Error fetching attendance:", err);
@@ -100,55 +84,10 @@ function Attendance() {
     })();
   }, [selectedSite, date, user]);
 
-  // Status Change
   const handleStatusChange = (id, status) => {
-    setWorkers((prev) =>
-      prev.map((w) =>
-        w.workerId === id
-          ? {
-              ...w,
-              status,
-              workType: status === "Present" ? "day" : "",
-              hoursWorked: status === "Present" ? 8 : 0,
-              salary: status === "Present" ? w.perDaySalary : 0,
-            }
-          : w
-      )
-    );
+    setWorkers((prev) => prev.map((w) => (w.workerId === id ? { ...w, status } : w)));
   };
 
-  // Work Type Change
-  const handleWorkTypeChange = (id, type) => {
-    setWorkers((prev) =>
-      prev.map((w) => {
-        if (w.workerId === id) {
-          const newHours = type === "day" ? 8 : w.hoursWorked || 0;
-          const newSalary =
-            type === "day"
-              ? w.perDaySalary
-              : Math.round((w.perDaySalary / 8) * newHours);
-          return { ...w, workType: type, hoursWorked: newHours, salary: newSalary };
-        }
-        return w;
-      })
-    );
-  };
-
-  // Hours Input Change
-  const handleHoursChange = (id, hours) => {
-    setWorkers((prev) =>
-      prev.map((w) => {
-        if (w.workerId === id) {
-          const h = Math.min(8, Math.max(1, hours)); // limit 1–8
-          const newSalary = Math.round((w.perDaySalary / 8) * h);
-          return { ...w, hoursWorked: h, salary: newSalary };
-        }
-        return w;
-      })
-    );
-  };
-
-  // Submit Attendance
   const submitAttendance = async () => {
     if (!date || !selectedSite) {
       alert("⚠️ Please select a date and site before submitting.");
@@ -167,8 +106,6 @@ function Attendance() {
             roleType: w.roleType,
             role: w.role,
             status: w.status,
-            hoursWorked: w.hoursWorked,
-            salary: w.salary,
           })),
         }
       );
@@ -216,12 +153,7 @@ function Attendance() {
         <table
           border="1"
           cellPadding="8"
-          style={{
-            marginTop: 15,
-            borderCollapse: "collapse",
-            width: "100%",
-            textAlign: "center",
-          }}
+          style={{ marginTop: 15, borderCollapse: "collapse", width: "100%" }}
         >
           <thead style={{ background: "#2C3E50", color: "white" }}>
             <tr>
@@ -232,9 +164,6 @@ function Attendance() {
               <th>Present</th>
               <th>Absent</th>
               <th>Leave</th>
-              <th>Work Type</th>
-              <th>Hours</th>
-              <th>Calculated Salary</th>
             </tr>
           </thead>
           <tbody>
@@ -267,53 +196,6 @@ function Attendance() {
                     checked={w.status === "Leave"}
                     onChange={() => handleStatusChange(w.workerId, "Leave")}
                   />
-                </td>
-
-                {/* Work Type */}
-                <td>
-                  {w.status === "Present" && (
-                    <>
-                      <label>
-                        <input
-                          type="radio"
-                          name={`workType-${w.workerId}`}
-                          checked={w.workType === "day"}
-                          onChange={() => handleWorkTypeChange(w.workerId, "day")}
-                        />{" "}
-                        Full Day
-                      </label>
-                      <label style={{ marginLeft: "10px" }}>
-                        <input
-                          type="radio"
-                          name={`workType-${w.workerId}`}
-                          checked={w.workType === "hours"}
-                          onChange={() => handleWorkTypeChange(w.workerId, "hours")}
-                        />{" "}
-                        Hours
-                      </label>
-                    </>
-                  )}
-                </td>
-
-                {/* Hours Input */}
-                <td>
-                  {w.status === "Present" && w.workType === "hours" && (
-                    <input
-                      type="number"
-                      min="1"
-                      max="8"
-                      value={w.hoursWorked}
-                      onChange={(e) =>
-                        handleHoursChange(w.workerId, Number(e.target.value))
-                      }
-                      style={{ width: "60px", textAlign: "center" }}
-                    />
-                  )}
-                </td>
-
-                {/* Salary */}
-                <td>
-                  {w.status === "Present" ? `₹${w.salary}` : "-"}
                 </td>
               </tr>
             ))}
