@@ -10,6 +10,7 @@ function Attendance() {
   const [workers, setWorkers] = useState([]);
   const [date, setDate] = useState(() => new Date().toISOString().split("T")[0]);
 
+  // ✅ check login user role
   useEffect(() => {
     const savedUser = localStorage.getItem("user");
     if (!savedUser) {
@@ -26,6 +27,7 @@ function Attendance() {
     }
   }, [navigate]);
 
+  // ✅ fetch workers for selected site
   const fetchWorkersBySite = async (site) => {
     try {
       const res = await axios.get(
@@ -42,7 +44,12 @@ function Attendance() {
         name: w.name,
         roleType: w.roleType,
         role: w.role,
+        perDaySalary: Number(w.perDaySalary) || 0,
         status: "",
+        isFullDay: false,
+        overtimeHours: 0,
+        totalHours: 0,
+        salary: 0,
       }));
 
       setWorkers(formatted);
@@ -52,9 +59,9 @@ function Attendance() {
     }
   };
 
+
   const fetchExistingAttendance = async (site, selectedDate) => {
     if (!site || !selectedDate) return;
-
     try {
       const res = await axios.get(
         "https://attendance-management-backend-vh2w.onrender.com/api/attendance/reports",
@@ -65,29 +72,88 @@ function Attendance() {
         setWorkers((prev) =>
           prev.map((w) => {
             const match = res.data.records.find((r) => r.workerId === w.workerId);
-            return match ? { ...w, status: match.status } : w;
+            if (!match) return w;
+            const isFullDay = match.hoursWorked >= 8;
+            const overtime = match.hoursWorked > 8 ? match.hoursWorked - 8 : 0;
+            return {
+              ...w,
+              status: match.status,
+              isFullDay,
+              overtimeHours: overtime,
+              totalHours: match.hoursWorked,
+              salary: match.salary,
+            };
           })
         );
-      } else {
-        setWorkers((prev) => prev.map((w) => ({ ...w, status: "" })));
       }
     } catch (err) {
       console.error("Error fetching attendance:", err);
     }
   };
 
+  // ✅ load workers + attendance together
   useEffect(() => {
     if (!selectedSite || !user) return;
     (async () => {
       await fetchWorkersBySite(selectedSite);
-      await fetchExistingAttendance(selectedSite, date);
+      await fetchExistingAttendance(selectedSite, date); // no timeout now
     })();
   }, [selectedSite, date, user]);
 
+  // ✅ handle status (present / absent / leave)
   const handleStatusChange = (id, status) => {
-    setWorkers((prev) => prev.map((w) => (w.workerId === id ? { ...w, status } : w)));
+    setWorkers((prev) =>
+      prev.map((w) =>
+        w.workerId === id
+          ? {
+              ...w,
+              status,
+              isFullDay: status === "Present",
+              overtimeHours: 0,
+              totalHours: status === "Present" ? 8 : 0,
+              salary: status === "Present" ? w.perDaySalary : 0,
+            }
+          : w
+      )
+    );
   };
 
+  // ✅ handle full day toggle
+  const handleFullDayToggle = (id, checked) => {
+    setWorkers((prev) =>
+      prev.map((w) => {
+        if (w.workerId === id) {
+          const fullDayHours = checked ? 8 : 0;
+          const total = fullDayHours + w.overtimeHours;
+          const newSalary = Math.round((w.perDaySalary / 8) * total);
+          return {
+            ...w,
+            isFullDay: checked,
+            totalHours: total,
+            salary: newSalary,
+          };
+        }
+        return w;
+      })
+    );
+  };
+
+  // ✅ handle overtime hours
+  const handleOvertimeChange = (id, hours) => {
+    setWorkers((prev) =>
+      prev.map((w) => {
+        if (w.workerId === id) {
+          const h = Math.max(0, Math.min(12, hours));
+          const total = (w.isFullDay ? 8 : 0) + h;
+          const newSalary = Math.round((w.perDaySalary / 8) * total);
+          return { ...w, overtimeHours: h, totalHours: total, salary: newSalary };
+        }
+        return w;
+      })
+    );
+  };
+
+  // ✅ submit attendance to backend
   const submitAttendance = async () => {
     if (!date || !selectedSite) {
       alert("⚠️ Please select a date and site before submitting.");
@@ -106,6 +172,8 @@ function Attendance() {
             roleType: w.roleType,
             role: w.role,
             status: w.status,
+            hoursWorked: w.totalHours,
+            salary: w.salary,
           })),
         }
       );
@@ -117,6 +185,7 @@ function Attendance() {
     }
   };
 
+  // ✅ UI
   return (
     <div className="attendance-container">
       <h2>📝 Mark Attendance</h2>
@@ -153,7 +222,12 @@ function Attendance() {
         <table
           border="1"
           cellPadding="8"
-          style={{ marginTop: 15, borderCollapse: "collapse", width: "100%" }}
+          style={{
+            marginTop: 15,
+            borderCollapse: "collapse",
+            width: "100%",
+            textAlign: "center",
+          }}
         >
           <thead style={{ background: "#2C3E50", color: "white" }}>
             <tr>
@@ -164,8 +238,13 @@ function Attendance() {
               <th>Present</th>
               <th>Absent</th>
               <th>Leave</th>
+              <th>Full Day (8h)</th>
+              <th>Overtime Hours</th>
+              <th>Total Hours</th>
+              <th>Calculated Salary</th>
             </tr>
           </thead>
+
           <tbody>
             {workers.map((w) => (
               <tr key={w.workerId}>
@@ -173,6 +252,7 @@ function Attendance() {
                 <td>{w.name}</td>
                 <td>{w.roleType}</td>
                 <td>{w.role}</td>
+
                 <td>
                   <input
                     type="radio"
@@ -197,6 +277,36 @@ function Attendance() {
                     onChange={() => handleStatusChange(w.workerId, "Leave")}
                   />
                 </td>
+
+                <td>
+                  {w.status === "Present" && (
+                    <input
+                      type="checkbox"
+                      checked={w.isFullDay}
+                      onChange={(e) =>
+                        handleFullDayToggle(w.workerId, e.target.checked)
+                      }
+                    />
+                  )}
+                </td>
+
+                <td>
+                  {w.status === "Present" && (
+                    <input
+                      type="number"
+                      min="0"
+                      max="12"
+                      value={w.overtimeHours}
+                      onChange={(e) =>
+                        handleOvertimeChange(w.workerId, Number(e.target.value))
+                      }
+                      style={{ width: "60px", textAlign: "center" }}
+                    />
+                  )}
+                </td>
+
+                <td>{w.status === "Present" ? w.totalHours : "-"}</td>
+                <td>{w.status === "Present" ? `₹${w.salary}` : "-"}</td>
               </tr>
             ))}
           </tbody>
@@ -205,7 +315,6 @@ function Attendance() {
 
       {workers.length > 0 && (
         <button
-          className="submit-btn"
           onClick={submitAttendance}
           style={{
             marginTop: 15,
