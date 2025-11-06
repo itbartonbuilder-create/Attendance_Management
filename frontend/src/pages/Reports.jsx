@@ -17,7 +17,8 @@ function AttendanceReport() {
   const [workerData, setWorkerData] = useState([]);
   const [showReport, setShowReport] = useState(false);
 
-  const API_URL = "https://attendance-management-backend-vh2w.onrender.com/api/attendance";
+  const API_URL =
+    "https://attendance-management-backend-vh2w.onrender.com/api/attendance";
 
   // ✅ User load + site setup
   useEffect(() => {
@@ -94,7 +95,7 @@ function AttendanceReport() {
             Absent: 0,
             Leave: 0,
             totalHours: 0,
-            fullDays: 0,
+            overtimeHours: 0,
             perDaySalary: w.perDaySalary,
           };
 
@@ -102,7 +103,7 @@ function AttendanceReport() {
             if (h.status === "Present") {
               summary.Present++;
               summary.totalHours += h.hoursWorked || 0;
-              if ((h.hoursWorked || 0) >= 8) summary.fullDays++;
+              summary.overtimeHours += h.overtimeHours || 0;
             } else if (h.status === "Absent") summary.Absent++;
             else if (h.status === "Leave") summary.Leave++;
           });
@@ -126,7 +127,7 @@ function AttendanceReport() {
     );
   };
 
-  // ✅ PDF Download with fullDays + hours
+  // ✅ PDF Download with Overtime detail
   const downloadPDF = () => {
     if (user?.role !== "worker" && selectedWorkers.length === 0) {
       alert("⚠️ Please select at least one worker to download PDF.");
@@ -161,11 +162,12 @@ function AttendanceReport() {
       if (wd.history.length > 0) {
         autoTable(doc, {
           startY: yPos,
-          head: [["Date", "Status", "Hours Worked"]],
+          head: [["Date", "Status", "Hours Worked", "Overtime Hours"]],
           body: wd.history.map((h) => [
             h.date,
             h.status,
-            h.status === "Present" ? `${h.hoursWorked || 0} hrs` : "-",
+            h.status === "Present" ? `${h.hoursWorked || 0}` : "-",
+            h.status === "Present" ? `${h.overtimeHours || 0}` : "-",
           ]),
           styles: { fontSize: 10 },
           margin: { left: 14 },
@@ -178,19 +180,22 @@ function AttendanceReport() {
         ? doc.lastAutoTable.finalY + 10
         : yPos + 15;
 
-      const totalPayment =
-        ((wd.summary.totalHours || 0) / 8) * (wd.summary.perDaySalary || 0);
+      const baseSalary =
+        (wd.summary.Present || 0) * (wd.summary.perDaySalary || 0);
+      const overtimePay =
+        (wd.summary.overtimeHours || 0) * (wd.summary.perDaySalary / 8);
+      const totalPayment = baseSalary + overtimePay;
 
       autoTable(doc, {
         startY: yAfterTable,
-        head: [["Present", "Full Days", "Total Hours", "Absent", "Leave"]],
+        head: [["Present", "Absent", "Leave", "Total Hours", "Overtime Hours"]],
         body: [
           [
             wd.summary.Present || 0,
-            wd.summary.fullDays || 0,
-            wd.summary.totalHours || 0,
             wd.summary.Absent || 0,
             wd.summary.Leave || 0,
+            wd.summary.totalHours || 0,
+            wd.summary.overtimeHours || 0,
           ],
         ],
         styles: { fontSize: 10 },
@@ -200,9 +205,10 @@ function AttendanceReport() {
       const y2 = doc.lastAutoTable.finalY + 8;
       doc.setFontSize(11);
       doc.text(`Per Day Salary: Rs. ${wd.summary.perDaySalary}`, 14, y2);
-      doc.text(`Total Payment: Rs. ${totalPayment.toFixed(2)}`, 14, y2 + 6);
+      doc.text(`Overtime Payment: Rs. ${overtimePay.toFixed(2)}`, 14, y2 + 6);
+      doc.text(`Total Payment: Rs. ${totalPayment.toFixed(2)}`, 14, y2 + 12);
 
-      yPos = y2 + 14;
+      yPos = y2 + 18;
     });
 
     doc.save(`Attendance_Report_${selectedSite}_${startDate}_to_${endDate}.pdf`);
@@ -320,41 +326,46 @@ function AttendanceReport() {
                 <tr>
                   {user?.role !== "worker" && <th>Select</th>}
                   <th>Worker Name</th>
-                  <th>Full Days</th>
-                  <th>Total Hours</th>
+                  <th>Present</th>
                   <th>Absent</th>
                   <th>Leave</th>
+                  <th>Total Hours</th>
+                  <th>Overtime Hours</th>
                   <th>Per Day Salary</th>
                   <th>Total Payment</th>
                 </tr>
               </thead>
               <tbody>
-                {workerData.map((wd) => (
-                  <tr key={wd.worker._id}>
-                    {user?.role !== "worker" && (
-                      <td>
-                        <input
-                          type="checkbox"
-                          checked={selectedWorkers.includes(wd.worker._id)}
-                          onChange={() => handleCheckboxChange(wd.worker._id)}
-                        />
-                      </td>
-                    )}
-                    <td>{wd.worker.name}</td>
-                    <td>{wd.summary.fullDays}</td>
-                    <td>{wd.summary.totalHours}</td>
-                    <td>{wd.summary.Absent}</td>
-                    <td>{wd.summary.Leave}</td>
-                    <td>Rs. {wd.summary.perDaySalary}</td>
-                    <td>
-                      Rs.{" "}
-                      {(
-                        ((wd.summary.totalHours || 0) / 8) *
-                        (wd.summary.perDaySalary || 0)
-                      ).toFixed(2)}
-                    </td>
-                  </tr>
-                ))}
+                {workerData.map((wd) => {
+                  const baseSalary =
+                    (wd.summary.Present || 0) * (wd.summary.perDaySalary || 0);
+                  const overtimePay =
+                    (wd.summary.overtimeHours || 0) *
+                    (wd.summary.perDaySalary / 8);
+                  const totalPayment = baseSalary + overtimePay;
+
+                  return (
+                    <tr key={wd.worker._id}>
+                      {user?.role !== "worker" && (
+                        <td>
+                          <input
+                            type="checkbox"
+                            checked={selectedWorkers.includes(wd.worker._id)}
+                            onChange={() => handleCheckboxChange(wd.worker._id)}
+                          />
+                        </td>
+                      )}
+                      <td>{wd.worker.name}</td>
+                      <td>{wd.summary.Present}</td>
+                      <td>{wd.summary.Absent}</td>
+                      <td>{wd.summary.Leave}</td>
+                      <td>{wd.summary.totalHours}</td>
+                      <td>{wd.summary.overtimeHours}</td>
+                      <td>Rs. {wd.summary.perDaySalary}</td>
+                      <td>Rs. {totalPayment.toFixed(2)}</td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           )}
