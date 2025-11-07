@@ -9,12 +9,14 @@ function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
-  const [name, setName] = useState(""); // Worker or Manager site/name
+  const [name, setName] = useState(""); 
   const [contactNo, setContactNo] = useState("");
+  const [isLoading, setIsLoading] = useState(false); // ✅ loader state
   const navigate = useNavigate();
 
   const handleLogin = async (e) => {
     e.preventDefault();
+    setIsLoading(true); // ✅ start loader
     try {
       let res;
 
@@ -46,6 +48,8 @@ function Login() {
       navigate("/dashboard");
     } catch (err) {
       alert(err.response?.data?.msg || "❌ Login failed. Please try again.");
+    } finally {
+      setIsLoading(false); // ✅ stop loader
     }
   };
 
@@ -59,8 +63,17 @@ function Login() {
         display: "flex",
         justifyContent: "center",
         alignItems: "center",
+        position: "relative",
       }}
     >
+      {/* ✅ Loader Overlay */}
+      {isLoading && (
+        <div style={overlayStyle}>
+          <div style={spinnerStyle}></div>
+          <p style={{ color: "white", marginTop: "10px", fontSize: "18px" }}>Processing...</p>
+        </div>
+      )}
+
       <div
         style={{
           backdropFilter: "blur(30px)",
@@ -70,7 +83,6 @@ function Login() {
           boxShadow: "0 4px 12px rgba(0,0,0,0.4)",
         }}
       >
-        {/* Logo + Title */}
         <div
           style={{
             display: "flex",
@@ -94,43 +106,74 @@ function Login() {
           </h1>
         </div>
 
-        {/* Role Selection */}
         <div style={{ marginBottom: "20px", textAlign: "center", color: "white" }}>
           <label style={{ marginRight: "15px", fontSize: "19px" }}>
-            <input type="radio" name="role" value="admin" checked={role === "admin"} 
-              onChange={(e) => setRole(e.target.value)} /> Admin
+            <input
+              type="radio"
+              name="role"
+              value="admin"
+              checked={role === "admin"}
+              onChange={(e) => setRole(e.target.value)}
+            />{" "}
+            Admin
           </label>
           <label style={{ marginRight: "15px", fontSize: "19px" }}>
-            <input type="radio" name="role" value="manager" checked={role === "manager"} 
-              onChange={(e) => setRole(e.target.value)} /> Manager
+            <input
+              type="radio"
+              name="role"
+              value="manager"
+              checked={role === "manager"}
+              onChange={(e) => setRole(e.target.value)}
+            />{" "}
+            Manager
           </label>
-          <label style={{fontSize: "19px" }}>
-            <input type="radio" name="role" value="worker" checked={role === "worker"}
-              onChange={(e) => setRole(e.target.value)} /> Worker
+          <label style={{ fontSize: "19px" }}>
+            <input
+              type="radio"
+              name="role"
+              value="worker"
+              checked={role === "worker"}
+              onChange={(e) => setRole(e.target.value)}
+            />{" "}
+            Worker
           </label>
         </div>
 
-        {/* Form */}
         <form onSubmit={handleLogin}>
-          {/* Admin */}
           {role === "admin" && (
             <>
-              <input type="email" placeholder="Enter Admin Email" value={email}
-                onChange={(e) => setEmail(e.target.value)} required style={inputStyle} />
+              <input
+                type="email"
+                placeholder="Enter Admin Email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+                style={inputStyle}
+              />
               <div style={{ position: "relative" }}>
-                <input type={showPassword ? "text" : "password"} placeholder="Enter Password" value={password} 
-                  onChange={(e) => setPassword(e.target.value)} required style={inputStyle} />
-                <span onClick={() => setShowPassword(!showPassword)} style={eyeStyle}>{showPassword ? "🙈" : "👁️"}</span>
+                <input
+                  type={showPassword ? "text" : "password"}
+                  placeholder="Enter Password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                  style={inputStyle}
+                />
+                <span onClick={() => setShowPassword(!showPassword)} style={eyeStyle}>
+                  {showPassword ? "🙈" : "👁️"}
+                </span>
               </div>
             </>
           )}
 
-          {/* Manager */}
           {role === "manager" && (
             <>
-              <select value={name}
-                onChange={(e) => setName(e.target.value)} 
-                required style={{ ...inputStyle, width: "100%", color: name ? "white" : "gray" }}>
+              <select
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                required
+                style={{ ...inputStyle, width: "100%", color: name ? "white" : "gray" }}
+              >
                 <option value="">Select Site</option>
                 <option value="Bangalore">Bangalore</option>
                 <option value="Japuriya">Japuriya</option>
@@ -139,38 +182,61 @@ function Login() {
               </select>
               <div style={{ position: "relative" }}>
                 <input
-  type={showPassword ? "text" : "password"}
-  placeholder="Enter Contact Number"
-  value={contactNo}
-  onChange={(e) => setContactNo(e.target.value)}
-  required
-  style={inputStyle}
-/>
-<span onClick={() => setShowPassword(!showPassword)} style={eyeStyle}>
-  {showPassword ? "🙈" : "👁️"}
-</span>
+                  type={showPassword ? "text" : "password"}
+                  placeholder="Enter Contact Number"
+                  value={contactNo}
+                  onChange={(e) => setContactNo(e.target.value)}
+                  required
+                  style={inputStyle}
+                />
+                <span onClick={() => setShowPassword(!showPassword)} style={eyeStyle}>
+                  {showPassword ? "🙈" : "👁️"}
+                </span>
               </div>
             </>
           )}
 
-          {/* Worker */}
           {role === "worker" && (
             <>
-              <input type="text" placeholder="Enter Worker Name" value={name} 
-                onChange={(e) => setName(e.target.value)} required style={inputStyle} />
+              <input
+                type="text"
+                placeholder="Enter Worker Name"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                required
+                style={inputStyle}
+              />
               <div style={{ position: "relative" }}>
-                <input type={showPassword ? "text" : "password"} placeholder="Enter Contact Number" value={contactNo} 
-                  onChange={(e) => setContactNo(e.target.value)} required style={inputStyle}/>
-<span onClick={() => setShowPassword(!showPassword)} style={eyeStyle}>
-  {showPassword ? "🙈" : "👁️"}
-</span>
+                <input
+                  type={showPassword ? "text" : "password"}
+                  placeholder="Enter Contact Number"
+                  value={contactNo}
+                  onChange={(e) => setContactNo(e.target.value)}
+                  required
+                  style={inputStyle}
+                />
+                <span onClick={() => setShowPassword(!showPassword)} style={eyeStyle}>
+                  {showPassword ? "🙈" : "👁️"}
+                </span>
               </div>
             </>
           )}
 
-          <button type="submit" style={buttonStyle}>Login</button>
+          <button type="submit" style={buttonStyle} disabled={isLoading}>
+            {isLoading ? "Logging in..." : "Login"}
+          </button>
         </form>
       </div>
+
+      {/* Spinner Animation */}
+      <style>
+        {`
+          @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+          }
+        `}
+      </style>
     </div>
   );
 }
@@ -207,6 +273,30 @@ const buttonStyle = {
   color: "white",
   fontWeight: "bold",
   cursor: "pointer",
+};
+
+// ✅ Loader overlay styles
+const overlayStyle = {
+  position: "absolute",
+  top: 0,
+  left: 0,
+  width: "100%",
+  height: "100%",
+  backgroundColor: "rgba(0,0,0,0.6)",
+  display: "flex",
+  flexDirection: "column",
+  justifyContent: "center",
+  alignItems: "center",
+  zIndex: 999,
+};
+
+const spinnerStyle = {
+  border: "6px solid #f3f3f3",
+  borderTop: "6px solid #007bff",
+  borderRadius: "50%",
+  width: "50px",
+  height: "50px",
+  animation: "spin 1s linear infinite",
 };
 
 export default Login;
