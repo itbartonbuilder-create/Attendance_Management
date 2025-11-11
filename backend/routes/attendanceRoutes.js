@@ -5,133 +5,97 @@ import Worker from "../models/Worker.js";
 
 const router = express.Router();
 
-
-// ✅ Fetch all workers
-router.get("/workers", async (req, res) => {
-  try {
-    const workers = await Worker.find({}, "name site perDaySalary roleType role");
-    res.json(workers);
-  } catch (err) {
-    console.error("🚨 Error fetching workers:", err.message);
-    res.status(500).json({ message: err.message });
-  }
-});
-
-
-// ✅ Submit or Update Attendance
-router.post("/", async (req, res) => {
+// 🧩 Save or update attendance for a site/date
+router.post("/save", async (req, res) => {
   try {
     const { date, site, records } = req.body;
-    if (!date || !site)
-      return res.status(400).json({ success: false, message: "Date & Site are required" });
 
-    const localDate = new Date(date);
-    localDate.setHours(0, 0, 0, 0);
+    if (!date || !site || !records) {
+      return res.status(400).json({ success: false, message: "Missing data" });
+    }
 
-    const formattedRecords = records.map((r) => {
-      const hours = Number(r.hoursWorked) || 0;
-      const overtime = hours > 8 ? hours - 8 : 0;
+    let attendance = await Attendance.findOne({ date, site });
 
-      return {
-        workerId: r.workerId,
-        name: r.name,
-        roleType: r.roleType,
-        role: r.role,
-        status: r.status,
-        hoursWorked: hours,
-        overtimeHours: overtime,
-        salary: Number(r.salary) || 0,
-        leaveType: r.leaveType || { holiday: false, accepted: false },
-      };
-    });
+    if (!attendance) {
+      attendance = new Attendance({ date, site, records });
+    } else {
+      // update each worker’s record
+      records.forEach((record) => {
+        const existing = attendance.records.find(
+          (r) => r.workerId.toString() === record.workerId
+        );
 
-    let existing = await Attendance.findOne({ date: localDate, site });
-
-    if (existing) {
-      existing.records = formattedRecords;
-      await existing.save();
-      return res.json({
-        success: true,
-        message: `✅ Attendance Updated Successfully`,
-        attendance: existing,
+        if (existing) {
+          existing.status = record.status;
+          existing.hoursWorked = record.hoursWorked || 0;
+          existing.overtimeHours = record.overtimeHours || 0;
+          existing.leaveType = record.leaveType || {};
+          existing.salary = record.salary || 0;
+        } else {
+          attendance.records.push(record);
+        }
       });
     }
 
-    const attendance = new Attendance({ date: localDate, site, records: formattedRecords });
     await attendance.save();
-
-    res.json({ success: true, message: `✅ Attendance Submitted Successfully`, attendance });
+    res.json({ success: true, message: "Attendance saved successfully" });
   } catch (err) {
-    console.error("🚨 Error in POST /api/attendance:", err.message);
-    res.status(500).json({ success: false, message: err.message });
+    console.error("Error saving attendance:", err);
+    res.status(500).json({ success: false, message: "Error saving attendance" });
   }
 });
 
-
-// ✅ Daily Report Fetch
-router.get("/reports", async (req, res) => {
+// 🧩 Fetch attendance for a specific date + site
+router.get("/get", async (req, res) => {
   try {
     const { date, site } = req.query;
-    if (!date || !site)
-      return res.status(400).json({ success: false, message: "Date & Site are required" });
+    if (!date || !site) {
+      return res.status(400).json({ success: false, message: "Missing query" });
+    }
 
-    const queryDate = new Date(date);
-    queryDate.setHours(0, 0, 0, 0);
+    const attendance = await Attendance.findOne({ date, site }).populate("records.workerId");
+    if (!attendance) return res.json({ success: true, records: [] });
 
-    const report = await Attendance.findOne({ date: queryDate, site });
-    res.json({ success: true, records: report ? report.records : [] });
+    res.json({ success: true, records: attendance.records });
   } catch (err) {
-    console.error("🚨 Error fetching attendance reports:", err);
-    res.status(500).json({ success: false, message: err.message });
+    console.error("Error fetching attendance:", err);
+    res.status(500).json({ success: false, message: "Error fetching attendance" });
   }
 });
 
-
-// ✅ Worker History for Report (used by Report Page)
+// 🧩 Worker History — used for report page
 router.get("/worker-history/:workerId", async (req, res) => {
   try {
     const { workerId } = req.params;
-    const { start, end, site } = req.query;
+    const { start, end } = req.query;
 
-    const query = { "records.workerId": new mongoose.Types.ObjectId(workerId) };
-    if (site) query.site = site;
-
-    if (start && end) {
-      const startDate = new Date(start);
-      const endDate = new Date(end);
-      startDate.setHours(0, 0, 0, 0);
-      endDate.setHours(23, 59, 59, 999);
-      query.date = { $gte: startDate, $lte: endDate };
-    }
-
-    const attendanceDocs = await Attendance.find(query).sort({ date: 1 });
+    const records = await Attendance.find({
+      date: { $gte: new Date(start), $lte: new Date(end) },
+      "records.workerId": workerId,
+    });
 
     const history = [];
-    attendanceDocs.forEach((doc) => {
-      const record = doc.records.find((r) => r.workerId.toString() === workerId);
-      if (record) {
-        const isPaidLeave =
-          record.leaveType?.accepted === true || record.leaveType?.holiday === true;
+    records.forEach((record) => {
+      const workerRecord = record.records.find(
+        (r) => r.workerId.toString() === workerId
+      );
 
+      if (workerRecord) {
         history.push({
-          date: doc.date.toISOString().split("T")[0],
-          status: record.status,
-          hoursWorked: record.hoursWorked || 0,
-          overtimeHours: record.overtimeHours || 0,
-          salary: record.salary || 0,
-          leaveType: {
-            ...record.leaveType,
-            paid: isPaidLeave,
-            unpaid: !isPaidLeave,
-          },
+          date: record.date.toISOString().split("T")[0],
+          status: workerRecord.status,
+          hoursWorked: workerRecord.hoursWorked || 0,
+          overtimeHours: workerRecord.overtimeHours || 0,
+          leaveType: workerRecord.leaveType || {},
+          salary: workerRecord.salary || 0,
         });
       }
     });
 
     res.json({ success: true, history });
   } catch (err) {
-    console.error("🚨 Error fetching worker history:", err);
-    res.status(500).json({ success: false, message: err.message });
+    console.error("Error fetching worker history:", err);
+    res.status(500).json({ success: false, message: "Error fetching history" });
   }
 });
 
