@@ -20,7 +20,6 @@ function Attendance() {
 
     const u = JSON.parse(savedUser);
     setUser(u);
-
     if (u.role === "manager") setSelectedSite(u.site);
     if (u.role === "worker") {
       alert("❌ Access denied for workers.");
@@ -51,7 +50,7 @@ function Attendance() {
         overtimeHours: 0,
         totalHours: 0,
         salary: 0,
-        leaveType: { holiday: false, accepted: false }, // ✅ leave type field
+        leaveType: { holiday: false, accepted: false },
       }));
 
       setWorkers(formatted);
@@ -61,10 +60,9 @@ function Attendance() {
     }
   };
 
-  // ✅ Fetch existing attendance and restore leave type too
+  // ✅ Fetch existing attendance
   const fetchExistingAttendance = async (site, selectedDate) => {
     if (!site || !selectedDate) return;
-
     try {
       const res = await axios.get(
         "https://attendance-management-backend-vh2w.onrender.com/api/attendance/reports",
@@ -80,11 +78,12 @@ function Attendance() {
             const isFullDay = match.hoursWorked >= 8;
             const overtime = match.hoursWorked > 8 ? match.hoursWorked - 8 : 0;
 
-            // ✅ Restore leave flags from backend data (if stored)
-            const leaveType = {
-              holiday: !!match.leaveHoliday,
-              accepted: !!match.leaveAccepted,
-            };
+            const leaveType = match.leaveType
+              ? {
+                  holiday: !!match.leaveType.holiday,
+                  accepted: !!match.leaveType.accepted,
+                }
+              : { holiday: false, accepted: false };
 
             return {
               ...w,
@@ -111,12 +110,13 @@ function Attendance() {
     })();
   }, [selectedSite, date, user]);
 
-  // ✅ Handle status (Present/Absent/Leave)
+  // ✅ Status change
   const handleStatusChange = (id, status) => {
     setWorkers((prev) =>
       prev.map((w) => {
         if (w.workerId !== id) return w;
 
+        const resetLeave = { holiday: false, accepted: false };
         if (status === "Present") {
           return {
             ...w,
@@ -125,10 +125,9 @@ function Attendance() {
             overtimeHours: 0,
             totalHours: 8,
             salary: w.perDaySalary,
-            leaveType: { holiday: false, accepted: false },
+            leaveType: resetLeave,
           };
         }
-
         if (status === "Absent") {
           return {
             ...w,
@@ -137,10 +136,9 @@ function Attendance() {
             overtimeHours: 0,
             totalHours: 0,
             salary: 0,
-            leaveType: { holiday: false, accepted: false },
+            leaveType: resetLeave,
           };
         }
-
         if (status === "Leave") {
           return {
             ...w,
@@ -149,16 +147,14 @@ function Attendance() {
             overtimeHours: 0,
             totalHours: 0,
             salary: 0,
-            leaveType: { holiday: false, accepted: false },
+            leaveType: resetLeave,
           };
         }
-
         return w;
       })
     );
   };
 
-  // ✅ Full day toggle
   const handleFullDayToggle = (id, checked) => {
     setWorkers((prev) =>
       prev.map((w) => {
@@ -166,19 +162,13 @@ function Attendance() {
           const fullDayHours = checked ? 8 : 0;
           const total = fullDayHours + w.overtimeHours;
           const newSalary = Math.round((w.perDaySalary / 8) * total);
-          return {
-            ...w,
-            isFullDay: checked,
-            totalHours: total,
-            salary: newSalary,
-          };
+          return { ...w, isFullDay: checked, totalHours: total, salary: newSalary };
         }
         return w;
       })
     );
   };
 
-  // ✅ Overtime change
   const handleOvertimeChange = (id, hours) => {
     setWorkers((prev) =>
       prev.map((w) => {
@@ -193,7 +183,6 @@ function Attendance() {
     );
   };
 
-  // ✅ Leave type change (Holiday / Leave Accepted)
   const handleLeaveTypeChange = (id, type, checked) => {
     setWorkers((prev) =>
       prev.map((w) => {
@@ -215,10 +204,10 @@ function Attendance() {
     );
   };
 
-  // ✅ Submit Attendance
+  // ✅ Submit attendance
   const submitAttendance = async () => {
     if (!date || !selectedSite) {
-      alert("⚠️ Please select a date and site before submitting.");
+      alert("⚠️ Please select date & site!");
       return;
     }
 
@@ -236,13 +225,10 @@ function Attendance() {
             status: w.status,
             hoursWorked: w.totalHours,
             salary: w.salary,
-            // ✅ Include leave flags in backend
-            leaveHoliday: w.leaveType.holiday,
-            leaveAccepted: w.leaveType.accepted,
+            leaveType: w.leaveType,
           })),
         }
       );
-
       alert(res.data.message || "✅ Attendance saved successfully!");
     } catch (err) {
       console.error(err);
@@ -283,16 +269,7 @@ function Attendance() {
       )}
 
       {workers.length > 0 && (
-        <table
-          border="1"
-          cellPadding="8"
-          style={{
-            marginTop: 15,
-            borderCollapse: "collapse",
-            width: "100%",
-            textAlign: "center",
-          }}
-        >
+        <table border="1" cellPadding="8" style={{ width: "100%", textAlign: "center" }}>
           <thead style={{ background: "#2C3E50", color: "white" }}>
             <tr>
               <th>Sr No.</th>
@@ -304,13 +281,12 @@ function Attendance() {
               <th>Leave</th>
               <th>Holiday</th>
               <th>Leave Accepted</th>
-              <th>Full Day (8h)</th>
-              <th>Overtime Hours</th>
+              <th>Full Day</th>
+              <th>Overtime</th>
               <th>Total Hours</th>
-              <th>Calculated Salary</th>
+              <th>Salary</th>
             </tr>
           </thead>
-
           <tbody>
             {workers.map((w) => (
               <tr key={w.workerId}>
@@ -318,8 +294,6 @@ function Attendance() {
                 <td>{w.name}</td>
                 <td>{w.roleType}</td>
                 <td>{w.role}</td>
-
-                {/* Present / Absent / Leave */}
                 <td>
                   <input
                     type="radio"
@@ -344,8 +318,6 @@ function Attendance() {
                     onChange={() => handleStatusChange(w.workerId, "Leave")}
                   />
                 </td>
-
-                {/* Leave checkboxes */}
                 <td>
                   {w.status === "Leave" && (
                     <input
@@ -368,8 +340,6 @@ function Attendance() {
                     />
                   )}
                 </td>
-
-                {/* Present Options */}
                 <td>
                   {w.status === "Present" && (
                     <input
@@ -389,11 +359,10 @@ function Attendance() {
                       onChange={(e) =>
                         handleOvertimeChange(w.workerId, Number(e.target.value))
                       }
-                      style={{ width: "60px", textAlign: "center" }}
+                      style={{ width: "60px" }}
                     />
                   )}
                 </td>
-
                 <td>{w.totalHours || "-"}</td>
                 <td>{w.salary ? `₹${w.salary}` : "-"}</td>
               </tr>
@@ -408,11 +377,10 @@ function Attendance() {
           style={{
             marginTop: 15,
             padding: "10px 20px",
-            cursor: "pointer",
             background: "#27ae60",
-            color: "#fff",
+            color: "white",
             border: "none",
-            borderRadius: "8px",
+            borderRadius: 8,
           }}
         >
           ✅ Submit Attendance
