@@ -5,7 +5,7 @@ import Worker from "../models/Worker.js";
 
 const router = express.Router();
 
-// ✅ Fetch workers
+// ✅ Get workers
 router.get("/workers", async (req, res) => {
   try {
     const workers = await Worker.find({}, "name site perDaySalary roleType role");
@@ -16,7 +16,7 @@ router.get("/workers", async (req, res) => {
   }
 });
 
-// ✅ Add / Update Attendance (with overtime)
+// ✅ Save or Update Attendance
 router.post("/", async (req, res) => {
   try {
     const { date, site, records } = req.body;
@@ -26,7 +26,7 @@ router.post("/", async (req, res) => {
     const localDate = new Date(date);
     localDate.setHours(0, 0, 0, 0);
 
-    // ✅ Calculate overtime per record
+    // Format records properly
     const formattedRecords = records.map((r) => {
       const hours = r.hoursWorked || 0;
       const overtime = hours > 8 ? hours - 8 : 0;
@@ -36,9 +36,11 @@ router.post("/", async (req, res) => {
         name: r.name,
         roleType: r.roleType,
         role: r.role,
-        status: r.status,
+        status: r.status, // Present, Absent, Leave
+        holiday: r.holiday || false, // ✅ new field
+        leaveAccepted: r.leaveAccepted || false, // ✅ new field
         hoursWorked: hours,
-        overtimeHours: overtime, // ✅ new field
+        overtimeHours: overtime,
         salary: r.salary || 0,
       };
     });
@@ -74,7 +76,7 @@ router.post("/", async (req, res) => {
   }
 });
 
-// ✅ Reports route
+// ✅ Get attendance report for specific date
 router.get("/reports", async (req, res) => {
   try {
     const { date, site } = req.query;
@@ -95,7 +97,7 @@ router.get("/reports", async (req, res) => {
   }
 });
 
-// ✅ Worker history with overtime
+// ✅ Worker History for Reports (includes Leave + Holiday)
 router.get("/worker-history/:workerId", async (req, res) => {
   try {
     const { workerId } = req.params;
@@ -114,7 +116,14 @@ router.get("/worker-history/:workerId", async (req, res) => {
     const attendanceDocs = await Attendance.find(query).sort({ date: 1 });
 
     const history = [];
-    let summary = { Present: 0, Absent: 0, Leave: 0, overtimeTotal: 0 };
+    let summary = {
+      Present: 0,
+      Absent: 0,
+      Leave: 0,
+      Holiday: 0,
+      LeaveAccepted: 0,
+      overtimeTotal: 0,
+    };
 
     attendanceDocs.forEach((doc) => {
       const record = doc.records.find((r) => r.workerId.toString() === workerId);
@@ -124,12 +133,17 @@ router.get("/worker-history/:workerId", async (req, res) => {
           status: record.status,
           hoursWorked: record.hoursWorked || 0,
           overtimeHours: record.overtimeHours || 0,
+          holiday: record.holiday || false,
+          leaveAccepted: record.leaveAccepted || false,
           salary: record.salary || 0,
         });
 
         if (record.status === "Present") summary.Present++;
         else if (record.status === "Absent") summary.Absent++;
         else if (record.status === "Leave") summary.Leave++;
+
+        if (record.holiday) summary.Holiday++;
+        if (record.leaveAccepted) summary.LeaveAccepted++;
 
         summary.overtimeTotal += record.overtimeHours || 0;
       }
