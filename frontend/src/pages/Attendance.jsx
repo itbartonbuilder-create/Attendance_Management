@@ -10,7 +10,7 @@ function Attendance() {
   const [workers, setWorkers] = useState([]);
   const [date, setDate] = useState(() => new Date().toISOString().split("T")[0]);
 
-  // ✅ User check
+  // ✅ User access check
   useEffect(() => {
     const savedUser = localStorage.getItem("user");
     if (!savedUser) {
@@ -60,12 +60,12 @@ function Attendance() {
     }
   };
 
-  // ✅ Fetch existing attendance (Fixed)
+  // ✅ Fetch existing attendance
   const fetchExistingAttendance = async (site, selectedDate) => {
     if (!site || !selectedDate) return;
     try {
       const res = await axios.get(
-        "https://attendance-management-backend-vh2w.onrender.com/api/attendance/get",
+        "https://attendance-management-backend-vh2w.onrender.com/api/attendance/reports",
         { params: { date: selectedDate, site } }
       );
 
@@ -75,27 +75,23 @@ function Attendance() {
             const match = res.data.records.find((r) => r.workerId === w.workerId);
             if (!match) return w;
 
-            const leaveType = match.leaveType || { holiday: false, accepted: false };
-            const isPaidLeave = leaveType.holiday || leaveType.accepted;
+            const isFullDay = match.hoursWorked >= 8;
+            const overtime = match.hoursWorked > 8 ? match.hoursWorked - 8 : 0;
 
-            const isFullDay = match.status === "Present" && match.hoursWorked >= 8;
-            const overtime = match.overtimeHours || (match.hoursWorked > 8 ? match.hoursWorked - 8 : 0);
-
-            let salary = match.salary || 0;
-            let totalHours = match.hoursWorked || 0;
-
-            if (match.status === "Leave" && isPaidLeave) {
-              totalHours = 8;
-              salary = w.perDaySalary;
-            }
+            const leaveType = match.leaveType
+              ? {
+                  holiday: !!match.leaveType.holiday,
+                  accepted: !!match.leaveType.accepted,
+                }
+              : { holiday: false, accepted: false };
 
             return {
               ...w,
               status: match.status,
               isFullDay,
               overtimeHours: overtime,
-              totalHours,
-              salary,
+              totalHours: match.hoursWorked,
+              salary: match.salary,
               leaveType,
             };
           })
@@ -106,7 +102,6 @@ function Attendance() {
     }
   };
 
-  // ✅ On site/date change
   useEffect(() => {
     if (!selectedSite || !user) return;
     (async () => {
@@ -115,13 +110,14 @@ function Attendance() {
     })();
   }, [selectedSite, date, user]);
 
-  // ✅ Handle status
+  // ✅ Status change
   const handleStatusChange = (id, status) => {
     setWorkers((prev) =>
       prev.map((w) => {
         if (w.workerId !== id) return w;
+
         const resetLeave = { holiday: false, accepted: false };
-        if (status === "Present")
+        if (status === "Present") {
           return {
             ...w,
             status,
@@ -131,7 +127,8 @@ function Attendance() {
             salary: w.perDaySalary,
             leaveType: resetLeave,
           };
-        if (status === "Absent")
+        }
+        if (status === "Absent") {
           return {
             ...w,
             status,
@@ -141,7 +138,8 @@ function Attendance() {
             salary: 0,
             leaveType: resetLeave,
           };
-        if (status === "Leave")
+        }
+        if (status === "Leave") {
           return {
             ...w,
             status,
@@ -151,12 +149,12 @@ function Attendance() {
             salary: 0,
             leaveType: resetLeave,
           };
+        }
         return w;
       })
     );
   };
 
-  // ✅ Full day toggle
   const handleFullDayToggle = (id, checked) => {
     setWorkers((prev) =>
       prev.map((w) => {
@@ -171,7 +169,6 @@ function Attendance() {
     );
   };
 
-  // ✅ Overtime change
   const handleOvertimeChange = (id, hours) => {
     setWorkers((prev) =>
       prev.map((w) => {
@@ -186,7 +183,6 @@ function Attendance() {
     );
   };
 
-  // ✅ Leave type (holiday / accepted)
   const handleLeaveTypeChange = (id, type, checked) => {
     setWorkers((prev) =>
       prev.map((w) => {
@@ -195,6 +191,7 @@ function Attendance() {
           const isPaidLeave = updatedLeave.holiday || updatedLeave.accepted;
           const total = isPaidLeave ? 8 : 0;
           const newSalary = isPaidLeave ? w.perDaySalary : 0;
+
           return {
             ...w,
             leaveType: updatedLeave,
@@ -207,7 +204,7 @@ function Attendance() {
     );
   };
 
-  // ✅ Submit
+  // ✅ Submit attendance
   const submitAttendance = async () => {
     if (!date || !selectedSite) {
       alert("⚠️ Please select date & site!");
@@ -216,7 +213,7 @@ function Attendance() {
 
     try {
       const res = await axios.post(
-        "https://attendance-management-backend-vh2w.onrender.com/api/attendance/save",
+        "https://attendance-management-backend-vh2w.onrender.com/api/attendance",
         {
           date,
           site: selectedSite,
@@ -227,7 +224,6 @@ function Attendance() {
             role: w.role,
             status: w.status,
             hoursWorked: w.totalHours,
-            overtimeHours: w.overtimeHours,
             salary: w.salary,
             leaveType: w.leaveType,
           })),
