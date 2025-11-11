@@ -7,10 +7,11 @@ const AttendanceSchema = new mongoose.Schema({
     {
       workerId: { type: mongoose.Schema.Types.ObjectId, ref: "Worker", required: true },
       name: String,
-      roleType: String,
       role: String,
+      roleType: String,
       status: { type: String, enum: ["Present", "Absent", "Leave"], required: true },
       hoursWorked: { type: Number, default: 0 },
+      overtimeHours: { type: Number, default: 0 }, // ✅ Added
       salary: { type: Number, default: 0 },
       leaveType: {
         holiday: { type: Boolean, default: false },
