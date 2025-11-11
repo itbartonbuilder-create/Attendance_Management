@@ -6,15 +6,17 @@ const AttendanceSchema = new mongoose.Schema({
   records: [
     {
       workerId: { type: mongoose.Schema.Types.ObjectId, ref: "Worker", required: true },
-      name: { type: String, required: true },
-      roleType: { type: String },
-      role: { type: String, required: true },
+      name: String,
+      roleType: String,
+      role: String,
       status: { type: String, enum: ["Present", "Absent", "Leave"], required: true },
-      holiday: { type: Boolean, default: false }, // ✅ new field
-      leaveAccepted: { type: Boolean, default: false }, // ✅ new field
       hoursWorked: { type: Number, default: 0 },
       overtimeHours: { type: Number, default: 0 },
       salary: { type: Number, default: 0 },
+      leaveType: {
+        holiday: { type: Boolean, default: false },
+        accepted: { type: Boolean, default: false },
+      },
     },
   ],
 });
