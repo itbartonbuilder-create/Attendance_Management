@@ -1,180 +1,144 @@
 import express from "express";
+import mongoose from "mongoose";
 import Attendance from "../models/Attendance.js";
 import Worker from "../models/Worker.js";
 
 const router = express.Router();
 
-/**
- * ✅ Fetch all workers
- */
+
 router.get("/workers", async (req, res) => {
   try {
-    const workers = await Worker.find({});
+    const workers = await Worker.find({}, "name site perDaySalary roleType role");
     res.json(workers);
-  } catch (error) {
-    console.error("Error fetching workers:", error);
-    res.status(500).json({ success: false, message: "Server error" });
+  } catch (err) {
+    console.error("🚨 Error fetching workers:", err.message);
+    res.status(500).json({ message: err.message });
   }
 });
 
-/**
- * ✅ Get worker attendance history within a date range
- * Includes:
- * - Present / Absent / Leave days
- * - Paid Leave detection (holiday or accepted)
- * - Overtime hours
- */
-router.get("/worker-history/:id", async (req, res) => {
+
+router.post("/", async (req, res) => {
   try {
-    const { id } = req.params;
-    const { start, end } = req.query;
+    const { date, site, records } = req.body;
+    if (!date || !site)
+      return res.status(400).json({ success: false, message: "Date & Site are required" });
 
-    if (!start || !end) {
-      return res.status(400).json({
-        success: false,
-        message: "Start and end date are required.",
-      });
-    }
+    const localDate = new Date(date);
+    localDate.setHours(0, 0, 0, 0);
 
-    const startDate = new Date(start);
-    const endDate = new Date(end);
-    endDate.setHours(23, 59, 59, 999); // include entire day
-
-    const history = await Attendance.find({
-      workerId: id,
-      date: { $gte: startDate, $lte: endDate },
-    }).sort({ date: 1 });
-
-    if (!history.length) {
-      return res.json({ success: true, history: [] });
-    }
-
-    // ✅ Normalize fields for frontend
-    const formatted = history.map((rec) => {
-      let leaveType = null;
-      let overtimeHours = rec.overtimeHours || 0;
-      let hoursWorked = rec.hoursWorked || 0;
-
-      // LeaveType structure normalized
-      if (rec.status === "Leave") {
-        if (rec.holiday === true) {
-          leaveType = { holiday: true, accepted: true };
-        } else if (rec.leaveAccepted === true) {
-          leaveType = { accepted: true };
-        } else {
-          leaveType = { accepted: false };
-        }
-      }
+    
+    const formattedRecords = records.map((r) => {
+      const hours = r.hoursWorked || 0;
+      const overtime = hours > 8 ? hours - 8 : 0;
 
       return {
-        _id: rec._id,
-        date: rec.date.toISOString().split("T")[0],
-        status: rec.status,
-        hoursWorked,
-        overtimeHours,
-        leaveType,
+        workerId: r.workerId,
+        name: r.name,
+        roleType: r.roleType,
+        role: r.role,
+        status: r.status,
+        hoursWorked: hours,
+        overtimeHours: overtime, // ✅ new field
+        salary: r.salary || 0,
       };
     });
 
-    res.json({ success: true, history: formatted });
-  } catch (error) {
-    console.error("Error fetching worker history:", error);
-    res.status(500).json({ success: false, message: "Server error" });
-  }
-});
+    let existing = await Attendance.findOne({ date: localDate, site });
 
-/**
- * ✅ Mark attendance (for manager/admin)
- * Handles:
- * - Regular attendance
- * - Overtime
- * - Leave (Paid/Unpaid)
- */
-router.post("/mark", async (req, res) => {
-  try {
-    const {
-      workerId,
-      date,
-      status,
-      hoursWorked = 0,
-      overtimeHours = 0,
-      holiday = false,
-      leaveAccepted = false,
-    } = req.body;
-
-    if (!workerId || !date || !status) {
-      return res.status(400).json({
-        success: false,
-        message: "Missing required fields.",
-      });
-    }
-
-    const existing = await Attendance.findOne({ workerId, date });
     if (existing) {
-      existing.status = status;
-      existing.hoursWorked = hoursWorked;
-      existing.overtimeHours = overtimeHours;
-      existing.holiday = holiday;
-      existing.leaveAccepted = leaveAccepted;
+      existing.records = formattedRecords;
       await existing.save();
       return res.json({
         success: true,
-        message: "Attendance updated successfully.",
+        message: `✅ Attendance Updated Successfully for ${site}`,
+        attendance: existing,
       });
     }
 
-    const newRec = new Attendance({
-      workerId,
-      date,
-      status,
-      hoursWorked,
-      overtimeHours,
-      holiday,
-      leaveAccepted,
+    const attendance = new Attendance({
+      date: localDate,
+      site,
+      records: formattedRecords,
     });
 
-    await newRec.save();
-    res.json({ success: true, message: "Attendance marked successfully." });
-  } catch (error) {
-    console.error("Error marking attendance:", error);
-    res.status(500).json({ success: false, message: "Server error" });
+    await attendance.save();
+
+    res.json({
+      success: true,
+      message: `✅ Attendance Submitted Successfully for ${site}`,
+      attendance,
+    });
+  } catch (err) {
+    console.error("🚨 Error in POST /api/attendance:", err.message);
+    res.status(500).json({ success: false, message: err.message });
   }
 });
 
-/**
- * ✅ Summary API (optional)
- * If you want to use it for dashboard stats
- */
-router.get("/summary/:site", async (req, res) => {
+
+router.get("/reports", async (req, res) => {
   try {
-    const { site } = req.params;
-    const workers = await Worker.find({ site });
+    const { date, site } = req.query;
+    if (!date || !site)
+      return res.status(400).json({ success: false, message: "Date & Site are required" });
 
-    const report = [];
+    const queryDate = new Date(date);
+    queryDate.setHours(0, 0, 0, 0);
 
-    for (const w of workers) {
-      const attendance = await Attendance.find({ workerId: w._id });
-      const totalDays = attendance.length;
-      const presentDays = attendance.filter((r) => r.status === "Present").length;
-      const leaveDays = attendance.filter((r) => r.status === "Leave").length;
-      const overtime = attendance.reduce(
-        (acc, r) => acc + (r.overtimeHours || 0),
-        0
-      );
+    const report = await Attendance.findOne({ date: queryDate, site });
+    if (!report || !report.records || report.records.length === 0)
+      return res.json({ success: true, records: [] });
 
-      report.push({
-        worker: w.name,
-        totalDays,
-        presentDays,
-        leaveDays,
-        overtime,
-      });
+    res.json({ success: true, records: report.records });
+  } catch (err) {
+    console.error("🚨 Error fetching attendance reports:", err);
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+
+router.get("/worker-history/:workerId", async (req, res) => {
+  try {
+    const { workerId } = req.params;
+    const { start, end } = req.query;
+
+    const workerObjectId = new mongoose.Types.ObjectId(workerId);
+    const query = { "records.workerId": workerObjectId };
+
+    if (start && end) {
+      query.date = {
+        $gte: new Date(start),
+        $lte: new Date(end),
+      };
     }
 
-    res.json({ success: true, report });
-  } catch (error) {
-    console.error("Error in summary:", error);
-    res.status(500).json({ success: false, message: "Server error" });
+    const attendanceDocs = await Attendance.find(query).sort({ date: 1 });
+
+    const history = [];
+    let summary = { Present: 0, Absent: 0, Leave: 0, overtimeTotal: 0 };
+
+    attendanceDocs.forEach((doc) => {
+      const record = doc.records.find((r) => r.workerId.toString() === workerId);
+      if (record) {
+        history.push({
+          date: doc.date.toISOString().split("T")[0],
+          status: record.status,
+          hoursWorked: record.hoursWorked || 0,
+          overtimeHours: record.overtimeHours || 0,
+          salary: record.salary || 0,
+        });
+
+        if (record.status === "Present") summary.Present++;
+        else if (record.status === "Absent") summary.Absent++;
+        else if (record.status === "Leave") summary.Leave++;
+
+        summary.overtimeTotal += record.overtimeHours || 0;
+      }
+    });
+
+    res.json({ success: true, history, summary });
+  } catch (err) {
+    console.error("🚨 Error fetching worker history:", err);
+    res.status(500).json({ success: false, message: err.message });
   }
 });
 
