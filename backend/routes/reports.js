@@ -26,7 +26,6 @@ router.post("/", async (req, res) => {
     const localDate = new Date(date);
     localDate.setHours(0, 0, 0, 0);
 
-    // Format records properly
     const formattedRecords = records.map((r) => {
       const hours = r.hoursWorked || 0;
       const overtime = hours > 8 ? hours - 8 : 0;
@@ -37,8 +36,8 @@ router.post("/", async (req, res) => {
         roleType: r.roleType,
         role: r.role,
         status: r.status, // Present, Absent, Leave
-        holiday: r.holiday || false, // ✅ new field
-        leaveAccepted: r.leaveAccepted || false, // ✅ new field
+        holiday: r.holiday || false,
+        leaveAccepted: r.leaveAccepted || false,
         hoursWorked: hours,
         overtimeHours: overtime,
         salary: r.salary || 0,
@@ -57,12 +56,7 @@ router.post("/", async (req, res) => {
       });
     }
 
-    const attendance = new Attendance({
-      date: localDate,
-      site,
-      records: formattedRecords,
-    });
-
+    const attendance = new Attendance({ date: localDate, site, records: formattedRecords });
     await attendance.save();
 
     res.json({
@@ -97,7 +91,7 @@ router.get("/reports", async (req, res) => {
   }
 });
 
-// ✅ Worker History for Reports (includes Leave + Holiday)
+// ✅ Worker History for Reports (includes paid/unpaid leave logic)
 router.get("/worker-history/:workerId", async (req, res) => {
   try {
     const { workerId } = req.params;
@@ -107,10 +101,7 @@ router.get("/worker-history/:workerId", async (req, res) => {
     const query = { "records.workerId": workerObjectId };
 
     if (start && end) {
-      query.date = {
-        $gte: new Date(start),
-        $lte: new Date(end),
-      };
+      query.date = { $gte: new Date(start), $lte: new Date(end) };
     }
 
     const attendanceDocs = await Attendance.find(query).sort({ date: 1 });
@@ -120,6 +111,7 @@ router.get("/worker-history/:workerId", async (req, res) => {
       Present: 0,
       Absent: 0,
       Leave: 0,
+      PaidLeave: 0, // ✅ Holiday + Accepted leave
       Holiday: 0,
       LeaveAccepted: 0,
       overtimeTotal: 0,
@@ -128,6 +120,8 @@ router.get("/worker-history/:workerId", async (req, res) => {
     attendanceDocs.forEach((doc) => {
       const record = doc.records.find((r) => r.workerId.toString() === workerId);
       if (record) {
+        const isPaid = record.holiday || record.leaveAccepted;
+
         history.push({
           date: doc.date.toISOString().split("T")[0],
           status: record.status,
@@ -136,6 +130,7 @@ router.get("/worker-history/:workerId", async (req, res) => {
           holiday: record.holiday || false,
           leaveAccepted: record.leaveAccepted || false,
           salary: record.salary || 0,
+          paidLeave: isPaid, // ✅ show in report
         });
 
         if (record.status === "Present") summary.Present++;
@@ -144,6 +139,7 @@ router.get("/worker-history/:workerId", async (req, res) => {
 
         if (record.holiday) summary.Holiday++;
         if (record.leaveAccepted) summary.LeaveAccepted++;
+        if (isPaid) summary.PaidLeave++;
 
         summary.overtimeTotal += record.overtimeHours || 0;
       }
