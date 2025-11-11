@@ -1,141 +1,180 @@
-// backend/routes/attendanceRoutes.js
 import express from "express";
-import mongoose from "mongoose";
 import Attendance from "../models/Attendance.js";
 import Worker from "../models/Worker.js";
 
 const router = express.Router();
 
-/* =====================================================
-   ✅ POST /api/attendance/save
-   Save attendance for a particular date and site
-===================================================== */
-router.post("/save", async (req, res) => {
-  try {
-    const { date, site, records } = req.body;
-
-    if (!date || !site || !records) {
-      return res.status(400).json({ success: false, message: "Missing data" });
-    }
-
-    let attendance = await Attendance.findOne({ date, site });
-
-    if (!attendance) {
-      attendance = new Attendance({ date, site, records });
-    } else {
-      attendance.records = records;
-    }
-
-    await attendance.save();
-
-    res.json({ success: true, message: "Attendance saved successfully!" });
-  } catch (err) {
-    console.error("Error saving attendance:", err);
-    res.status(500).json({ success: false, message: err.message });
-  }
-});
-
-/* =====================================================
-   ✅ GET /api/attendance/workers
-   Get all workers (for admin or manager views)
-===================================================== */
+/**
+ * ✅ Fetch all workers
+ */
 router.get("/workers", async (req, res) => {
   try {
-    const workers = await Worker.find();
+    const workers = await Worker.find({});
     res.json(workers);
-  } catch (err) {
-    console.error("Error fetching workers:", err);
-    res.status(500).json({ success: false, message: err.message });
+  } catch (error) {
+    console.error("Error fetching workers:", error);
+    res.status(500).json({ success: false, message: "Server error" });
   }
 });
 
-/* =====================================================
-   ✅ FIXED: GET /api/attendance/worker-history/:workerId
-   Fetch worker attendance history between two dates
-   Includes: overtime, paid/unpaid leave types, total hours
-===================================================== */
-router.get("/worker-history/:workerId", async (req, res) => {
-  try {
-    const { workerId } = req.params;
-    const { start, end } = req.query;
-
-    // Validate workerId
-    if (!mongoose.Types.ObjectId.isValid(workerId)) {
-      return res.status(400).json({ success: false, message: "Invalid worker ID" });
-    }
-
-    const workerObjectId = new mongoose.Types.ObjectId(workerId);
-    const query = { "records.workerId": workerObjectId };
-
-    if (start && end) {
-      query.date = { $gte: new Date(start), $lte: new Date(end) };
-    }
-
-    // Fetch attendance documents
-    const attendanceDocs = await Attendance.find(query).sort({ date: 1 });
-
-    const history = [];
-
-    attendanceDocs.forEach((doc) => {
-      const record = doc.records.find(
-        (r) => r.workerId.toString() === workerId
-      );
-      if (record) {
-        history.push({
-          date: doc.date.toISOString().split("T")[0],
-          status: record.status,
-          hoursWorked: record.hoursWorked || 0,
-          overtimeHours: record.overtimeHours || 0, // ✅ fixed: correctly return overtime
-          salary: record.salary || 0,
-          leaveType: {
-            holiday: record.holiday || false, // ✅ use correct schema fields
-            accepted: record.leaveAccepted || false,
-          },
-        });
-      }
-    });
-
-    res.json({ success: true, history });
-  } catch (err) {
-    console.error("🚨 Error fetching worker history:", err);
-    res.status(500).json({ success: false, message: err.message });
-  }
-});
-
-/* =====================================================
-   ✅ GET /api/attendance/site-history/:site
-   Optional route to view attendance by site and date
-===================================================== */
-router.get("/site-history/:site", async (req, res) => {
-  try {
-    const { site } = req.params;
-    const { start, end } = req.query;
-
-    const query = { site };
-    if (start && end) {
-      query.date = { $gte: new Date(start), $lte: new Date(end) };
-    }
-
-    const data = await Attendance.find(query).sort({ date: 1 });
-    res.json({ success: true, data });
-  } catch (err) {
-    console.error("Error fetching site history:", err);
-    res.status(500).json({ success: false, message: err.message });
-  }
-});
-
-/* =====================================================
-   ✅ DELETE /api/attendance/delete/:id
-   Delete an attendance record by ID (optional admin use)
-===================================================== */
-router.delete("/delete/:id", async (req, res) => {
+/**
+ * ✅ Get worker attendance history within a date range
+ * Includes:
+ * - Present / Absent / Leave days
+ * - Paid Leave detection (holiday or accepted)
+ * - Overtime hours
+ */
+router.get("/worker-history/:id", async (req, res) => {
   try {
     const { id } = req.params;
-    await Attendance.findByIdAndDelete(id);
-    res.json({ success: true, message: "Attendance record deleted." });
-  } catch (err) {
-    console.error("Error deleting attendance:", err);
-    res.status(500).json({ success: false, message: err.message });
+    const { start, end } = req.query;
+
+    if (!start || !end) {
+      return res.status(400).json({
+        success: false,
+        message: "Start and end date are required.",
+      });
+    }
+
+    const startDate = new Date(start);
+    const endDate = new Date(end);
+    endDate.setHours(23, 59, 59, 999); // include entire day
+
+    const history = await Attendance.find({
+      workerId: id,
+      date: { $gte: startDate, $lte: endDate },
+    }).sort({ date: 1 });
+
+    if (!history.length) {
+      return res.json({ success: true, history: [] });
+    }
+
+    // ✅ Normalize fields for frontend
+    const formatted = history.map((rec) => {
+      let leaveType = null;
+      let overtimeHours = rec.overtimeHours || 0;
+      let hoursWorked = rec.hoursWorked || 0;
+
+      // LeaveType structure normalized
+      if (rec.status === "Leave") {
+        if (rec.holiday === true) {
+          leaveType = { holiday: true, accepted: true };
+        } else if (rec.leaveAccepted === true) {
+          leaveType = { accepted: true };
+        } else {
+          leaveType = { accepted: false };
+        }
+      }
+
+      return {
+        _id: rec._id,
+        date: rec.date.toISOString().split("T")[0],
+        status: rec.status,
+        hoursWorked,
+        overtimeHours,
+        leaveType,
+      };
+    });
+
+    res.json({ success: true, history: formatted });
+  } catch (error) {
+    console.error("Error fetching worker history:", error);
+    res.status(500).json({ success: false, message: "Server error" });
+  }
+});
+
+/**
+ * ✅ Mark attendance (for manager/admin)
+ * Handles:
+ * - Regular attendance
+ * - Overtime
+ * - Leave (Paid/Unpaid)
+ */
+router.post("/mark", async (req, res) => {
+  try {
+    const {
+      workerId,
+      date,
+      status,
+      hoursWorked = 0,
+      overtimeHours = 0,
+      holiday = false,
+      leaveAccepted = false,
+    } = req.body;
+
+    if (!workerId || !date || !status) {
+      return res.status(400).json({
+        success: false,
+        message: "Missing required fields.",
+      });
+    }
+
+    const existing = await Attendance.findOne({ workerId, date });
+    if (existing) {
+      existing.status = status;
+      existing.hoursWorked = hoursWorked;
+      existing.overtimeHours = overtimeHours;
+      existing.holiday = holiday;
+      existing.leaveAccepted = leaveAccepted;
+      await existing.save();
+      return res.json({
+        success: true,
+        message: "Attendance updated successfully.",
+      });
+    }
+
+    const newRec = new Attendance({
+      workerId,
+      date,
+      status,
+      hoursWorked,
+      overtimeHours,
+      holiday,
+      leaveAccepted,
+    });
+
+    await newRec.save();
+    res.json({ success: true, message: "Attendance marked successfully." });
+  } catch (error) {
+    console.error("Error marking attendance:", error);
+    res.status(500).json({ success: false, message: "Server error" });
+  }
+});
+
+/**
+ * ✅ Summary API (optional)
+ * If you want to use it for dashboard stats
+ */
+router.get("/summary/:site", async (req, res) => {
+  try {
+    const { site } = req.params;
+    const workers = await Worker.find({ site });
+
+    const report = [];
+
+    for (const w of workers) {
+      const attendance = await Attendance.find({ workerId: w._id });
+      const totalDays = attendance.length;
+      const presentDays = attendance.filter((r) => r.status === "Present").length;
+      const leaveDays = attendance.filter((r) => r.status === "Leave").length;
+      const overtime = attendance.reduce(
+        (acc, r) => acc + (r.overtimeHours || 0),
+        0
+      );
+
+      report.push({
+        worker: w.name,
+        totalDays,
+        presentDays,
+        leaveDays,
+        overtime,
+      });
+    }
+
+    res.json({ success: true, report });
+  } catch (error) {
+    console.error("Error in summary:", error);
+    res.status(500).json({ success: false, message: "Server error" });
   }
 });
 
