@@ -102,16 +102,30 @@ function AttendanceReport() {
           };
 
           history.forEach((h) => {
+            // ✅ Present days
             if (h.status === "Present") {
               summary.Present++;
-              summary.totalHours += h.hoursWorked || 0;
+              // Add both regular + overtime to total hours
+              summary.totalHours += (h.hoursWorked || 0) + (h.overtimeHours || 0);
               summary.overtimeHours += h.overtimeHours || 0;
-            } else if (h.status === "Absent") summary.Absent++;
+            }
+            // ✅ Absent
+            else if (h.status === "Absent") {
+              summary.Absent++;
+            }
+            // ✅ Leave (paid/unpaid)
             else if (h.status === "Leave") {
               summary.Leave++;
-              if (h.leaveType?.holiday || h.leaveType?.accepted) {
+
+              const isPaid =
+                (h.leaveType &&
+                  (h.leaveType.holiday || h.leaveType.accepted)) ||
+                h.holiday ||
+                h.leaveAccepted;
+
+              if (isPaid) {
                 summary.PaidLeave++;
-                summary.totalHours += 8;
+                summary.totalHours += 8; // standard paid hours
               } else {
                 summary.UnpaidLeave++;
               }
