@@ -17,7 +17,8 @@ function AttendanceReport() {
   const [workerData, setWorkerData] = useState([]);
   const [showReport, setShowReport] = useState(false);
 
-  const API_URL = "https://attendance-management-backend-vh2w.onrender.com/api/attendance";
+  const API_URL =
+    "https://attendance-management-backend-vh2w.onrender.com/api/attendance";
 
   useEffect(() => {
     const savedUser = localStorage.getItem("user");
@@ -92,7 +93,7 @@ function AttendanceReport() {
             overtimeHours: 0,
             paidLeave: 0,
             unpaidLeave: 0,
-            perDaySalary: w.perDaySalary,
+            perDaySalary: w.perDaySalary || 0,
           };
 
           history.forEach((h) => {
@@ -190,15 +191,24 @@ function AttendanceReport() {
         : yPos + 15;
 
       const baseSalary =
-        (wd.summary.Present + wd.summary.paidLeave) * (wd.summary.perDaySalary || 0);
+        (wd.summary.Present + wd.summary.paidLeave) *
+        (wd.summary.perDaySalary || 0);
       const overtimePay =
-        (wd.summary.overtimeHours || 0) * (wd.summary.perDaySalary / 8);
+        (wd.summary.overtimeHours || 0) * ((wd.summary.perDaySalary || 0) / 8);
       const totalPayment = baseSalary + overtimePay;
 
       autoTable(doc, {
         startY: yAfterTable,
         head: [
-          ["Present", "Absent", "Leave", "Paid Leave", "Unpaid Leave", "Total Hours", "Overtime"],
+          [
+            "Present",
+            "Absent",
+            "Leave",
+            "Paid Leave",
+            "Unpaid Leave",
+            "Total Hours",
+            "Overtime",
+          ],
         ],
         body: [
           [
@@ -324,16 +334,19 @@ function AttendanceReport() {
                 <th>Paid Leave</th>
                 <th>Unpaid Leave</th>
                 <th>Total Hours</th>
-                <th>Overtime</th>
+                <th>Overtime (hrs)</th>
+                <th>Overtime Pay (₹)</th>
                 <th>Total Payment (₹)</th>
               </tr>
             </thead>
             <tbody>
               {workerData.map((wd) => {
                 const baseSalary =
-                  (wd.summary.Present + wd.summary.paidLeave) * (wd.summary.perDaySalary || 0);
+                  (wd.summary.Present + wd.summary.paidLeave) *
+                  (wd.summary.perDaySalary || 0);
                 const overtimePay =
-                  (wd.summary.overtimeHours || 0) * (wd.summary.perDaySalary / 8);
+                  (wd.summary.overtimeHours || 0) *
+                  ((wd.summary.perDaySalary || 0) / 8);
                 const totalPayment = baseSalary + overtimePay;
 
                 return (
@@ -355,6 +368,7 @@ function AttendanceReport() {
                     <td>{wd.summary.unpaidLeave}</td>
                     <td>{wd.summary.totalHours}</td>
                     <td>{wd.summary.overtimeHours}</td>
+                    <td>{overtimePay.toFixed(2)}</td>
                     <td>{totalPayment.toFixed(2)}</td>
                   </tr>
                 );
