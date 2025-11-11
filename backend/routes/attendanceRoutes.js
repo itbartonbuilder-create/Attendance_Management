@@ -5,6 +5,7 @@ import Worker from "../models/Worker.js";
 
 const router = express.Router();
 
+
 // ✅ Fetch all workers
 router.get("/workers", async (req, res) => {
   try {
@@ -15,6 +16,7 @@ router.get("/workers", async (req, res) => {
     res.status(500).json({ message: err.message });
   }
 });
+
 
 // ✅ Submit or Update Attendance
 router.post("/", async (req, res) => {
@@ -27,8 +29,9 @@ router.post("/", async (req, res) => {
     localDate.setHours(0, 0, 0, 0);
 
     const formattedRecords = records.map((r) => {
-      const hours = r.hoursWorked || 0;
+      const hours = Number(r.hoursWorked) || 0;
       const overtime = hours > 8 ? hours - 8 : 0;
+
       return {
         workerId: r.workerId,
         name: r.name,
@@ -37,16 +40,21 @@ router.post("/", async (req, res) => {
         status: r.status,
         hoursWorked: hours,
         overtimeHours: overtime,
-        salary: r.salary || 0,
+        salary: Number(r.salary) || 0,
         leaveType: r.leaveType || { holiday: false, accepted: false },
       };
     });
 
     let existing = await Attendance.findOne({ date: localDate, site });
+
     if (existing) {
       existing.records = formattedRecords;
       await existing.save();
-      return res.json({ success: true, message: `✅ Attendance Updated Successfully`, attendance: existing });
+      return res.json({
+        success: true,
+        message: `✅ Attendance Updated Successfully`,
+        attendance: existing,
+      });
     }
 
     const attendance = new Attendance({ date: localDate, site, records: formattedRecords });
@@ -58,6 +66,7 @@ router.post("/", async (req, res) => {
     res.status(500).json({ success: false, message: err.message });
   }
 });
+
 
 // ✅ Daily Report Fetch
 router.get("/reports", async (req, res) => {
@@ -77,14 +86,23 @@ router.get("/reports", async (req, res) => {
   }
 });
 
-// ✅ Worker History for Report
+
+// ✅ Worker History for Report (used by Report Page)
 router.get("/worker-history/:workerId", async (req, res) => {
   try {
     const { workerId } = req.params;
-    const { start, end } = req.query;
-    const query = { "records.workerId": new mongoose.Types.ObjectId(workerId) };
+    const { start, end, site } = req.query;
 
-    if (start && end) query.date = { $gte: new Date(start), $lte: new Date(end) };
+    const query = { "records.workerId": new mongoose.Types.ObjectId(workerId) };
+    if (site) query.site = site;
+
+    if (start && end) {
+      const startDate = new Date(start);
+      const endDate = new Date(end);
+      startDate.setHours(0, 0, 0, 0);
+      endDate.setHours(23, 59, 59, 999);
+      query.date = { $gte: startDate, $lte: endDate };
+    }
 
     const attendanceDocs = await Attendance.find(query).sort({ date: 1 });
 
@@ -92,13 +110,20 @@ router.get("/worker-history/:workerId", async (req, res) => {
     attendanceDocs.forEach((doc) => {
       const record = doc.records.find((r) => r.workerId.toString() === workerId);
       if (record) {
+        const isPaidLeave =
+          record.leaveType?.accepted === true || record.leaveType?.holiday === true;
+
         history.push({
           date: doc.date.toISOString().split("T")[0],
           status: record.status,
-          hoursWorked: record.hoursWorked,
-          overtimeHours: record.overtimeHours,
-          salary: record.salary,
-          leaveType: record.leaveType,
+          hoursWorked: record.hoursWorked || 0,
+          overtimeHours: record.overtimeHours || 0,
+          salary: record.salary || 0,
+          leaveType: {
+            ...record.leaveType,
+            paid: isPaidLeave,
+            unpaid: !isPaidLeave,
+          },
         });
       }
     });
