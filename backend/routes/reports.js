@@ -1,5 +1,4 @@
 // backend/routes/attendanceRoutes.js
-
 import express from "express";
 import mongoose from "mongoose";
 import Attendance from "../models/Attendance.js";
@@ -51,7 +50,7 @@ router.get("/workers", async (req, res) => {
 });
 
 /* =====================================================
-   ✅ GET /api/attendance/worker-history/:workerId
+   ✅ FIXED: GET /api/attendance/worker-history/:workerId
    Fetch worker attendance history between two dates
    Includes: overtime, paid/unpaid leave types, total hours
 ===================================================== */
@@ -60,7 +59,11 @@ router.get("/worker-history/:workerId", async (req, res) => {
     const { workerId } = req.params;
     const { start, end } = req.query;
 
-    // Validate and prepare query
+    // Validate workerId
+    if (!mongoose.Types.ObjectId.isValid(workerId)) {
+      return res.status(400).json({ success: false, message: "Invalid worker ID" });
+    }
+
     const workerObjectId = new mongoose.Types.ObjectId(workerId);
     const query = { "records.workerId": workerObjectId };
 
@@ -68,23 +71,25 @@ router.get("/worker-history/:workerId", async (req, res) => {
       query.date = { $gte: new Date(start), $lte: new Date(end) };
     }
 
-    // Fetch attendance records
+    // Fetch attendance documents
     const attendanceDocs = await Attendance.find(query).sort({ date: 1 });
 
     const history = [];
 
     attendanceDocs.forEach((doc) => {
-      const record = doc.records.find((r) => r.workerId.toString() === workerId);
+      const record = doc.records.find(
+        (r) => r.workerId.toString() === workerId
+      );
       if (record) {
         history.push({
           date: doc.date.toISOString().split("T")[0],
           status: record.status,
           hoursWorked: record.hoursWorked || 0,
-          overtimeHours: record.overtimeHours || 0,
+          overtimeHours: record.overtimeHours || 0, // ✅ fixed: correctly return overtime
           salary: record.salary || 0,
           leaveType: {
-            holiday: record.leaveType?.holiday || false,
-            accepted: record.leaveType?.accepted || false,
+            holiday: record.holiday || false, // ✅ use correct schema fields
+            accepted: record.leaveAccepted || false,
           },
         });
       }
