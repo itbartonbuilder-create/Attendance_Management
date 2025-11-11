@@ -17,10 +17,8 @@ function AttendanceReport() {
   const [workerData, setWorkerData] = useState([]);
   const [showReport, setShowReport] = useState(false);
 
-  const API_URL =
-    "https://attendance-management-backend-vh2w.onrender.com/api/attendance";
+  const API_URL = "https://attendance-management-backend-vh2w.onrender.com/api/attendance";
 
-  // ✅ User load + site setup
   useEffect(() => {
     const savedUser = localStorage.getItem("user");
     if (!savedUser) {
@@ -42,7 +40,6 @@ function AttendanceReport() {
     }
   }, [navigate]);
 
-  // ✅ For single worker (when role=worker)
   const fetchWorkerDetails = async (u) => {
     try {
       const res = await axios.get(`${API_URL}/workers`);
@@ -54,7 +51,6 @@ function AttendanceReport() {
     }
   };
 
-  // ✅ For manager/admin - fetch site-wise workers
   const fetchWorkersBySite = async (site) => {
     try {
       const res = await axios.get(`${API_URL}/workers`);
@@ -72,7 +68,7 @@ function AttendanceReport() {
     if (site) fetchWorkersBySite(site);
   };
 
-  // ✅ Fetch worker history from backend
+  // ✅ Fetch attendance data (with leave + overtime)
   const fetchAllWorkerHistory = async () => {
     if (!selectedSite || !startDate || !endDate) {
       alert("⚠️ Please select site, start date, and end date.");
@@ -80,7 +76,6 @@ function AttendanceReport() {
     }
 
     const allData = [];
-
     for (let w of workers) {
       try {
         const res = await axios.get(
@@ -89,13 +84,14 @@ function AttendanceReport() {
 
         if (res.data.success) {
           const { history } = res.data;
-
           let summary = {
             Present: 0,
             Absent: 0,
             Leave: 0,
             totalHours: 0,
             overtimeHours: 0,
+            paidLeave: 0,
+            unpaidLeave: 0,
             perDaySalary: w.perDaySalary,
           };
 
@@ -105,7 +101,13 @@ function AttendanceReport() {
               summary.totalHours += h.hoursWorked || 0;
               summary.overtimeHours += h.overtimeHours || 0;
             } else if (h.status === "Absent") summary.Absent++;
-            else if (h.status === "Leave") summary.Leave++;
+            else if (h.status === "Leave") {
+              summary.Leave++;
+              if (h.leaveType?.holiday || h.leaveType?.accepted) {
+                summary.paidLeave++;
+                summary.totalHours += 8;
+              } else summary.unpaidLeave++;
+            }
           });
 
           allData.push({ worker: w, history, summary });
@@ -127,7 +129,7 @@ function AttendanceReport() {
     );
   };
 
-  // ✅ PDF Download with Overtime detail
+  // ✅ Generate PDF
   const downloadPDF = () => {
     if (user?.role !== "worker" && selectedWorkers.length === 0) {
       alert("⚠️ Please select at least one worker to download PDF.");
@@ -162,12 +164,19 @@ function AttendanceReport() {
       if (wd.history.length > 0) {
         autoTable(doc, {
           startY: yPos,
-          head: [["Date", "Status", "Hours Worked", "Overtime Hours"]],
+          head: [["Date", "Status", "Hours Worked", "Overtime", "Leave Type"]],
           body: wd.history.map((h) => [
             h.date,
             h.status,
-            h.status === "Present" ? `${h.hoursWorked || 0}` : "-",
-            h.status === "Present" ? `${h.overtimeHours || 0}` : "-",
+            h.hoursWorked || 0,
+            h.overtimeHours || 0,
+            h.leaveType
+              ? h.leaveType.holiday
+                ? "Holiday"
+                : h.leaveType.accepted
+                ? "Accepted Leave"
+                : "-"
+              : "-",
           ]),
           styles: { fontSize: 10 },
           margin: { left: 14 },
@@ -181,21 +190,25 @@ function AttendanceReport() {
         : yPos + 15;
 
       const baseSalary =
-        (wd.summary.Present || 0) * (wd.summary.perDaySalary || 0);
+        (wd.summary.Present + wd.summary.paidLeave) * (wd.summary.perDaySalary || 0);
       const overtimePay =
         (wd.summary.overtimeHours || 0) * (wd.summary.perDaySalary / 8);
       const totalPayment = baseSalary + overtimePay;
 
       autoTable(doc, {
         startY: yAfterTable,
-        head: [["Present", "Absent", "Leave", "Total Hours", "Overtime Hours"]],
+        head: [
+          ["Present", "Absent", "Leave", "Paid Leave", "Unpaid Leave", "Total Hours", "Overtime"],
+        ],
         body: [
           [
-            wd.summary.Present || 0,
-            wd.summary.Absent || 0,
-            wd.summary.Leave || 0,
-            wd.summary.totalHours || 0,
-            wd.summary.overtimeHours || 0,
+            wd.summary.Present,
+            wd.summary.Absent,
+            wd.summary.Leave,
+            wd.summary.paidLeave,
+            wd.summary.unpaidLeave,
+            wd.summary.totalHours,
+            wd.summary.overtimeHours,
           ],
         ],
         styles: { fontSize: 10 },
@@ -204,9 +217,9 @@ function AttendanceReport() {
 
       const y2 = doc.lastAutoTable.finalY + 8;
       doc.setFontSize(11);
-      doc.text(`Per Day Salary: Rs. ${wd.summary.perDaySalary}`, 14, y2);
-      doc.text(`Overtime Payment: Rs. ${overtimePay.toFixed(2)}`, 14, y2 + 6);
-      doc.text(`Total Payment: Rs. ${totalPayment.toFixed(2)}`, 14, y2 + 12);
+      doc.text(`Per Day Salary: ₹${wd.summary.perDaySalary}`, 14, y2);
+      doc.text(`Overtime Payment: ₹${overtimePay.toFixed(2)}`, 14, y2 + 6);
+      doc.text(`Total Payment: ₹${totalPayment.toFixed(2)}`, 14, y2 + 12);
 
       yPos = y2 + 18;
     });
@@ -214,84 +227,29 @@ function AttendanceReport() {
     doc.save(`Attendance_Report_${selectedSite}_${startDate}_to_${endDate}.pdf`);
   };
 
-  // ✅ CSV / Excel Export
-  const downloadCSV = () => {
-    if (workerData.length === 0) {
-      alert("⚠️ No report data to export.");
-      return;
-    }
-
-    let csv =
-      "Worker Name,Present,Absent,Leave,Total Hours,Overtime Hours,Per Day Salary,Total Payment\n";
-
-    workerData.forEach((wd) => {
-      const baseSalary =
-        (wd.summary.Present || 0) * (wd.summary.perDaySalary || 0);
-      const overtimePay =
-        (wd.summary.overtimeHours || 0) * (wd.summary.perDaySalary / 8);
-      const totalPayment = baseSalary + overtimePay;
-
-      csv += `${wd.worker.name},${wd.summary.Present},${wd.summary.Absent},${wd.summary.Leave},${wd.summary.totalHours},${wd.summary.overtimeHours},${wd.summary.perDaySalary},${totalPayment.toFixed(2)}\n`;
-    });
-
-    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `Attendance_Report_${selectedSite}_${startDate}_to_${endDate}.csv`;
-    a.click();
-    URL.revokeObjectURL(url);
-  };
-
   return (
     <div className="report-container">
-      <h2
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          color: "#f39c12",
-        }}
-      >
+      <h2 style={{ display: "flex", justifyContent: "space-between", color: "#f39c12" }}>
         📊 Attendance Report
         {showReport && (
-          <div>
-            <button
-              onClick={downloadCSV}
-              style={{
-                background: "#2980b9",
-                color: "white",
-                padding: "8px 16px",
-                border: "none",
-                borderRadius: "6px",
-                cursor: "pointer",
-                fontSize: "20px",
-                marginRight: "10px",
-              }}
-            >
-              📄 Export CSV
-            </button>
-
-            <button
-              onClick={downloadPDF}
-              style={{
-                background: "#27ae60",
-                color: "white",
-                padding: "8px 16px",
-                border: "none",
-                borderRadius: "6px",
-                fontSize: "20px",
-                cursor: "pointer",
-              }}
-            >
-              📥 Download PDF
-            </button>
-          </div>
+          <button
+            onClick={downloadPDF}
+            style={{
+              background: "#27ae60",
+              color: "white",
+              padding: "8px 16px",
+              border: "none",
+              borderRadius: "6px",
+              fontSize: "18px",
+              cursor: "pointer",
+            }}
+          >
+            📥 Download PDF
+          </button>
         )}
       </h2>
 
-      {/* Filters */}
-      <div style={{ marginBottom: "20px", marginTop: "10px" }}>
+      <div style={{ marginBottom: "20px" }}>
         <label>
           🗓️ Start Date:
           <input
@@ -342,7 +300,6 @@ function AttendanceReport() {
             color: "white",
             border: "none",
             borderRadius: "5px",
-            cursor: "pointer",
             marginLeft: "10px",
           }}
         >
@@ -350,75 +307,60 @@ function AttendanceReport() {
         </button>
       </div>
 
-      {/* Report Table */}
       {showReport && (
         <>
           <h3>
-            👷 Attendance Report ({startDate} to {endDate})
+            👷 Attendance Summary ({startDate} to {endDate})
           </h3>
 
-          {workerData.length === 0 ? (
-            <p>No records found.</p>
-          ) : (
-            <table
-              border="1"
-              cellPadding="8"
-              style={{
-                width: "100%",
-                borderCollapse: "collapse",
-                marginTop: "10px",
-              }}
-            >
-              <thead style={{ background: "#2C3E50", color: "white" }}>
-                <tr>
-                  {user?.role !== "worker" && <th>Select</th>}
-                  <th>Worker Name</th>
-                  <th>Present</th>
-                  <th>Absent</th>
-                  <th>Leave</th>
-                  <th>Total Hours</th>
-                  <th>Overtime Hours</th>
-                  <th>Per Day Salary</th>
-                  <th>Total Payment</th>
-                </tr>
-              </thead>
-              <tbody>
-                {workerData.map((wd) => {
-                  const baseSalary =
-                    (wd.summary.Present || 0) *
-                    (wd.summary.perDaySalary || 0);
-                  const overtimePay =
-                    (wd.summary.overtimeHours || 0) *
-                    (wd.summary.perDaySalary / 8);
-                  const totalPayment = baseSalary + overtimePay;
+          <table border="1" cellPadding="8" style={{ width: "100%", borderCollapse: "collapse" }}>
+            <thead style={{ background: "#2C3E50", color: "white" }}>
+              <tr>
+                {user?.role !== "worker" && <th>Select</th>}
+                <th>Worker Name</th>
+                <th>Present</th>
+                <th>Absent</th>
+                <th>Leave</th>
+                <th>Paid Leave</th>
+                <th>Unpaid Leave</th>
+                <th>Total Hours</th>
+                <th>Overtime</th>
+                <th>Total Payment (₹)</th>
+              </tr>
+            </thead>
+            <tbody>
+              {workerData.map((wd) => {
+                const baseSalary =
+                  (wd.summary.Present + wd.summary.paidLeave) * (wd.summary.perDaySalary || 0);
+                const overtimePay =
+                  (wd.summary.overtimeHours || 0) * (wd.summary.perDaySalary / 8);
+                const totalPayment = baseSalary + overtimePay;
 
-                  return (
-                    <tr key={wd.worker._id}>
-                      {user?.role !== "worker" && (
-                        <td>
-                          <input
-                            type="checkbox"
-                            checked={selectedWorkers.includes(wd.worker._id)}
-                            onChange={() =>
-                              handleCheckboxChange(wd.worker._id)
-                            }
-                          />
-                        </td>
-                      )}
-                      <td>{wd.worker.name}</td>
-                      <td>{wd.summary.Present}</td>
-                      <td>{wd.summary.Absent}</td>
-                      <td>{wd.summary.Leave}</td>
-                      <td>{wd.summary.totalHours}</td>
-                      <td>{wd.summary.overtimeHours}</td>
-                      <td>Rs. {wd.summary.perDaySalary}</td>
-                      <td>Rs. {totalPayment.toFixed(2)}</td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          )}
+                return (
+                  <tr key={wd.worker._id}>
+                    {user?.role !== "worker" && (
+                      <td>
+                        <input
+                          type="checkbox"
+                          checked={selectedWorkers.includes(wd.worker._id)}
+                          onChange={() => handleCheckboxChange(wd.worker._id)}
+                        />
+                      </td>
+                    )}
+                    <td>{wd.worker.name}</td>
+                    <td>{wd.summary.Present}</td>
+                    <td>{wd.summary.Absent}</td>
+                    <td>{wd.summary.Leave}</td>
+                    <td>{wd.summary.paidLeave}</td>
+                    <td>{wd.summary.unpaidLeave}</td>
+                    <td>{wd.summary.totalHours}</td>
+                    <td>{wd.summary.overtimeHours}</td>
+                    <td>{totalPayment.toFixed(2)}</td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
         </>
       )}
     </div>
