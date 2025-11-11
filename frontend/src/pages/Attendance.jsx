@@ -10,6 +10,7 @@ function Attendance() {
   const [workers, setWorkers] = useState([]);
   const [date, setDate] = useState(() => new Date().toISOString().split("T")[0]);
 
+  // ✅ User access check
   useEffect(() => {
     const savedUser = localStorage.getItem("user");
     if (!savedUser) {
@@ -19,6 +20,7 @@ function Attendance() {
 
     const u = JSON.parse(savedUser);
     setUser(u);
+
     if (u.role === "manager") setSelectedSite(u.site);
     if (u.role === "worker") {
       alert("❌ Access denied for workers.");
@@ -26,6 +28,7 @@ function Attendance() {
     }
   }, [navigate]);
 
+  // ✅ Fetch workers by site
   const fetchWorkersBySite = async (site) => {
     try {
       const res = await axios.get(
@@ -48,7 +51,7 @@ function Attendance() {
         overtimeHours: 0,
         totalHours: 0,
         salary: 0,
-        leaveType: { holiday: false, accepted: false }, // 👈 new field for Leave options
+        leaveType: { holiday: false, accepted: false }, // ✅ leave type field
       }));
 
       setWorkers(formatted);
@@ -58,8 +61,10 @@ function Attendance() {
     }
   };
 
+  // ✅ Fetch existing attendance and restore leave type too
   const fetchExistingAttendance = async (site, selectedDate) => {
     if (!site || !selectedDate) return;
+
     try {
       const res = await axios.get(
         "https://attendance-management-backend-vh2w.onrender.com/api/attendance/reports",
@@ -71,8 +76,16 @@ function Attendance() {
           prev.map((w) => {
             const match = res.data.records.find((r) => r.workerId === w.workerId);
             if (!match) return w;
+
             const isFullDay = match.hoursWorked >= 8;
             const overtime = match.hoursWorked > 8 ? match.hoursWorked - 8 : 0;
+
+            // ✅ Restore leave flags from backend data (if stored)
+            const leaveType = {
+              holiday: !!match.leaveHoliday,
+              accepted: !!match.leaveAccepted,
+            };
+
             return {
               ...w,
               status: match.status,
@@ -80,6 +93,7 @@ function Attendance() {
               overtimeHours: overtime,
               totalHours: match.hoursWorked,
               salary: match.salary,
+              leaveType,
             };
           })
         );
@@ -97,6 +111,7 @@ function Attendance() {
     })();
   }, [selectedSite, date, user]);
 
+  // ✅ Handle status (Present/Absent/Leave)
   const handleStatusChange = (id, status) => {
     setWorkers((prev) =>
       prev.map((w) => {
@@ -143,6 +158,7 @@ function Attendance() {
     );
   };
 
+  // ✅ Full day toggle
   const handleFullDayToggle = (id, checked) => {
     setWorkers((prev) =>
       prev.map((w) => {
@@ -162,6 +178,7 @@ function Attendance() {
     );
   };
 
+  // ✅ Overtime change
   const handleOvertimeChange = (id, hours) => {
     setWorkers((prev) =>
       prev.map((w) => {
@@ -176,14 +193,12 @@ function Attendance() {
     );
   };
 
-
+  // ✅ Leave type change (Holiday / Leave Accepted)
   const handleLeaveTypeChange = (id, type, checked) => {
     setWorkers((prev) =>
       prev.map((w) => {
         if (w.workerId === id) {
           const updatedLeave = { ...w.leaveType, [type]: checked };
-
-        
           const isPaidLeave = updatedLeave.holiday || updatedLeave.accepted;
           const total = isPaidLeave ? 8 : 0;
           const newSalary = isPaidLeave ? w.perDaySalary : 0;
@@ -200,6 +215,7 @@ function Attendance() {
     );
   };
 
+  // ✅ Submit Attendance
   const submitAttendance = async () => {
     if (!date || !selectedSite) {
       alert("⚠️ Please select a date and site before submitting.");
@@ -220,6 +236,9 @@ function Attendance() {
             status: w.status,
             hoursWorked: w.totalHours,
             salary: w.salary,
+            // ✅ Include leave flags in backend
+            leaveHoliday: w.leaveType.holiday,
+            leaveAccepted: w.leaveType.accepted,
           })),
         }
       );
@@ -300,6 +319,7 @@ function Attendance() {
                 <td>{w.roleType}</td>
                 <td>{w.role}</td>
 
+                {/* Present / Absent / Leave */}
                 <td>
                   <input
                     type="radio"
@@ -325,7 +345,7 @@ function Attendance() {
                   />
                 </td>
 
-               
+                {/* Leave checkboxes */}
                 <td>
                   {w.status === "Leave" && (
                     <input
@@ -349,19 +369,16 @@ function Attendance() {
                   )}
                 </td>
 
-            
+                {/* Present Options */}
                 <td>
                   {w.status === "Present" && (
                     <input
                       type="checkbox"
                       checked={w.isFullDay}
-                      onChange={(e) =>
-                        handleFullDayToggle(w.workerId, e.target.checked)
-                      }
+                      onChange={(e) => handleFullDayToggle(w.workerId, e.target.checked)}
                     />
                   )}
                 </td>
-
                 <td>
                   {w.status === "Present" && (
                     <input
