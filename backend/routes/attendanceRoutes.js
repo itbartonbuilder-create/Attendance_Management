@@ -4,7 +4,6 @@ import Worker from "../models/Worker.js";
 
 const router = express.Router();
 
-
 router.get("/workers", async (req, res) => {
   try {
     const workers = await Worker.find({}, "name site perDaySalary roleType role");
@@ -15,7 +14,6 @@ router.get("/workers", async (req, res) => {
   }
 });
 
-
 router.post("/", async (req, res) => {
   try {
     const { date, site, records } = req.body;
@@ -25,7 +23,6 @@ router.post("/", async (req, res) => {
     const localDate = new Date(date);
     localDate.setHours(0, 0, 0, 0);
 
-    
     const formattedRecords = records.map((r) => ({
       workerId: r.workerId,
       name: r.name,
@@ -40,10 +37,8 @@ router.post("/", async (req, res) => {
     let existing = await Attendance.findOne({ date: localDate, site });
 
     if (existing) {
-    
       existing.records = formattedRecords;
       await existing.save();
-
       return res.json({
         success: true,
         message: `✅ Attendance Updated Successfully for ${site}`,
@@ -51,12 +46,7 @@ router.post("/", async (req, res) => {
       });
     }
 
-    const attendance = new Attendance({
-      date: localDate,
-      site,
-      records: formattedRecords,
-    });
-
+    const attendance = new Attendance({ date: localDate, site, records: formattedRecords });
     await attendance.save();
 
     res.json({
@@ -70,7 +60,6 @@ router.post("/", async (req, res) => {
   }
 });
 
-
 router.get("/reports", async (req, res) => {
   try {
     const { date, site } = req.query;
@@ -82,8 +71,7 @@ router.get("/reports", async (req, res) => {
 
     const report = await Attendance.findOne({ date: queryDate, site });
 
-    if (!report || !report.records || report.records.length === 0)
-      return res.json({ success: true, records: [] });
+    if (!report) return res.json({ success: true, records: [] });
 
     res.json({ success: true, records: report.records });
   } catch (err) {
