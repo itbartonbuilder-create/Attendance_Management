@@ -79,6 +79,7 @@ function Navbar() {
             <Link to="/attendance" style={linkStyle}>Attendance</Link>
             <Link to="/managers" style={linkStyle}>Managers</Link>
             <Link to="/reports" style={linkStyle}>Reports</Link>
+             <Link to="/task" style={linkStyle}>Task</Link>
             <Link to="/profile" style={linkStyle}>Profile</Link>
           </>
         )}
@@ -89,6 +90,7 @@ function Navbar() {
             <Link to="/workers" style={linkStyle}>Workers</Link>
             <Link to="/attendance" style={linkStyle}>Attendance</Link>
             <Link to="/reports" style={linkStyle}>Reports</Link>
+             <Link to="/task" style={linkStyle}>Task</Link>
             <Link to="/profile" style={linkStyle}>Profile</Link>
           </>
         )}
