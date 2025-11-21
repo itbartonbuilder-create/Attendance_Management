@@ -70,5 +70,19 @@ router.delete("/:id", async (req, res) => {
     res.status(500).json({ message: "Error deleting manager" });
   }
 });
+router.get("/", async (req, res) => {
+  try {
+    const { site } = req.query;
+
+    let filter = {};
+    if (site) filter.site = site;
+
+    const managers = await Manager.find(filter);
+    res.json(managers);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
 
 export default router;
+
