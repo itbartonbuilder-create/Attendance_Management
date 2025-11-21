@@ -411,7 +411,9 @@ select{
 
 .workers-form input,
 .workers-form select,
-.workers-form button {
+.workers-form button,
+.task-box input,
+.task-box textarea{
   padding: 9px 12px;
   font-size: 14px;
   border: 1px solid #ccc;
