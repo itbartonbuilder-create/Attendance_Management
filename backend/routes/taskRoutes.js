@@ -10,13 +10,14 @@ router.post("/create", async (req, res) => {
   try {
     const { site, type, assignedTo, title, description, deadline } = req.body;
 
+    // Validate user for selected site
     let user =
       type === "Manager"
         ? await Manager.findOne({ _id: assignedTo, site })
         : await Worker.findOne({ _id: assignedTo, site });
 
     if (!user)
-      return res.status(400).json({ message: "User not found for site" });
+      return res.status(400).json({ message: "User not found for this site" });
 
     const task = new Task({
       site,
@@ -28,6 +29,7 @@ router.post("/create", async (req, res) => {
     });
 
     await task.save();
+
     res.json({ success: true, task });
   } catch (err) {
     res.status(500).json({ message: err.message });
@@ -50,11 +52,9 @@ router.get("/", async (req, res) => {
 /* UPDATE TASK */
 router.put("/:id", async (req, res) => {
   try {
-    const updated = await Task.findByIdAndUpdate(
-      req.params.id,
-      req.body,
-      { new: true }
-    );
+    const updated = await Task.findByIdAndUpdate(req.params.id, req.body, {
+      new: true,
+    });
 
     res.json({ success: true, updated });
   } catch (err) {
