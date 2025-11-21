@@ -10,6 +10,7 @@ import Attendance from "./pages/Attendance";
 import Profile from "./pages/Profile";
 import Login from "./pages/Login";
 import Managers from "./pages/Managers";
+import TaskPage from "./pages/TaskPage";
 import Footer from "./components/Footer";
 
 function App() {
@@ -29,6 +30,7 @@ function App() {
         <Route path="/profile" element={<Profile />} />
         <Route path="/login" element={<Login />} />
         <Route path="/managers" element={<Managers />} />
+        <Route path="/task" element={<TaskPage />} />
       </Routes>
             </div>
         <Footer />
