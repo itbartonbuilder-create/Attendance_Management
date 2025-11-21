@@ -83,5 +83,18 @@ router.put("/:id", async (req, res) => {
     res.status(500).json({ message: "Error updating worker" });
   }
 });
+router.get("/", async (req, res) => {
+  try {
+    const { site } = req.query;
+
+    let filter = {};
+    if (site) filter.site = site;
+
+    const workers = await Worker.find(filter);
+    res.json(workers);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
 
 export default router;
