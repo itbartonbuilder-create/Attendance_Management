@@ -3,36 +3,31 @@ import Worker from "../models/Worker.js";
 
 const router = express.Router();
 
+// GET WORKERS FILTERED BY SITE
 router.get("/", async (req, res) => {
   try {
-    const workers = await Worker.find();
+    const { site } = req.query;
+    let filter = {};
+
+    if (site) filter.site = site;
+
+    const workers = await Worker.find(filter);
     res.json(workers);
   } catch (error) {
     res.status(500).json({ message: "Error fetching workers" });
   }
 });
 
-
-router.get("/count", async (req, res) => {
-  try {
-    const count = await Worker.countDocuments();
-    res.json({ count });
-  } catch (error) {
-    res.status(500).json({ message: "Error fetching worker count" });
-  }
-});
-
-
+// ADD WORKER
 router.post("/", async (req, res) => {
   try {
     const { name, roleType, role, site, perDaySalary, contactNo } = req.body;
 
-    
     if (!/^\d{10}$/.test(contactNo)) {
-      return res.status(400).json({ message: "Invalid contact number. Must be 10 digits." });
+      return res.status(400).json({ message: "Invalid contact number" });
     }
 
-    const newWorker = new Worker({
+    const worker = new Worker({
       name,
       roleType,
       role,
@@ -41,59 +36,37 @@ router.post("/", async (req, res) => {
       contactNo,
     });
 
-    await newWorker.save();
-    res.status(201).json(newWorker);
+    await worker.save();
+    res.status(201).json(worker);
   } catch (error) {
-    console.error(error);
     res.status(500).json({ message: "Error adding worker" });
   }
 });
 
-router.delete("/:id", async (req, res) => {
-  try {
-    const worker = await Worker.findByIdAndDelete(req.params.id);
-    if (!worker) return res.status(404).json({ message: "Worker not found" });
-    res.json({ message: "Worker deleted successfully" });
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: "Error deleting worker" });
-  }
-});
-
+// UPDATE WORKER
 router.put("/:id", async (req, res) => {
   try {
     const { name, roleType, role, site, perDaySalary, contactNo } = req.body;
 
-    if (!/^\d{10}$/.test(contactNo)) {
-      return res.status(400).json({ message: "Invalid contact number. Must be 10 digits." });
-    }
-
-    const updatedWorker = await Worker.findByIdAndUpdate(
+    const updated = await Worker.findByIdAndUpdate(
       req.params.id,
       { name, roleType, role, site, perDaySalary, contactNo },
       { new: true }
     );
 
-    if (!updatedWorker)
-      return res.status(404).json({ message: "Worker not found" });
-
-    res.json(updatedWorker);
+    res.json(updated);
   } catch (error) {
-    console.error(error);
     res.status(500).json({ message: "Error updating worker" });
   }
 });
-router.get("/", async (req, res) => {
+
+// DELETE WORKER
+router.delete("/:id", async (req, res) => {
   try {
-    const { site } = req.query;
-
-    let filter = {};
-    if (site) filter.site = site;
-
-    const workers = await Worker.find(filter);
-    res.json(workers);
-  } catch (err) {
-    res.status(500).json({ message: err.message });
+    await Worker.findByIdAndDelete(req.params.id);
+    res.json({ message: "Worker deleted successfully" });
+  } catch (error) {
+    res.status(500).json({ message: "Error deleting worker" });
   }
 });
 
