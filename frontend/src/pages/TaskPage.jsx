@@ -86,12 +86,10 @@ const TaskPage = () => {
 
   // DELETE TASK
   const handleDelete = (id) => {
-    if (!window.confirm("Are you sure you want to delete this task?")) return;
 
     axios
       .delete(`https://attendance-management-backend-vh2w.onrender.com/api/tasks/${id}`)
       .then(() => {
-        alert("Task Deleted");
         fetchTasks();
       })
       .catch((err) => console.log(err));
@@ -243,6 +241,7 @@ const TaskPage = () => {
 };
 
 export default TaskPage;
+
 
 
 
