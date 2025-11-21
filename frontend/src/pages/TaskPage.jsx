@@ -201,6 +201,7 @@ const TaskPage = () => {
               <th>Site</th>
               <th>Name</th>
               <th>Task</th>
+              <th>Description</th>
               <th>Deadline</th>
               <th>Status</th>
               <th>Actions</th>
@@ -213,6 +214,7 @@ const TaskPage = () => {
                 <td>{t.site}</td>
                 <td>{t.assignedTo?.name}</td>
                 <td>{t.title}</td>
+                 <td>{t.description}</td>
                 <td>{t.deadline}</td>
                 <td>{t.status}</td>
 
@@ -241,5 +243,6 @@ const TaskPage = () => {
 };
 
 export default TaskPage;
+
 
 
