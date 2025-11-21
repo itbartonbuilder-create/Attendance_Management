@@ -21,7 +21,7 @@ const TaskPage = () => {
   // Load tasks
   const fetchTasks = () => {
     axios
-      .get("http://localhost:8000/api/tasks")
+      .get("https://attendance-management-backend-vh2w.onrender.com/api/tasks")
       .then((res) => setTasks(res.data))
       .catch((err) => console.log("Error:", err));
   };
@@ -35,8 +35,8 @@ const TaskPage = () => {
     if (form.site && form.type) {
       const endpoint =
         form.type === "Manager"
-          ? "http://localhost:8000/api/managers"
-          : "http://localhost:8000/api/workers";
+          ? "https://attendance-management-backend-vh2w.onrender.com/api/managers"
+          : "https://attendance-management-backend-vh2w.onrender.com/api/workers";
 
       axios
         .get(`${endpoint}?site=${form.site}`)
@@ -52,7 +52,7 @@ const TaskPage = () => {
     if (editingId) {
       // UPDATE TASK
       axios
-        .put(`http://localhost:8000/api/tasks/${editingId}`, form)
+        .put(`https://attendance-management-backend-vh2w.onrender.com/api/tasks/${editingId}`, form)
         .then(() => {
           alert("Task Updated");
           setEditingId(null);
@@ -63,7 +63,7 @@ const TaskPage = () => {
     } else {
       // CREATE NEW TASK
       axios
-        .post("http://localhost:8000/api/tasks/create", form)
+        .post("https://attendance-management-backend-vh2w.onrender.com/api/tasks/create", form)
         .then(() => {
           alert("Task Assigned");
           fetchTasks();
@@ -89,7 +89,7 @@ const TaskPage = () => {
     if (!window.confirm("Are you sure you want to delete this task?")) return;
 
     axios
-      .delete(`http://localhost:8000/api/tasks/${id}`)
+      .delete(`https://attendance-management-backend-vh2w.onrender.com/api/tasks/${id}`)
       .then(() => {
         alert("Task Deleted");
         fetchTasks();
@@ -241,3 +241,4 @@ const TaskPage = () => {
 };
 
 export default TaskPage;
+
