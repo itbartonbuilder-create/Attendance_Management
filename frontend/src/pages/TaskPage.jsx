@@ -15,7 +15,7 @@ const TaskPage = () => {
     deadline: "",
   });
 
-  const SITES = ["Bangalore", "Jaypuria", "Vaishali", "Faridabad"];
+  const SITES = ["Bangalore", "Japuriya", "Vashali", "Faridabad"];
   const TYPES = ["Manager", "Worker"];
 
   // Load tasks
@@ -241,4 +241,5 @@ const TaskPage = () => {
 };
 
 export default TaskPage;
+
 
