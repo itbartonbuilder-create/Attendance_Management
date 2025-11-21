@@ -4,6 +4,7 @@ import dotenv from "dotenv";
 import connectDB from "./config/db.js";
 import attendanceRoutes from "./routes/reports.js";
 import managerRoutes from "./routes/managerRoutes.js";
+import taskRoutes from "./routes/taskRoutes.js";
 // import statsRoute from "./routes/Statistics.js";
 
 dotenv.config();
@@ -22,6 +23,7 @@ app.use("/api/attendance/reports", reportsRoutes);
 // app.use("/api/attendance", statsRoute);
 app.use("/api/attendance", attendanceRoutes);
 app.use("/api/managers", managerRoutes);
+app.use("/api/tasks", taskRoutes);
 
 
 app.get("/", (req, res) => res.send("🚀 Attendance Management Backend is Running!"));
