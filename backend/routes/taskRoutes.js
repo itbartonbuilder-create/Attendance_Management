@@ -10,14 +10,13 @@ router.post("/create", async (req, res) => {
   try {
     const { site, type, assignedTo, title, description, deadline } = req.body;
 
-    // Validate user for selected site
     let user =
       type === "Manager"
         ? await Manager.findOne({ _id: assignedTo, site })
         : await Worker.findOne({ _id: assignedTo, site });
 
     if (!user)
-      return res.status(400).json({ message: "User not found for this site" });
+      return res.status(400).json({ message: "User not found for site" });
 
     const task = new Task({
       site,
@@ -36,11 +35,19 @@ router.post("/create", async (req, res) => {
   }
 });
 
-/* GET ALL TASKS */
+/* GET TASKS (Admin → all, Others → only their tasks) */
 router.get("/", async (req, res) => {
   try {
-    const tasks = await Task.find()
-      .populate("assignedTo", "name site")
+    const { assignedTo } = req.query;
+
+    let filter = {};
+
+    if (assignedTo) {
+      filter.assignedTo = assignedTo;
+    }
+
+    const tasks = await Task.find(filter)
+      .populate("assignedTo", "name site contactNo")
       .sort({ createdAt: -1 });
 
     res.json(tasks);
@@ -62,11 +69,10 @@ router.put("/:id", async (req, res) => {
   }
 });
 
-/* DELETE TASK */
+/* DELETE */
 router.delete("/:id", async (req, res) => {
   try {
     await Task.findByIdAndDelete(req.params.id);
-
     res.json({ success: true, message: "Task Deleted" });
   } catch (err) {
     res.status(500).json({ message: err.message });
