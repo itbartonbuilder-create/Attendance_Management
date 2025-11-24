@@ -98,6 +98,7 @@ function Navbar() {
         {role === "worker" && (
           <>
             <Link to="/reports" style={linkStyle}>Reports</Link>
+             <Link to="/task" style={linkStyle}>Task</Link>
             <Link to="/profile" style={linkStyle}>Profile</Link>
           </>
         )}
