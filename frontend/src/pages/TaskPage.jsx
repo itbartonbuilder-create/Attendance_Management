@@ -211,7 +211,7 @@ const TaskPage = () => {
               <th>Task</th>
               <th>Description</th>
               <th>Deadline</th>
-              <th>Status</th>
+              {/* <th>Status</th> */}
 
               {/* ADMIN ONLY */}
               {user.role === "admin" && <th>Actions</th>}
@@ -236,7 +236,7 @@ const TaskPage = () => {
                   <td>{t.title}</td>
                   <td>{t.description}</td>
                   <td>{t.deadline}</td>
-                  <td>{t.status}</td>
+                  {/* <td>{t.status}</td> */}
 
                   {/* ADMIN ONLY */}
                   {user.role === "admin" && (
@@ -267,3 +267,4 @@ const TaskPage = () => {
 };
 
 export default TaskPage;
+
