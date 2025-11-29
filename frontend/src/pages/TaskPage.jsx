@@ -18,10 +18,11 @@ const TaskPage = () => {
   const SITES = ["Bangalore", "Japuriya", "Vashali", "Faridabad"];
   const TYPES = ["Manager", "Worker"];
 
-  // Logged user
   const user = JSON.parse(localStorage.getItem("user"));
 
-  // Load tasks
+  /* ============================
+        FETCH TASKS
+     ============================ */
   const fetchTasks = () => {
     let url = "https://attendance-management-backend-vh2w.onrender.com/api/tasks";
 
@@ -39,7 +40,9 @@ const TaskPage = () => {
     fetchTasks();
   }, []);
 
-  // Load managers/workers based on site + type
+  /* ============================
+       LOAD WORKER / MANAGER LIST
+     ============================ */
   useEffect(() => {
     if (form.site && form.type) {
       const endpoint =
@@ -54,7 +57,9 @@ const TaskPage = () => {
     }
   }, [form.site, form.type]);
 
-  // Create or update
+  /* ============================
+         CREATE / UPDATE TASK
+     ============================ */
   const handleSubmit = (e) => {
     e.preventDefault();
 
@@ -97,7 +102,9 @@ const TaskPage = () => {
     });
   };
 
-  // DELETE
+  /* ============================
+         DELETE TASK (admin)
+     ============================ */
   const handleDelete = (id) => {
     axios
       .delete(
@@ -107,7 +114,9 @@ const TaskPage = () => {
       .catch((err) => console.log(err));
   };
 
-  // EDIT
+  /* ============================
+         EDIT TASK (admin)
+     ============================ */
   const handleEdit = (task) => {
     setEditingId(task._id);
     setForm({
@@ -118,6 +127,19 @@ const TaskPage = () => {
       description: task.description,
       deadline: task.deadline,
     });
+  };
+
+  /* ============================
+         UPDATE REMARK (worker)
+     ============================ */
+  const updateRemark = (taskId, remark, reason) => {
+    axios
+      .put(
+        `https://attendance-management-backend-vh2w.onrender.com/api/tasks/remark/${taskId}`,
+        { remark, reason }
+      )
+      .then(() => fetchTasks())
+      .catch((err) => console.log(err));
   };
 
   return (
@@ -132,7 +154,9 @@ const TaskPage = () => {
             onChange={(e) => setForm({ ...form, site: e.target.value })}
             required
           >
-            <option value="" disabled>Select Site</option>
+            <option value="" disabled>
+              Select Site
+            </option>
             {SITES.map((site) => (
               <option key={site} value={site}>
                 {site}
@@ -146,7 +170,9 @@ const TaskPage = () => {
               onChange={(e) => setForm({ ...form, type: e.target.value })}
               required
             >
-              <option value="" disabled>Select Type</option>
+              <option value="" disabled>
+                Select Type
+              </option>
               {TYPES.map((t) => (
                 <option key={t} value={t}>
                   {t}
@@ -163,7 +189,9 @@ const TaskPage = () => {
               }
               required
             >
-              <option value="" disabled>Select {form.type}</option>
+              <option value="" disabled>
+                Select {form.type}
+              </option>
               {people.map((p) => (
                 <option key={p._id} value={p._id}>
                   {p.name}
@@ -211,9 +239,8 @@ const TaskPage = () => {
               <th>Task</th>
               <th>Description</th>
               <th>Deadline</th>
-              {/* <th>Status</th> */}
+              <th>Remark</th>
 
-              {/* ADMIN ONLY */}
               {user.role === "admin" && <th>Actions</th>}
             </tr>
           </thead>
@@ -236,9 +263,44 @@ const TaskPage = () => {
                   <td>{t.title}</td>
                   <td>{t.description}</td>
                   <td>{t.deadline}</td>
-                  {/* <td>{t.status}</td> */}
 
-                  {/* ADMIN ONLY */}
+                  {/* REMARK COLUMN */}
+                  <td>
+                    {user.role !== "admin" ? (
+                      <div>
+                        <select
+                          value={t.remark || ""}
+                          onChange={(e) =>
+                            updateRemark(t._id, e.target.value, t.reason)
+                          }
+                        >
+                          <option value="">Select</option>
+                          <option value="Completed">Completed</option>
+                          <option value="Not Completed">Not Completed</option>
+                          <option value="Delay">Delay</option>
+                        </select>
+
+                        {(t.remark === "Not Completed" ||
+                          t.remark === "Delay") && (
+                          <input
+                            type="text"
+                            placeholder="Reason"
+                            value={t.reason || ""}
+                            onChange={(e) =>
+                              updateRemark(t._id, t.remark, e.target.value)
+                            }
+                          />
+                        )}
+                      </div>
+                    ) : (
+                      <div>
+                        <strong>{t.remark || "-"}</strong>
+                        {t.reason && <p>Reason: {t.reason}</p>}
+                      </div>
+                    )}
+                  </td>
+
+                  {/* ADMIN ACTIONS */}
                   {user.role === "admin" && (
                     <td>
                       <button
@@ -267,4 +329,3 @@ const TaskPage = () => {
 };
 
 export default TaskPage;
-
