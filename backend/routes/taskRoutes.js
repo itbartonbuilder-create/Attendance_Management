@@ -78,5 +78,22 @@ router.delete("/:id", async (req, res) => {
     res.status(500).json({ message: err.message });
   }
 });
+router.put("/remark/:id", async (req, res) => {
+  try {
+    const { remark, reason } = req.body;
+
+    const updated = await Task.findByIdAndUpdate(
+      req.params.id,
+      { remark, reason, status: remark === "Completed" ? "Completed" : "Pending" },
+      { new: true }
+    );
+
+    res.json({ success: true, updated });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
 
 export default router;
+
