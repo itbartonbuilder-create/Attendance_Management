@@ -8,18 +8,12 @@ const taskSchema = new mongoose.Schema(
     title: { type: String, required: true },
     description: { type: String },
     deadline: { type: String, required: true },
-
     remark: { type: String, enum: ["Completed", "Not Completed", "Delay", ""], default: "" },
     reason: { type: String, default: "" },
     remarkBy: { type: mongoose.Schema.Types.ObjectId, refPath: "type", default: null },
     remarkStatus: { type: String, enum: ["Pending", "Accepted", "Rejected"], default: "Pending" },
     adminRejectReason: { type: String, default: "" },
     status: { type: String, enum: ["Pending", "Completed"], default: "Pending" },
-
-    // ✅ New fields
-    remarkDate: { type: Date, default: null },
-    acceptedDate: { type: Date, default: null },
-    rejectedDate: { type: Date, default: null },
   },
   { timestamps: true }
 );
