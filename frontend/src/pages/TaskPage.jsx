@@ -20,9 +20,6 @@ const TaskPage = () => {
 
   const user = JSON.parse(localStorage.getItem("user"));
 
-  /* ============================
-        FETCH TASKS
-     ============================ */
   const fetchTasks = () => {
     let url = "https://attendance-management-backend-vh2w.onrender.com/api/tasks";
 
@@ -30,19 +27,13 @@ const TaskPage = () => {
       url += `?assignedTo=${user._id}`;
     }
 
-    axios
-      .get(url)
-      .then((res) => setTasks(res.data))
-      .catch((err) => console.log("Error:", err));
+    axios.get(url).then((res) => setTasks(res.data));
   };
 
   useEffect(() => {
     fetchTasks();
   }, []);
 
-  /* ============================
-       LOAD WORKER / MANAGER LIST
-     ============================ */
   useEffect(() => {
     if (form.site && form.type) {
       const endpoint =
@@ -52,14 +43,10 @@ const TaskPage = () => {
 
       axios
         .get(`${endpoint}?site=${form.site}`)
-        .then((res) => setPeople(res.data))
-        .catch((err) => console.log(err));
+        .then((res) => setPeople(res.data));
     }
   }, [form.site, form.type]);
 
-  /* ============================
-         CREATE / UPDATE TASK
-     ============================ */
   const handleSubmit = (e) => {
     e.preventDefault();
 
@@ -70,12 +57,10 @@ const TaskPage = () => {
           form
         )
         .then(() => {
-          alert("Task Updated");
           setEditingId(null);
           fetchTasks();
           resetForm();
-        })
-        .catch((err) => console.log(err));
+        });
     } else {
       axios
         .post(
@@ -83,11 +68,9 @@ const TaskPage = () => {
           form
         )
         .then(() => {
-          alert("Task Assigned");
           fetchTasks();
           resetForm();
-        })
-        .catch((err) => console.log(err));
+        });
     }
   };
 
@@ -102,21 +85,14 @@ const TaskPage = () => {
     });
   };
 
-  /* ============================
-         DELETE TASK (admin)
-     ============================ */
   const handleDelete = (id) => {
     axios
       .delete(
         `https://attendance-management-backend-vh2w.onrender.com/api/tasks/${id}`
       )
-      .then(() => fetchTasks())
-      .catch((err) => console.log(err));
+      .then(() => fetchTasks());
   };
 
-  /* ============================
-         EDIT TASK (admin)
-     ============================ */
   const handleEdit = (task) => {
     setEditingId(task._id);
     setForm({
@@ -129,24 +105,35 @@ const TaskPage = () => {
     });
   };
 
-  /* ============================
-         UPDATE REMARK (worker)
-     ============================ */
   const updateRemark = (taskId, remark, reason) => {
     axios
       .put(
         `https://attendance-management-backend-vh2w.onrender.com/api/tasks/remark/${taskId}`,
-        { remark, reason }
+        { remark, reason, userId: user._id }
       )
-      .then(() => fetchTasks())
-      .catch((err) => console.log(err));
+      .then(() => fetchTasks());
+  };
+
+  const acceptRemark = (taskId) => {
+    axios
+      .put(
+        `https://attendance-management-backend-vh2w.onrender.com/api/tasks/remark/accept/${taskId}`
+      )
+      .then(() => fetchTasks());
+  };
+
+  const rejectRemark = (taskId) => {
+    axios
+      .put(
+        `https://attendance-management-backend-vh2w.onrender.com/api/tasks/remark/reject/${taskId}`
+      )
+      .then(() => fetchTasks());
   };
 
   return (
     <div className="task-container">
       <h2 className="task-title">{editingId ? "Edit Task" : "Assign Task"}</h2>
 
-      {/* ADMIN ONLY FORM */}
       {user.role === "admin" && (
         <form className="task-box" onSubmit={handleSubmit}>
           <select
@@ -154,13 +141,9 @@ const TaskPage = () => {
             onChange={(e) => setForm({ ...form, site: e.target.value })}
             required
           >
-            <option value="" disabled>
-              Select Site
-            </option>
+            <option value="" disabled>Select Site</option>
             {SITES.map((site) => (
-              <option key={site} value={site}>
-                {site}
-              </option>
+              <option key={site} value={site}>{site}</option>
             ))}
           </select>
 
@@ -170,13 +153,9 @@ const TaskPage = () => {
               onChange={(e) => setForm({ ...form, type: e.target.value })}
               required
             >
-              <option value="" disabled>
-                Select Type
-              </option>
+              <option value="" disabled>Select Type</option>
               {TYPES.map((t) => (
-                <option key={t} value={t}>
-                  {t}
-                </option>
+                <option key={t} value={t}>{t}</option>
               ))}
             </select>
           )}
@@ -189,9 +168,7 @@ const TaskPage = () => {
               }
               required
             >
-              <option value="" disabled>
-                Select {form.type}
-              </option>
+              <option value="" disabled>Select {form.type}</option>
               {people.map((p) => (
                 <option key={p._id} value={p._id}>
                   {p.name}
@@ -229,7 +206,7 @@ const TaskPage = () => {
         </form>
       )}
 
-      {/* TASK TABLE */}
+ 
       <div className="task-box">
         <table className="task-table">
           <thead>
@@ -240,7 +217,6 @@ const TaskPage = () => {
               <th>Description</th>
               <th>Deadline</th>
               <th>Remark</th>
-
               {user.role === "admin" && <th>Actions</th>}
             </tr>
           </thead>
@@ -264,7 +240,6 @@ const TaskPage = () => {
                   <td>{t.description}</td>
                   <td>{t.deadline}</td>
 
-                  {/* REMARK COLUMN */}
                   <td>
                     {user.role !== "admin" ? (
                       <div>
@@ -294,13 +269,31 @@ const TaskPage = () => {
                       </div>
                     ) : (
                       <div>
-                        <strong>{t.remark || "-"}</strong>
+                        <strong>Remark: {t.remark || "-"}</strong>
                         {t.reason && <p>Reason: {t.reason}</p>}
+                        {t.remarkBy && <p>Given By: {t.remarkBy?.name}</p>}
+                        <p>Status: {t.remarkStatus}</p>
+
+                        {t.remark && t.remarkStatus === "Pending" && (
+                          <>
+                            <button
+                              onClick={() => acceptRemark(t._id)}
+                              className="edit-btn"
+                            >
+                              Accept
+                            </button>
+                            <button
+                              onClick={() => rejectRemark(t._id)}
+                              className="delete-btn"
+                            >
+                              Reject
+                            </button>
+                          </>
+                        )}
                       </div>
                     )}
                   </td>
 
-                  {/* ADMIN ACTIONS */}
                   {user.role === "admin" && (
                     <td>
                       <button
