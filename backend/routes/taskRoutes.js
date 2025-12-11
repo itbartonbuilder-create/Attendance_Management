@@ -5,7 +5,7 @@ import Worker from "../models/Worker.js";
 
 const router = express.Router();
 
-// ================= CREATE TASK =================
+
 router.post("/create", async (req, res) => {
   try {
     const { site, type, assignedTo, title, description, deadline } = req.body;
@@ -24,7 +24,7 @@ router.post("/create", async (req, res) => {
   }
 });
 
-// ================= GET TASKS =================
+
 router.get("/", async (req, res) => {
   try {
     const { assignedTo } = req.query;
@@ -40,7 +40,7 @@ router.get("/", async (req, res) => {
   }
 });
 
-// ================= UPDATE TASK =================
+
 router.put("/:id", async (req, res) => {
   try {
     const updated = await Task.findByIdAndUpdate(req.params.id, req.body, { new: true });
@@ -50,7 +50,7 @@ router.put("/:id", async (req, res) => {
   }
 });
 
-// ================= DELETE TASK =================
+
 router.delete("/:id", async (req, res) => {
   try {
     await Task.findByIdAndDelete(req.params.id);
@@ -60,41 +60,54 @@ router.delete("/:id", async (req, res) => {
   }
 });
 
-// ================= ADD REMARK =================
+
 router.put("/remark/:id", async (req, res) => {
   try {
-    const { remark, reason, userId } = req.body;
-    const updateObj = {
-      remark,
-      reason,
-      remarkBy: userId,
-      remarkStatus: "Pending",
-      status: remark === "Completed" ? "Completed" : "Pending",
-    };
+    const task = await Task.findById(req.params.id);
+    if (!task) return res.status(404).json({ message: "Task not found" });
 
-    const updated = await Task.findByIdAndUpdate(req.params.id, updateObj, { new: true });
-    res.json({ success: true, updated });
+    if (task.remarkStatus !== "Pending") {
+      return res.status(400).json({ message: "Remark cannot be updated after admin action" });
+    }
+
+    const { remark, reason, userId } = req.body;
+    task.remark = remark;
+    task.reason = reason;
+    task.remarkBy = userId;
+    task.remarkStatus = "Pending";
+    task.status = remark === "Completed" ? "Completed" : "Pending";
+
+    await task.save();
+    res.json({ success: true, updated: task });
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
 });
 
-// ================= ADMIN ACCEPT REMARK =================
+
 router.put("/remark/accept/:id", async (req, res) => {
   try {
     const { adminReason } = req.body;
-    const updated = await Task.findByIdAndUpdate(req.params.id, { remarkStatus: "Accepted", adminRejectReason: adminReason || "" }, { new: true });
+    const updated = await Task.findByIdAndUpdate(
+      req.params.id,
+      { remarkStatus: "Accepted", adminRejectReason: adminReason || "" },
+      { new: true }
+    );
     res.json({ success: true, updated });
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
 });
 
-// ================= ADMIN REJECT REMARK =================
+
 router.put("/remark/reject/:id", async (req, res) => {
   try {
     const { adminReason } = req.body;
-    const updated = await Task.findByIdAndUpdate(req.params.id, { remarkStatus: "Rejected", adminRejectReason: adminReason }, { new: true });
+    const updated = await Task.findByIdAndUpdate(
+      req.params.id,
+      { remarkStatus: "Rejected", adminRejectReason: adminReason },
+      { new: true }
+    );
     res.json({ success: true, updated });
   } catch (err) {
     res.status(500).json({ message: err.message });
