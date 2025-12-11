@@ -4,10 +4,10 @@ const taskSchema = new mongoose.Schema(
   {
     site: { type: String, required: true },
 
-    type: { 
-      type: String, 
+    type: {
+      type: String,
       required: true,
-      enum: ["Manager", "Worker"] 
+      enum: ["Manager", "Worker"],
     },
 
     assignedTo: {
@@ -18,36 +18,36 @@ const taskSchema = new mongoose.Schema(
 
     title: { type: String, required: true },
     description: { type: String },
-
     deadline: { type: String, required: true },
 
     remark: {
       type: String,
       enum: ["Completed", "Not Completed", "Delay", ""],
-      default: ""
+      default: "",
     },
 
-    reason: {
-      type: String,
-      default: ""
-    },
+    reason: { type: String, default: "" },
+
+    proofFile: { type: String, default: "" },   
 
     remarkBy: {
       type: mongoose.Schema.Types.ObjectId,
       refPath: "type",
-      default: null
+      default: null,
     },
 
     remarkStatus: {
       type: String,
       enum: ["Pending", "Accepted", "Rejected"],
-      default: "Pending"
+      default: "Pending",
     },
 
-    status: { 
-      type: String, 
+    adminRejectReason: { type: String, default: "" }, // <---- NEW FIELD
+
+    status: {
+      type: String,
       enum: ["Pending", "Completed"],
-      default: "Pending" 
+      default: "Pending",
     },
   },
   { timestamps: true }
