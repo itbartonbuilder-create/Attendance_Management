@@ -5,6 +5,7 @@ const TaskPage = () => {
   const [tasks, setTasks] = useState([]);
   const [people, setPeople] = useState([]);
   const [editingId, setEditingId] = useState(null);
+  const [tempReason, setTempReason] = useState({}); // local state for smooth typing
 
   const [form, setForm] = useState({
     site: "",
@@ -17,7 +18,6 @@ const TaskPage = () => {
 
   const SITES = ["Bangalore", "Japuriya", "Vashali", "Faridabad"];
   const TYPES = ["Manager", "Worker"];
-
   const user = JSON.parse(localStorage.getItem("user"));
 
   const fetchTasks = () => {
@@ -36,14 +36,12 @@ const TaskPage = () => {
         form.type === "Manager"
           ? "https://attendance-management-backend-vh2w.onrender.com/api/managers"
           : "https://attendance-management-backend-vh2w.onrender.com/api/workers";
-
       axios.get(`${endpoint}?site=${form.site}`).then((res) => setPeople(res.data));
     }
   }, [form.site, form.type]);
 
   const handleSubmit = (e) => {
     e.preventDefault();
-
     if (editingId) {
       axios
         .put(`https://attendance-management-backend-vh2w.onrender.com/api/tasks/${editingId}`, form)
@@ -94,14 +92,12 @@ const TaskPage = () => {
   };
 
   const acceptRemark = (taskId) => {
-    // Accept → no reason prompt
     axios
       .put(`https://attendance-management-backend-vh2w.onrender.com/api/tasks/remark/accept/${taskId}`, { adminReason: "" })
       .then(() => fetchTasks());
   };
 
   const rejectRemark = (taskId) => {
-    // Reject → reason required
     const reason = prompt("Why rejecting? (required):");
     if (!reason) return alert("Reject reason is required!");
     axios
@@ -116,58 +112,34 @@ const TaskPage = () => {
       {user.role === "admin" && (
         <form className="task-box" onSubmit={handleSubmit}>
           <select value={form.site} onChange={(e) => setForm({ ...form, site: e.target.value })} required>
-            <option value="" disabled>
-              Select Site
-            </option>
+            <option value="" disabled>Select Site</option>
             {SITES.map((site) => (
-              <option key={site} value={site}>
-                {site}
-              </option>
+              <option key={site} value={site}>{site}</option>
             ))}
           </select>
 
           {form.site && (
             <select value={form.type} onChange={(e) => setForm({ ...form, type: e.target.value })} required>
-              <option value="" disabled>
-                Select Type
-              </option>
+              <option value="" disabled>Select Type</option>
               {TYPES.map((t) => (
-                <option key={t} value={t}>
-                  {t}
-                </option>
+                <option key={t} value={t}>{t}</option>
               ))}
             </select>
           )}
 
           {form.type && (
             <select value={form.assignedTo} onChange={(e) => setForm({ ...form, assignedTo: e.target.value })} required>
-              <option value="" disabled>
-                Select {form.type}
-              </option>
+              <option value="" disabled>Select {form.type}</option>
               {people.map((p) => (
-                <option key={p._id} value={p._id}>
-                  {p.name}
-                </option>
+                <option key={p._id} value={p._id}>{p.name}</option>
               ))}
             </select>
           )}
 
-          <input
-            type="text"
-            placeholder="Task Title"
-            value={form.title}
-            onChange={(e) => setForm({ ...form, title: e.target.value })}
-            required
-          />
-          <textarea
-            placeholder="Task Description"
-            value={form.description}
-            onChange={(e) => setForm({ ...form, description: e.target.value })}
-          ></textarea>
+          <input type="text" placeholder="Task Title" value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} required />
+          <textarea placeholder="Task Description" value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })}></textarea>
           <input type="date" value={form.deadline} onChange={(e) => setForm({ ...form, deadline: e.target.value })} required />
-          <button type="submit" className="btn-view">
-            {editingId ? "Update Task" : "Assign Task"}
-          </button>
+          <button type="submit" className="btn-view">{editingId ? "Update Task" : "Assign Task"}</button>
         </form>
       )}
 
@@ -187,9 +159,7 @@ const TaskPage = () => {
           <tbody>
             {tasks.length === 0 ? (
               <tr>
-                <td colSpan={user.role === "admin" ? 7 : 6} style={{ textAlign: "center" }}>
-                  No tasks assigned
-                </td>
+                <td colSpan={user.role === "admin" ? 7 : 6} style={{ textAlign: "center" }}>No tasks assigned</td>
               </tr>
             ) : (
               tasks.map((t) => (
@@ -203,7 +173,7 @@ const TaskPage = () => {
                     {user.role !== "admin" ? (
                       t.remarkStatus === "Pending" ? (
                         <div>
-                          <select value={t.remark || ""} onChange={(e) => updateRemark(t._id, e.target.value, t.reason)}>
+                          <select value={t.remark || ""} onChange={(e) => updateRemark(t._id, e.target.value, tempReason[t._id] || t.reason)}>
                             <option value="">Select</option>
                             <option value="Completed">Completed</option>
                             <option value="Not Completed">Not Completed</option>
@@ -211,12 +181,12 @@ const TaskPage = () => {
                           </select>
 
                           {(t.remark === "Not Completed" || t.remark === "Delay") && (
-                            <input
-                              type="text"
+                            <textarea
                               placeholder="Reason"
-                              value={t.reason || ""}
-                              onChange={(e) => updateRemark(t._id, t.remark, e.target.value)}
-                            />
+                              value={tempReason[t._id] || t.reason || ""}
+                              onChange={(e) => setTempReason({ ...tempReason, [t._id]: e.target.value })}
+                              onBlur={() => updateRemark(t._id, t.remark, tempReason[t._id] || t.reason)}
+                            ></textarea>
                           )}
                         </div>
                       ) : (
@@ -244,13 +214,19 @@ const TaskPage = () => {
                     )}
                   </td>
 
-                  {user.role === "admin" && t.remarkStatus === "Pending" && (
+                  {user.role === "admin" && (
                     <td>
-                      <button onClick={() => handleEdit(t)} className="edit-btn">Edit</button>
-                      <button onClick={() => handleDelete(t._id)} className="delete-btn">Delete</button>
+                      {/* Show Edit only if remark is not yet accepted/rejected */}
+                      {t.remarkStatus === "Pending" ? (
+                        <>
+                          <button onClick={() => handleEdit(t)} className="edit-btn">Edit</button>
+                          <button onClick={() => handleDelete(t._id)} className="delete-btn">Delete</button>
+                        </>
+                      ) : (
+                        <button onClick={() => handleDelete(t._id)} className="delete-btn">Delete</button>
+                      )}
                     </td>
                   )}
-                  {user.role === "admin" && t.remarkStatus !== "Pending" && <td>—</td>}
                 </tr>
               ))
             )}
