@@ -5,7 +5,7 @@ import Worker from "../models/Worker.js";
 
 const router = express.Router();
 
-/* CREATE TASK */
+
 router.post("/create", async (req, res) => {
   try {
     const { site, type, assignedTo, title, description, deadline } = req.body;
@@ -35,19 +35,17 @@ router.post("/create", async (req, res) => {
   }
 });
 
-/* GET TASKS (Admin → all, Others → only their tasks) */
+
 router.get("/", async (req, res) => {
   try {
     const { assignedTo } = req.query;
 
     let filter = {};
-
-    if (assignedTo) {
-      filter.assignedTo = assignedTo;
-    }
+    if (assignedTo) filter.assignedTo = assignedTo;
 
     const tasks = await Task.find(filter)
       .populate("assignedTo", "name site contactNo")
+      .populate("remarkBy", "name")
       .sort({ createdAt: -1 });
 
     res.json(tasks);
@@ -56,7 +54,6 @@ router.get("/", async (req, res) => {
   }
 });
 
-/* UPDATE TASK */
 router.put("/:id", async (req, res) => {
   try {
     const updated = await Task.findByIdAndUpdate(req.params.id, req.body, {
@@ -69,7 +66,7 @@ router.put("/:id", async (req, res) => {
   }
 });
 
-/* DELETE */
+
 router.delete("/:id", async (req, res) => {
   try {
     await Task.findByIdAndDelete(req.params.id);
@@ -78,13 +75,21 @@ router.delete("/:id", async (req, res) => {
     res.status(500).json({ message: err.message });
   }
 });
+
+
 router.put("/remark/:id", async (req, res) => {
   try {
-    const { remark, reason } = req.body;
+    const { remark, reason, userId } = req.body;
 
     const updated = await Task.findByIdAndUpdate(
       req.params.id,
-      { remark, reason, status: remark === "Completed" ? "Completed" : "Pending" },
+      {
+        remark,
+        reason,
+        remarkBy: userId,
+        remarkStatus: "Pending",
+        status: remark === "Completed" ? "Completed" : "Pending"
+      },
       { new: true }
     );
 
@@ -94,6 +99,32 @@ router.put("/remark/:id", async (req, res) => {
   }
 });
 
+router.put("/remark/accept/:id", async (req, res) => {
+  try {
+    const updated = await Task.findByIdAndUpdate(
+      req.params.id,
+      { remarkStatus: "Accepted" },
+      { new: true }
+    );
+
+    res.json({ success: true, updated });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
+router.put("/remark/reject/:id", async (req, res) => {
+  try {
+    const updated = await Task.findByIdAndUpdate(
+      req.params.id,
+      { remarkStatus: "Rejected" },
+      { new: true }
+    );
+
+    res.json({ success: true, updated });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
 
 export default router;
-
