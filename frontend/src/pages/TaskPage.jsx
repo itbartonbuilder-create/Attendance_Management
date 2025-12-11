@@ -53,7 +53,8 @@ const TaskPage = () => {
           resetForm();
         });
     } else {
-      axios.post("https://attendance-management-backend-vh2w.onrender.com/api/tasks/create", form)
+      axios
+        .post("https://attendance-management-backend-vh2w.onrender.com/api/tasks/create", form)
         .then(() => {
           fetchTasks();
           resetForm();
@@ -66,8 +67,7 @@ const TaskPage = () => {
   };
 
   const handleDelete = (id) => {
-    axios.delete(`https://attendance-management-backend-vh2w.onrender.com/api/tasks/${id}`)
-      .then(() => fetchTasks());
+    axios.delete(`https://attendance-management-backend-vh2w.onrender.com/api/tasks/${id}`).then(() => fetchTasks());
   };
 
   const handleEdit = (task) => {
@@ -83,27 +83,29 @@ const TaskPage = () => {
   };
 
   const updateRemark = (taskId, remark, reason) => {
-    axios.put(
-      `https://attendance-management-backend-vh2w.onrender.com/api/tasks/remark/${taskId}`,
-      { remark, reason, userId: user._id }
-    ).then(() => fetchTasks());
+    axios
+      .put(`https://attendance-management-backend-vh2w.onrender.com/api/tasks/remark/${taskId}`, {
+        remark,
+        reason,
+        userId: user._id,
+      })
+      .then(() => fetchTasks())
+      .catch((err) => alert(err.response.data.message));
   };
 
   const acceptRemark = (taskId) => {
     const reason = prompt("Reason for Accepting (optional):") || "";
-    axios.put(
-      `https://attendance-management-backend-vh2w.onrender.com/api/tasks/remark/accept/${taskId}`,
-      { adminReason: reason }
-    ).then(() => fetchTasks());
+    axios
+      .put(`https://attendance-management-backend-vh2w.onrender.com/api/tasks/remark/accept/${taskId}`, { adminReason: reason })
+      .then(() => fetchTasks());
   };
 
   const rejectRemark = (taskId) => {
     const reason = prompt("Why rejecting? (required):");
     if (!reason) return alert("Reject reason is required!");
-    axios.put(
-      `https://attendance-management-backend-vh2w.onrender.com/api/tasks/remark/reject/${taskId}`,
-      { adminReason: reason }
-    ).then(() => fetchTasks());
+    axios
+      .put(`https://attendance-management-backend-vh2w.onrender.com/api/tasks/remark/reject/${taskId}`, { adminReason: reason })
+      .then(() => fetchTasks());
   };
 
   return (
@@ -113,28 +115,58 @@ const TaskPage = () => {
       {user.role === "admin" && (
         <form className="task-box" onSubmit={handleSubmit}>
           <select value={form.site} onChange={(e) => setForm({ ...form, site: e.target.value })} required>
-            <option value="" disabled>Select Site</option>
-            {SITES.map((site) => <option key={site} value={site}>{site}</option>)}
+            <option value="" disabled>
+              Select Site
+            </option>
+            {SITES.map((site) => (
+              <option key={site} value={site}>
+                {site}
+              </option>
+            ))}
           </select>
 
           {form.site && (
             <select value={form.type} onChange={(e) => setForm({ ...form, type: e.target.value })} required>
-              <option value="" disabled>Select Type</option>
-              {TYPES.map((t) => <option key={t} value={t}>{t}</option>)}
+              <option value="" disabled>
+                Select Type
+              </option>
+              {TYPES.map((t) => (
+                <option key={t} value={t}>
+                  {t}
+                </option>
+              ))}
             </select>
           )}
 
           {form.type && (
             <select value={form.assignedTo} onChange={(e) => setForm({ ...form, assignedTo: e.target.value })} required>
-              <option value="" disabled>Select {form.type}</option>
-              {people.map((p) => <option key={p._id} value={p._id}>{p.name}</option>)}
+              <option value="" disabled>
+                Select {form.type}
+              </option>
+              {people.map((p) => (
+                <option key={p._id} value={p._id}>
+                  {p.name}
+                </option>
+              ))}
             </select>
           )}
 
-          <input type="text" placeholder="Task Title" value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} required />
-          <textarea placeholder="Task Description" value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })}></textarea>
+          <input
+            type="text"
+            placeholder="Task Title"
+            value={form.title}
+            onChange={(e) => setForm({ ...form, title: e.target.value })}
+            required
+          />
+          <textarea
+            placeholder="Task Description"
+            value={form.description}
+            onChange={(e) => setForm({ ...form, description: e.target.value })}
+          ></textarea>
           <input type="date" value={form.deadline} onChange={(e) => setForm({ ...form, deadline: e.target.value })} required />
-          <button type="submit" className="btn-view">{editingId ? "Update Task" : "Assign Task"}</button>
+          <button type="submit" className="btn-view">
+            {editingId ? "Update Task" : "Assign Task"}
+          </button>
         </form>
       )}
 
@@ -154,7 +186,9 @@ const TaskPage = () => {
           <tbody>
             {tasks.length === 0 ? (
               <tr>
-                <td colSpan={user.role === "admin" ? 7 : 6} style={{ textAlign: "center" }}>No tasks assigned</td>
+                <td colSpan={user.role === "admin" ? 7 : 6} style={{ textAlign: "center" }}>
+                  No tasks assigned
+                </td>
               </tr>
             ) : (
               tasks.map((t) => (
@@ -166,18 +200,31 @@ const TaskPage = () => {
                   <td>{t.deadline}</td>
                   <td>
                     {user.role !== "admin" ? (
-                      <div>
-                        <select value={t.remark || ""} onChange={(e) => updateRemark(t._id, e.target.value, t.reason)}>
-                          <option value="">Select</option>
-                          <option value="Completed">Completed</option>
-                          <option value="Not Completed">Not Completed</option>
-                          <option value="Delay">Delay</option>
-                        </select>
+                      t.remarkStatus === "Pending" ? (
+                        <div>
+                          <select value={t.remark || ""} onChange={(e) => updateRemark(t._id, e.target.value, t.reason)}>
+                            <option value="">Select</option>
+                            <option value="Completed">Completed</option>
+                            <option value="Not Completed">Not Completed</option>
+                            <option value="Delay">Delay</option>
+                          </select>
 
-                        {(t.remark === "Not Completed" || t.remark === "Delay") && (
-                          <input type="text" placeholder="Reason" value={t.reason || ""} onChange={(e) => updateRemark(t._id, t.remark, e.target.value)} />
-                        )}
-                      </div>
+                          {(t.remark === "Not Completed" || t.remark === "Delay") && (
+                            <input
+                              type="text"
+                              placeholder="Reason"
+                              value={t.reason || ""}
+                              onChange={(e) => updateRemark(t._id, t.remark, e.target.value)}
+                            />
+                          )}
+                        </div>
+                      ) : (
+                        <div>
+                          <strong>Remark:</strong> {t.remark} <br />
+                          {t.reason && <span>Reason: {t.reason}</span>} <br />
+                          <em>Admin {t.remarkStatus.toLowerCase()}</em>
+                        </div>
+                      )
                     ) : (
                       <div>
                         <strong>Remark: {t.remark || "-"}</strong>
