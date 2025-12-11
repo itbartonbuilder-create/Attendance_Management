@@ -105,12 +105,6 @@ const TaskPage = () => {
       .then(() => fetchTasks());
   };
 
-  const formatDate = (dateStr) => {
-    if (!dateStr) return "-";
-    const d = new Date(dateStr);
-    return `${d.toLocaleDateString()} ${d.toLocaleTimeString()}`;
-  };
-
   return (
     <div className="task-container">
       <h2 className="task-title">{editingId ? "Edit Task" : "Assign Task"}</h2>
@@ -198,19 +192,17 @@ const TaskPage = () => {
                       ) : (
                         <div>
                           <strong>Remark:</strong> {t.remark} <br />
-                          {t.reason && <p>Reason: {t.reason}</p>}
-                          <p>Remark Given: {formatDate(t.remarkDate)}</p>
-                          {t.acceptedDate && <p>Remark Accepted: {formatDate(t.acceptedDate)}</p>}
-                          {t.rejectedDate && <p>Remark Rejected: {formatDate(t.rejectedDate)}</p>}
+                          {t.reason && <span>Reason: {t.reason}</span>} <br />
+                          <em>Admin {t.remarkStatus.toLowerCase()}</em>
                         </div>
                       )
                     ) : (
                       <div>
                         <strong>Remark: {t.remark || "-"}</strong>
                         {t.reason && <p>Reason: {t.reason}</p>}
-                        <p>Remark Given: {formatDate(t.remarkDate)}</p>
-                        {t.acceptedDate && <p>Accepted on: {formatDate(t.acceptedDate)}</p>}
-                        {t.rejectedDate && <p>Rejected on: {formatDate(t.rejectedDate)}</p>}
+                        
+                        <p>Status: {t.remarkStatus}</p>
+                        {t.adminRejectReason && <p><strong>Reason For Reject:</strong> {t.adminRejectReason}</p>}
 
                         {t.remark && t.remarkStatus === "Pending" && (
                           <>
@@ -224,6 +216,7 @@ const TaskPage = () => {
 
                   {user.role === "admin" && (
                     <td>
+                      {/* Show Edit only if remark is not yet accepted/rejected */}
                       {t.remarkStatus === "Pending" ? (
                         <>
                           <button onClick={() => handleEdit(t)} className="edit-btn">Edit</button>
