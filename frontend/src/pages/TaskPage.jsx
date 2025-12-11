@@ -193,7 +193,7 @@ const TaskPage = () => {
                         <div>
                           <strong>Remark:</strong> {t.remark} <br />
                           {t.reason && <span>Reason: {t.reason}</span>} <br />
-                          <em>Admin {t.remarkStatus.toLowerCase()}</em>
+                          <em> {t.remarkStatus.toUpperCase()}</em>
                         </div>
                       )
                     ) : (
@@ -238,3 +238,4 @@ const TaskPage = () => {
 };
 
 export default TaskPage;
+
