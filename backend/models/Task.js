@@ -21,7 +21,6 @@ const taskSchema = new mongoose.Schema(
 
     deadline: { type: String, required: true },
 
-    // ---------- NEW FIELDS ADDED ----------
     remark: {
       type: String,
       enum: ["Completed", "Not Completed", "Delay", ""],
@@ -33,12 +32,23 @@ const taskSchema = new mongoose.Schema(
       default: ""
     },
 
+    remarkBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      refPath: "type",
+      default: null
+    },
+
+    remarkStatus: {
+      type: String,
+      enum: ["Pending", "Accepted", "Rejected"],
+      default: "Pending"
+    },
+
     status: { 
       type: String, 
       enum: ["Pending", "Completed"],
       default: "Pending" 
     },
-    // --------------------------------------
   },
   { timestamps: true }
 );
