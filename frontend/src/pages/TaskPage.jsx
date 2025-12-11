@@ -200,9 +200,8 @@ const TaskPage = () => {
                       <div>
                         <strong>Remark: {t.remark || "-"}</strong>
                         {t.reason && <p>Reason: {t.reason}</p>}
-                        {t.remarkBy && <p>Given By: {t.remarkBy?.name}</p>}
                         <p>Status: {t.remarkStatus}</p>
-                        {t.adminRejectReason && <p><strong>Admin Note:</strong> {t.adminRejectReason}</p>}
+                        {t.adminRejectReason && <p><strong>Reason For Reject:</strong> {t.adminRejectReason}</p>}
 
                         {t.remark && t.remarkStatus === "Pending" && (
                           <>
@@ -238,3 +237,4 @@ const TaskPage = () => {
 };
 
 export default TaskPage;
+
