@@ -1,11 +1,16 @@
 import express from "express";
+import upload from "../utils/multer.js";   // <-- YOUR MULTER CONFIG ONLY
 import Task from "../models/Task.js";
 import Manager from "../models/Manager.js";
 import Worker from "../models/Worker.js";
 
 const router = express.Router();
 
+// ------------------------------------------------------------------
+// ✔ REMOVE ALL multer.diskStorage code (IT WAS WRONG & DUPLICATE)
+// ------------------------------------------------------------------
 
+// ================= CREATE TASK =================
 router.post("/create", async (req, res) => {
   try {
     const { site, type, assignedTo, title, description, deadline } = req.body;
@@ -28,14 +33,13 @@ router.post("/create", async (req, res) => {
     });
 
     await task.save();
-
     res.json({ success: true, task });
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
 });
 
-
+// ================= GET TASKS =================
 router.get("/", async (req, res) => {
   try {
     const { assignedTo } = req.query;
@@ -54,6 +58,7 @@ router.get("/", async (req, res) => {
   }
 });
 
+// ================= UPDATE TASK =================
 router.put("/:id", async (req, res) => {
   try {
     const updated = await Task.findByIdAndUpdate(req.params.id, req.body, {
@@ -66,7 +71,7 @@ router.put("/:id", async (req, res) => {
   }
 });
 
-
+// ================= DELETE TASK =================
 router.delete("/:id", async (req, res) => {
   try {
     await Task.findByIdAndDelete(req.params.id);
@@ -76,22 +81,26 @@ router.delete("/:id", async (req, res) => {
   }
 });
 
-
-router.put("/remark/:id", async (req, res) => {
+// ================= ADD REMARK + FILE =================
+router.put("/remark/:id", upload.single("proof"), async (req, res) => {
   try {
     const { remark, reason, userId } = req.body;
 
-    const updated = await Task.findByIdAndUpdate(
-      req.params.id,
-      {
-        remark,
-        reason,
-        remarkBy: userId,
-        remarkStatus: "Pending",
-        status: remark === "Completed" ? "Completed" : "Pending"
-      },
-      { new: true }
-    );
+    const updateObj = {
+      remark,
+      reason,
+      remarkBy: userId,
+      remarkStatus: "Pending",
+      status: remark === "Completed" ? "Completed" : "Pending",
+    };
+
+    if (req.file) {
+      updateObj.proofFile = req.file.filename;
+    }
+
+    const updated = await Task.findByIdAndUpdate(req.params.id, updateObj, {
+      new: true,
+    });
 
     res.json({ success: true, updated });
   } catch (err) {
@@ -99,6 +108,7 @@ router.put("/remark/:id", async (req, res) => {
   }
 });
 
+// =============== ADMIN ACCEPT REMARK =================
 router.put("/remark/accept/:id", async (req, res) => {
   try {
     const updated = await Task.findByIdAndUpdate(
@@ -113,11 +123,14 @@ router.put("/remark/accept/:id", async (req, res) => {
   }
 });
 
+// =============== ADMIN REJECT REMARK =================
 router.put("/remark/reject/:id", async (req, res) => {
   try {
+    const { rejectReason } = req.body;
+
     const updated = await Task.findByIdAndUpdate(
       req.params.id,
-      { remarkStatus: "Rejected" },
+      { remarkStatus: "Rejected", adminRejectReason: rejectReason },
       { new: true }
     );
 
