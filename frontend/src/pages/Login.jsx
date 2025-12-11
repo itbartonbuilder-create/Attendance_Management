@@ -5,34 +5,48 @@ import logo from "../assets/logo.png";
 import loginPage from "../assets/loginPage.jpeg";
 
 function Login() {
+  const [step, setStep] = useState("select");
   const [role, setRole] = useState("admin");
+
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
-  const [name, setName] = useState(""); 
+
+  const [name, setName] = useState("");
   const [contactNo, setContactNo] = useState("");
-  const [isLoading, setIsLoading] = useState(false); // ✅ loader state
+
+  const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
 
   const handleLogin = async (e) => {
     e.preventDefault();
-    setIsLoading(true); // ✅ start loader
+    setIsLoading(true);
+
     try {
       let res;
 
-      if (role === "admin") {
+      if (step === "office") {
+        if (role === "admin") {
+          res = await axios.post(
+            "https://attendance-management-backend-vh2w.onrender.com/api/auth/login",
+            { email, password }
+          );
+        } else if (role === "manager") {
+          res = await axios.post(
+            "https://attendance-management-backend-vh2w.onrender.com/api/auth/login",
+            { site: name, contactNo }
+          );
+        } else {
+          res = await axios.post(
+            "https://attendance-management-backend-vh2w.onrender.com/api/auth/login",
+            { name, contactNo }
+          );
+        }
+      }
+
+      if (step === "vendor") {
         res = await axios.post(
-          "https://attendance-management-backend-vh2w.onrender.com/api/auth/login",
-          { email, password }
-        );
-      } else if (role === "manager") {
-        res = await axios.post(
-          "https://attendance-management-backend-vh2w.onrender.com/api/auth/login",
-          { site: name, contactNo }
-        );
-      } else {
-        res = await axios.post(
-          "https://attendance-management-backend-vh2w.onrender.com/api/auth/login",
+          "https://attendance-management-backend-vh2w.onrender.com/api/vendor/login",
           { name, contactNo }
         );
       }
@@ -47,9 +61,9 @@ function Login() {
       alert(`✅ Login Successful — Welcome ${userData.displayName}`);
       navigate("/dashboard");
     } catch (err) {
-      alert(err.response?.data?.msg || "❌ Login failed. Please try again.");
+      alert(err.response?.data?.msg || "❌ Login failed.");
     } finally {
-      setIsLoading(false); // ✅ stop loader
+      setIsLoading(false);
     }
   };
 
@@ -66,11 +80,12 @@ function Login() {
         position: "relative",
       }}
     >
-      {/* ✅ Loader Overlay */}
       {isLoading && (
         <div style={overlayStyle}>
           <div style={spinnerStyle}></div>
-          <p style={{ color: "white", marginTop: "10px", fontSize: "18px" }}>Processing...</p>
+          <p style={{ color: "white", marginTop: "10px", fontSize: "18px" }}>
+            Processing...
+          </p>
         </div>
       )}
 
@@ -83,16 +98,21 @@ function Login() {
           boxShadow: "0 4px 12px rgba(0,0,0,0.4)",
         }}
       >
+        {/* LOGO */}
         <div
           style={{
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
+            marginBottom: "23px",
             gap: "12px",
-            marginBottom: "15px",
           }}
         >
-          <img src={logo} alt="Logo" style={{ width: 44, height: 55, objectFit: "contain" }} />
+          <img
+            src={logo}
+            alt="Logo"
+            style={{ width: 44, height: 55, objectFit: "contain" }}
+          />
           <h1
             style={{
               fontWeight: "bold",
@@ -106,106 +126,198 @@ function Login() {
           </h1>
         </div>
 
-        <div style={{ marginBottom: "20px", textAlign: "center", color: "white" }}>
-          <label style={{ marginRight: "15px", fontSize: "19px" }}>
-            <input
-              type="radio"
-              name="role"
-              value="admin"
-              checked={role === "admin"}
-              onChange={(e) => setRole(e.target.value)}
-            />{" "}
-            Admin
-          </label>
-          <label style={{ marginRight: "15px", fontSize: "19px" }}>
-            <input
-              type="radio"
-              name="role"
-              value="manager"
-              checked={role === "manager"}
-              onChange={(e) => setRole(e.target.value)}
-            />{" "}
-            Manager
-          </label>
-          <label style={{ fontSize: "19px" }}>
-            <input
-              type="radio"
-              name="role"
-              value="worker"
-              checked={role === "worker"}
-              onChange={(e) => setRole(e.target.value)}
-            />{" "}
-            Worker
-          </label>
-        </div>
+        {/* SELECT FIRST PAGE */}
+        {step === "select" && (
+          <div style={{ textAlign: "center", color: "white" }}>
+            <h2
+              style={{
+                marginTop: "10px",
+                marginBottom: "12px",
+                color: "#633131",
+                fontSize: "32px",
+                fontFamily: "Times Roman",
+              }}
+            >
+              Select Login Type
+            </h2>
 
-        <form onSubmit={handleLogin}>
-          {role === "admin" && (
-            <>
-              <input
-                type="email"
-                placeholder="Enter Admin Email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-                style={inputStyle}
-              />
-              <div style={{ position: "relative" }}>
+            <button style={selectBtn} onClick={() => setStep("office")}>
+              Office
+            </button>
+
+            <button style={selectBtn} onClick={() => setStep("vendor")}>
+              Vendor
+            </button>
+          </div>
+        )}
+
+        {/* OFFICE LOGIN */}
+        {step === "office" && (
+          <>
+            <div style={{ marginBottom: "20px", textAlign: "center", color: "white" }}>
+              <label style={{ marginRight: "15px", fontSize: "19px" }}>
                 <input
-                  type={showPassword ? "text" : "password"}
-                  placeholder="Enter Password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  required
-                  style={inputStyle}
-                />
-                <span onClick={() => setShowPassword(!showPassword)} style={eyeStyle}>
-                  {showPassword ? "🙈" : "👁️"}
-                </span>
-              </div>
-            </>
-          )}
+                  type="radio"
+                  name="role"
+                  value="admin"
+                  checked={role === "admin"}
+                  onChange={(e) => setRole(e.target.value)}
+                />{" "}
+                Admin
+              </label>
 
-          {role === "manager" && (
-            <>
-              <select
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                required
-                style={{ ...inputStyle, width: "100%", color: name ? "white" : "gray" }}
+              <label style={{ marginRight: "15px", fontSize: "19px" }}>
+                <input
+                  type="radio"
+                  name="role"
+                  value="manager"
+                  checked={role === "manager"}
+                  onChange={(e) => setRole(e.target.value)}
+                />{" "}
+                Manager
+              </label>
+
+              <label style={{ fontSize: "19px" }}>
+                <input
+                  type="radio"
+                  name="role"
+                  value="worker"
+                  checked={role === "worker"}
+                  onChange={(e) => setRole(e.target.value)}
+                />{" "}
+                Worker
+              </label>
+            </div>
+
+            <form onSubmit={handleLogin}>
+              {role === "admin" && (
+                <>
+                  <input
+                    type="email"
+                    placeholder="Enter Admin Email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    required
+                    style={inputStyle}
+                  />
+
+                  <div style={{ position: "relative" }}>
+                    <input
+                      type={showPassword ? "text" : "password"}
+                      placeholder="Enter Password"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      required
+                      style={inputStyle}
+                    />
+                    <span
+                      onClick={() => setShowPassword(!showPassword)}
+                      style={eyeStyle}
+                    >
+                      {showPassword ? "🙈" : "👁️"}
+                    </span>
+                  </div>
+                </>
+              )}
+
+              {role === "manager" && (
+                <>
+                  <select
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    required
+                    style={{
+                      ...inputStyle,
+                      width: "100%",
+                      color: name ? "white" : "gray",
+                    }}
+                  >
+                    <option value="">Select Site</option>
+                    <option value="Bangalore">Bangalore</option>
+                    <option value="Japuriya">Japuriya</option>
+                    <option value="Vashali">Vashali</option>
+                    <option value="Faridabad">Faridabad</option>
+                  </select>
+
+                  <div style={{ position: "relative" }}>
+                    <input
+                      type={showPassword ? "text" : "password"}
+                      placeholder="Enter Contact Number"
+                      value={contactNo}
+                      onChange={(e) => setContactNo(e.target.value)}
+                      required
+                      style={inputStyle}
+                    />
+                    <span
+                      onClick={() => setShowPassword(!showPassword)}
+                      style={eyeStyle}
+                    >
+                      {showPassword ? "🙈" : "👁️"}
+                    </span>
+                  </div>
+                </>
+              )}
+
+              {role === "worker" && (
+                <>
+                  <input
+                    type="text"
+                    placeholder="Enter Worker Name"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    required
+                    style={inputStyle}
+                  />
+
+                  <div style={{ position: "relative" }}>
+                    <input
+                      type={showPassword ? "text" : "password"}
+                      placeholder="Enter Contact Number"
+                      value={contactNo}
+                      onChange={(e) => setContactNo(e.target.value)}
+                      required
+                      style={inputStyle}
+                    />
+                    <span
+                      onClick={() => setShowPassword(!showPassword)}
+                      style={eyeStyle}
+                    >
+                      {showPassword ? "🙈" : "👁️"}
+                    </span>
+                  </div>
+                </>
+              )}
+
+              {/* LOGIN BUTTON */}
+              <button type="submit" style={buttonStyle}>
+                Login
+              </button>
+
+              {/* BACK BELOW LOGIN */}
+              <button
+                type="button"
+                style={backBtn}
+                onClick={() => setStep("select")}
               >
-                <option value="">Select Site</option>
-                <option value="Bangalore">Bangalore</option>
-                <option value="Japuriya">Japuriya</option>
-                <option value="Vashali">Vashali</option>
-                <option value="Faridabad">Faridabad</option>
-              </select>
-              <div style={{ position: "relative" }}>
-                <input
-                  type={showPassword ? "text" : "password"}
-                  placeholder="Enter Contact Number"
-                  value={contactNo}
-                  onChange={(e) => setContactNo(e.target.value)}
-                  required
-                  style={inputStyle}
-                />
-                <span onClick={() => setShowPassword(!showPassword)} style={eyeStyle}>
-                  {showPassword ? "🙈" : "👁️"}
-                </span>
-              </div>
-            </>
-          )}
+                Back
+              </button>
+            </form>
+          </>
+        )}
 
-          {role === "worker" && (
-            <>
+        {/* VENDOR LOGIN */}
+        {step === "vendor" && (
+          <>
+            <form onSubmit={handleLogin}>
               <input
                 type="text"
-                placeholder="Enter Worker Name"
+                placeholder="Enter Vendor Name"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 required
                 style={inputStyle}
               />
+
               <div style={{ position: "relative" }}>
                 <input
                   type={showPassword ? "text" : "password"}
@@ -215,31 +327,69 @@ function Login() {
                   required
                   style={inputStyle}
                 />
-                <span onClick={() => setShowPassword(!showPassword)} style={eyeStyle}>
+                <span
+                  onClick={() => setShowPassword(!showPassword)}
+                  style={eyeStyle}
+                >
                   {showPassword ? "🙈" : "👁️"}
                 </span>
               </div>
-            </>
-          )}
 
-          <button type="submit" style={buttonStyle} disabled={isLoading}>
-            {isLoading ? "Logging in..." : "Login"}
-          </button>
-        </form>
+              {/* LOGIN BUTTON */}
+              <button type="submit" style={buttonStyle}>
+                Login
+              </button>
+
+              {/* BACK BELOW */}
+              <button
+                type="button"
+                style={backBtn}
+                onClick={() => setStep("select")}
+              >
+                Back
+              </button>
+            </form>
+          </>
+        )}
       </div>
 
-      {/* Spinner Animation */}
       <style>
         {`
-          @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-          }
-        `}
+        @keyframes spin {
+          0% { transform: rotate(0deg); }
+          100% { transform: rotate(360deg); }
+        }
+      `}
       </style>
     </div>
   );
 }
+
+/* ----------- Styles ----------- */
+
+const selectBtn = {
+  width: "100%",
+  padding: "12px",
+  marginTop: "12px",
+  borderRadius: "8px",
+  border: "none",
+  backgroundColor: "#837272",
+  color: "white",
+  fontSize: "18px",
+  cursor: "pointer",
+};
+
+const backBtn = {
+  width: "100%",
+  padding: "10px",
+  marginTop: "12px",
+  borderRadius: "8px",
+  border: "none",
+  background: "rgb(0, 123, 255)",
+  color: "white",
+  fontSize: "16px",
+  cursor: "pointer",
+};
 
 const inputStyle = {
   width: "93%",
@@ -260,7 +410,6 @@ const eyeStyle = {
   cursor: "pointer",
   fontSize: "18px",
   color: "#fff",
-  userSelect: "none",
 };
 
 const buttonStyle = {
@@ -275,7 +424,6 @@ const buttonStyle = {
   cursor: "pointer",
 };
 
-// ✅ Loader overlay styles
 const overlayStyle = {
   position: "absolute",
   top: 0,
