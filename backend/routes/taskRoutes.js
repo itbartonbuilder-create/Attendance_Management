@@ -5,9 +5,11 @@ import Worker from "../models/Worker.js";
 
 const router = express.Router();
 
+
 router.post("/create", async (req, res) => {
   try {
     const { site, type, assignedTo, title, description, deadline } = req.body;
+
     const user = type === "Manager"
       ? await Manager.findOne({ _id: assignedTo, site })
       : await Worker.findOne({ _id: assignedTo, site });
@@ -21,6 +23,7 @@ router.post("/create", async (req, res) => {
     res.status(500).json({ message: err.message });
   }
 });
+
 
 router.get("/", async (req, res) => {
   try {
@@ -37,6 +40,7 @@ router.get("/", async (req, res) => {
   }
 });
 
+
 router.put("/:id", async (req, res) => {
   try {
     const updated = await Task.findByIdAndUpdate(req.params.id, req.body, { new: true });
@@ -45,6 +49,7 @@ router.put("/:id", async (req, res) => {
     res.status(500).json({ message: err.message });
   }
 });
+
 
 router.delete("/:id", async (req, res) => {
   try {
@@ -55,7 +60,7 @@ router.delete("/:id", async (req, res) => {
   }
 });
 
-// ✅ Update remark with date
+
 router.put("/remark/:id", async (req, res) => {
   try {
     const task = await Task.findById(req.params.id);
@@ -71,10 +76,6 @@ router.put("/remark/:id", async (req, res) => {
     task.remarkBy = userId;
     task.remarkStatus = "Pending";
     task.status = remark === "Completed" ? "Completed" : "Pending";
-    task.remarkDate = new Date(); // ✅ add remark date
-
-    task.acceptedDate = null; // clear old admin dates
-    task.rejectedDate = null;
 
     await task.save();
     res.json({ success: true, updated: task });
@@ -83,13 +84,13 @@ router.put("/remark/:id", async (req, res) => {
   }
 });
 
-// ✅ Accept remark with date
+
 router.put("/remark/accept/:id", async (req, res) => {
   try {
     const { adminReason } = req.body;
     const updated = await Task.findByIdAndUpdate(
       req.params.id,
-      { remarkStatus: "Accepted", adminRejectReason: adminReason || "", acceptedDate: new Date(), rejectedDate: null },
+      { remarkStatus: "Accepted", adminRejectReason: adminReason || "" },
       { new: true }
     );
     res.json({ success: true, updated });
@@ -98,13 +99,13 @@ router.put("/remark/accept/:id", async (req, res) => {
   }
 });
 
-// ✅ Reject remark with date
+
 router.put("/remark/reject/:id", async (req, res) => {
   try {
     const { adminReason } = req.body;
     const updated = await Task.findByIdAndUpdate(
       req.params.id,
-      { remarkStatus: "Rejected", adminRejectReason: adminReason, rejectedDate: new Date(), acceptedDate: null },
+      { remarkStatus: "Rejected", adminRejectReason: adminReason },
       { new: true }
     );
     res.json({ success: true, updated });
