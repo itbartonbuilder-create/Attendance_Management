@@ -94,13 +94,14 @@ const TaskPage = () => {
   };
 
   const acceptRemark = (taskId) => {
-    const reason = prompt("Reason for Accepting (optional):") || "";
+    // Accept → no reason prompt
     axios
-      .put(`https://attendance-management-backend-vh2w.onrender.com/api/tasks/remark/accept/${taskId}`, { adminReason: reason })
+      .put(`https://attendance-management-backend-vh2w.onrender.com/api/tasks/remark/accept/${taskId}`, { adminReason: "" })
       .then(() => fetchTasks());
   };
 
   const rejectRemark = (taskId) => {
+    // Reject → reason required
     const reason = prompt("Why rejecting? (required):");
     if (!reason) return alert("Reject reason is required!");
     axios
