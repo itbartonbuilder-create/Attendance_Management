@@ -14,6 +14,9 @@ function Login() {
 
   const [name, setName] = useState("");
   const [contactNo, setContactNo] = useState("");
+  const [companyName, setCompanyName] = useState("");
+
+  const [vendorMode, setVendorMode] = useState("login"); 
 
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
@@ -25,6 +28,7 @@ function Login() {
     try {
       let res;
 
+     
       if (step === "office") {
         if (role === "admin") {
           res = await axios.post(
@@ -45,10 +49,17 @@ function Login() {
       }
 
       if (step === "vendor") {
-        res = await axios.post(
-          "https://attendance-management-backend-vh2w.onrender.com/api/vendor/login",
-          { name, contactNo }
-        );
+        if (vendorMode === "login") {
+          res = await axios.post(
+            "https://attendance-management-backend-vh2w.onrender.com/api/vendor/login",
+            { name, contactNo }
+          );
+        } else {
+          res = await axios.post(
+            "https://attendance-management-backend-vh2w.onrender.com/api/vendor/register",
+            { name, contactNo, companyName, password }
+          );
+        }
       }
 
       const userData = {
@@ -61,12 +72,11 @@ function Login() {
       alert(`✅ Login Successful — Welcome ${userData.displayName}`);
       navigate("/dashboard");
     } catch (err) {
-      alert(err.response?.data?.msg || "❌ Login failed.");
+      alert(err.response?.data?.msg || "❌ Action failed.");
     } finally {
       setIsLoading(false);
     }
   };
-
   return (
     <div
       style={{
@@ -98,7 +108,6 @@ function Login() {
           boxShadow: "0 4px 12px rgba(0,0,0,0.4)",
         }}
       >
-        {/* LOGO */}
         <div
           style={{
             display: "flex",
@@ -126,7 +135,7 @@ function Login() {
           </h1>
         </div>
 
-        {/* SELECT FIRST PAGE */}
+       
         {step === "select" && (
           <div style={{ textAlign: "center", color: "white" }}>
             <h2
@@ -151,7 +160,8 @@ function Login() {
           </div>
         )}
 
-        {/* OFFICE LOGIN */}
+      
+
         {step === "office" && (
           <>
             <div style={{ marginBottom: "20px", textAlign: "center", color: "white" }}>
@@ -210,10 +220,7 @@ function Login() {
                       required
                       style={inputStyle}
                     />
-                    <span
-                      onClick={() => setShowPassword(!showPassword)}
-                      style={eyeStyle}
-                    >
+                    <span onClick={() => setShowPassword(!showPassword)} style={eyeStyle}>
                       {showPassword ? "🙈" : "👁️"}
                     </span>
                   </div>
@@ -241,19 +248,13 @@ function Login() {
 
                   <div style={{ position: "relative" }}>
                     <input
-                      type={showPassword ? "text" : "password"}
+                      type={"text"}
                       placeholder="Enter Contact Number"
                       value={contactNo}
                       onChange={(e) => setContactNo(e.target.value)}
                       required
                       style={inputStyle}
                     />
-                    <span
-                      onClick={() => setShowPassword(!showPassword)}
-                      style={eyeStyle}
-                    >
-                      {showPassword ? "🙈" : "👁️"}
-                    </span>
                   </div>
                 </>
               )}
@@ -271,29 +272,21 @@ function Login() {
 
                   <div style={{ position: "relative" }}>
                     <input
-                      type={showPassword ? "text" : "password"}
+                      type={"text"}
                       placeholder="Enter Contact Number"
                       value={contactNo}
                       onChange={(e) => setContactNo(e.target.value)}
                       required
                       style={inputStyle}
                     />
-                    <span
-                      onClick={() => setShowPassword(!showPassword)}
-                      style={eyeStyle}
-                    >
-                      {showPassword ? "🙈" : "👁️"}
-                    </span>
                   </div>
                 </>
               )}
 
-              {/* LOGIN BUTTON */}
               <button type="submit" style={buttonStyle}>
                 Login
               </button>
 
-              {/* BACK BELOW LOGIN */}
               <button
                 type="button"
                 style={backBtn}
@@ -305,42 +298,104 @@ function Login() {
           </>
         )}
 
-        {/* VENDOR LOGIN */}
+    
+
         {step === "vendor" && (
           <>
-            <form onSubmit={handleLogin}>
-              <input
-                type="text"
-                placeholder="Enter Vendor Name"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                required
-                style={inputStyle}
-              />
 
-              <div style={{ position: "relative" }}>
-                <input
-                  type={showPassword ? "text" : "password"}
-                  placeholder="Enter Contact Number"
-                  value={contactNo}
-                  onChange={(e) => setContactNo(e.target.value)}
-                  required
-                  style={inputStyle}
-                />
-                <span
-                  onClick={() => setShowPassword(!showPassword)}
-                  style={eyeStyle}
-                >
-                  {showPassword ? "🙈" : "👁️"}
-                </span>
-              </div>
-
-              {/* LOGIN BUTTON */}
-              <button type="submit" style={buttonStyle}>
+            <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "15px" }}>
+              <button
+                style={{
+                  ...selectBtn,
+                  width: "48%",
+                  backgroundColor: vendorMode === "login" ? "#007bff" : "#837272",
+                }}
+                onClick={() => setVendorMode("login")}
+              >
                 Login
               </button>
 
-              {/* BACK BELOW */}
+              <button
+                style={{
+                  ...selectBtn,
+                  width: "48%",
+                  backgroundColor: vendorMode === "register" ? "#007bff" : "#837272",
+                }}
+                onClick={() => setVendorMode("register")}
+              >
+                Register
+              </button>
+            </div>
+
+            <form onSubmit={handleLogin}>
+
+             
+              {vendorMode === "login" && (
+                <>
+                  <input
+                    type="text"
+                    placeholder="Enter Vendor Name"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    required
+                    style={inputStyle}
+                  />
+
+                  <input
+                    type="text"
+                    placeholder="Enter Contact Number"
+                    value={contactNo}
+                    onChange={(e) => setContactNo(e.target.value)}
+                    required
+                    style={inputStyle}
+                  />
+                </>
+              )}
+
+             
+              {vendorMode === "register" && (
+                <>
+                  <input
+                    type="text"
+                    placeholder="Vendor Name"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    required
+                    style={inputStyle}
+                  />
+
+                  <input
+                    type="text"
+                    placeholder="Company Name (Optional)"
+                    value={companyName}
+                    onChange={(e) => setCompanyName(e.target.value)}
+                    style={inputStyle}
+                  />
+
+                  <input
+                    type="text"
+                    placeholder="Contact Number"
+                    value={contactNo}
+                    onChange={(e) => setContactNo(e.target.value)}
+                    required
+                    style={inputStyle}
+                  />
+
+                  <input
+                    type="password"
+                    placeholder="Create Password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    required
+                    style={inputStyle}
+                  />
+                </>
+              )}
+
+              <button type="submit" style={buttonStyle}>
+                {vendorMode === "login" ? "Login" : "Register"}
+              </button>
+
               <button
                 type="button"
                 style={backBtn}
@@ -365,7 +420,7 @@ function Login() {
   );
 }
 
-/* ----------- Styles ----------- */
+
 
 const selectBtn = {
   width: "100%",
