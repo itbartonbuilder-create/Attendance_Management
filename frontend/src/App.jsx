@@ -12,6 +12,7 @@ import Login from "./pages/Login";
 import Managers from "./pages/Managers";
 import TaskPage from "./pages/TaskPage";
 import Footer from "./components/Footer";
+import VendorDashboard from "./pages/VendorDashboard";
 
 function App() {
   return (
@@ -31,6 +32,7 @@ function App() {
         <Route path="/login" element={<Login />} />
         <Route path="/managers" element={<Managers />} />
         <Route path="/task" element={<TaskPage />} />
+             <Route path="/vendor-dashboard" element={<VendorDashboard />} />
       </Routes>
             </div>
         <Footer />
