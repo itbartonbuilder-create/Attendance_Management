@@ -64,7 +64,8 @@ const [gst, setGst] = useState("");
         } else {
           res = await axios.post(
             "https://attendance-management-backend-vh2w.onrender.com/api/vendor/register",
-            { name, contactNo, companyName, password }
+            { name, contactNo, companyName, password,aadhar,pan,vendorType,
+    category,gst }
           );
         }
       }
