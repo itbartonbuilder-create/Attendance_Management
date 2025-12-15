@@ -12,9 +12,16 @@ function Login() {
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
 
-  const [name, setName] = useState("");
-  const [contactNo, setContactNo] = useState("");
-  const [companyName, setCompanyName] = useState("");
+const [name, setName] = useState("");
+const [contactNo, setContactNo] = useState("");
+const [companyName, setCompanyName] = useState("");
+
+const [vendorType, setVendorType] = useState("");
+const [category, setCategory] = useState("");
+
+const [aadhar, setAadhar] = useState("");
+const [pan, setPan] = useState("");
+const [gst, setGst] = useState("");
 
   const [vendorMode, setVendorMode] = useState("login"); 
 
@@ -353,44 +360,118 @@ function Login() {
               )}
 
              
-              {vendorMode === "register" && (
-                <>
-                  <input
-                    type="text"
-                    placeholder="Vendor Name"
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    required
-                    style={inputStyle}
-                  />
 
-                  <input
-                    type="text"
-                    placeholder="Company Name (Optional)"
-                    value={companyName}
-                    onChange={(e) => setCompanyName(e.target.value)}
-                    style={inputStyle}
-                  />
+{vendorMode === "register" && (
+  <>
+    <input
+      type="text"
+      placeholder="Full Name"
+      value={name}
+      onChange={(e) => setName(e.target.value)}
+      required
+      style={inputStyle}
+    />
 
-                  <input
-                    type="text"
-                    placeholder="Contact Number"
-                    value={contactNo}
-                    onChange={(e) => setContactNo(e.target.value)}
-                    required
-                    style={inputStyle}
-                  />
+    <input
+      type="text"
+      placeholder="Company Name"
+      value={companyName}
+      onChange={(e) => setCompanyName(e.target.value)}
+      style={inputStyle}
+    />
 
-                  <input
-                    type="password"
-                    placeholder="Create Password"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    required
-                    style={inputStyle}
-                  />
-                </>
-              )}
+    <input
+      type="text"
+      placeholder="Contact Number"
+      value={contactNo}
+      onChange={(e) => setContactNo(e.target.value)}
+      required
+      style={inputStyle}
+    />
+
+    <input
+      type="text"
+      placeholder="Aadhar Number (12 digit)"
+      maxLength="12"
+      required
+      style={inputStyle}
+      onChange={(e) => setAadhar(e.target.value)}
+    />
+
+    <input
+      type="text"
+      placeholder="PAN Number"
+      required
+      style={inputStyle}
+      onChange={(e) => setPan(e.target.value)}
+    />
+
+    <select
+      required
+      style={inputStyle}
+      onChange={(e) => setVendorType(e.target.value)}
+    >
+      <option value="">Select Vendor Type</option>
+      <option value="supply">Supply</option>
+      <option value="work">Work</option>
+    </select>
+
+    {vendorType === "supply" && (
+      <select
+        required
+        style={inputStyle}
+        onChange={(e) => setCategory(e.target.value)}
+      >
+        <option value="">Supply Category</option>
+        <option>Aggregate</option>
+        <option>Sand</option>
+        <option>Cement</option>
+        <option>Hardware</option>
+        <option>Tiles</option>
+        <option>Steel</option>
+        <option>Paints</option>
+        <option>Wood</option>
+        <option>Glass</option>
+        <option>Other</option>
+      </select>
+    )}
+
+    {vendorType === "work" && (
+      <select
+        required
+        style={inputStyle}
+        onChange={(e) => setCategory(e.target.value)}
+      >
+        <option value="">Work Category</option>
+        <option>Electrical</option>
+        <option>Civil</option>
+        <option>Plumbing</option>
+        <option>Carpentry</option>
+        <option>Interior Work</option>
+        <option>Painting</option>
+        <option>Fabrication</option>
+        <option>Other</option>
+      </select>
+    )}
+
+    <input
+      type="text"
+      placeholder="GST Number (Optional)"
+      style={inputStyle}
+      onChange={(e) => setGst(e.target.value)}
+    />
+
+    <input
+      type="password"
+      placeholder="Create Password"
+      value={password}
+      onChange={(e) => setPassword(e.target.value)}
+      required
+      style={inputStyle}
+    />
+  </>
+)}
+
 
               <button type="submit" style={buttonStyle}>
                 {vendorMode === "login" ? "Login" : "Register"}
