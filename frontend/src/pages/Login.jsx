@@ -88,7 +88,12 @@ const [gst, setGst] = useState("");
       localStorage.setItem("user", JSON.stringify(userData));
 
       alert(`✅ Login Successful — Welcome ${userData.displayName}`);
-      navigate("/dashboard");
+      // navigate("/dashboard");
+      if (step === "vendor") {
+        navigate("/vendor-dashboard");
+      } else {
+        navigate("/dashboard");
+      }
     } catch (err) {
       alert(err.response?.data?.msg || "❌ Action failed.");
     } finally {
