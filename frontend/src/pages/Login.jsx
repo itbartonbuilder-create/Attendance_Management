@@ -111,7 +111,7 @@ const [gst, setGst] = useState("");
           backdropFilter: "blur(30px)",
           borderRadius: "16px",
           padding: "30px",
-          width: "312px",
+          width: "360px",
           boxShadow: "0 4px 12px rgba(0,0,0,0.4)",
         }}
       >
@@ -363,104 +363,134 @@ const [gst, setGst] = useState("");
 
 {vendorMode === "register" && (
   <>
-    <input
-      type="text"
-      placeholder="Full Name"
-      value={name}
-      onChange={(e) => setName(e.target.value)}
-      required
-      style={inputStyle}
-    />
+    {/* Row 1 */}
+    <div style={rowStyle}>
+      <input
+        type="text"
+        placeholder="Full Name"
+        value={name}
+        onChange={(e) => setName(e.target.value)}
+        required
+        style={halfInput}
+      />
 
-    <input
-      type="text"
-      placeholder="Company Name"
-      value={companyName}
-      onChange={(e) => setCompanyName(e.target.value)}
-      style={inputStyle}
-    />
+      <input
+        type="text"
+        placeholder="Company Name"
+        value={companyName}
+        onChange={(e) => setCompanyName(e.target.value)}
+        style={halfInput}
+      />
+    </div>
 
-    <input
-      type="text"
-      placeholder="Contact Number"
-      value={contactNo}
-      onChange={(e) => setContactNo(e.target.value)}
-      required
-      style={inputStyle}
-    />
+    {/* Row 2 */}
+    <div style={rowStyle}>
+      <input
+        type="text"
+        placeholder="Contact Number"
+        value={contactNo}
+        onChange={(e) => setContactNo(e.target.value)}
+        required
+        style={halfInput}
+      />
 
-    <input
-      type="text"
-      placeholder="Aadhar Number (12 digit)"
-      maxLength="12"
-      required
-      style={inputStyle}
-      onChange={(e) => setAadhar(e.target.value)}
-    />
+      <input
+        type="text"
+        placeholder="Aadhar Number"
+        maxLength="12"
+        required
+        value={aadhar}
+        onChange={(e) => setAadhar(e.target.value)}
+        style={halfInput}
+      />
+    </div>
 
-    <input
-      type="text"
-      placeholder="PAN Number"
-      required
-      style={inputStyle}
-      onChange={(e) => setPan(e.target.value)}
-    />
+    {/* Row 3 */}
+    <div style={rowStyle}>
+      <input
+        type="text"
+        placeholder="PAN Number"
+        value={pan}
+        onChange={(e) => setPan(e.target.value)}
+        required
+        style={halfInput}
+      />
 
-    <select
-      required
-      style={inputStyle}
-      onChange={(e) => setVendorType(e.target.value)}
-    >
-      <option value="">Select Vendor Type</option>
-      <option value="supply">Supply</option>
-      <option value="work">Work</option>
-    </select>
+      <input
+        type="text"
+        placeholder="GST Number (Optional)"
+        value={gst}
+        onChange={(e) => setGst(e.target.value)}
+        style={halfInput}
+      />
+    </div>
 
-    {vendorType === "supply" && (
+    {/* Row 4 */}
+    <div style={rowStyle}>
       <select
         required
-        style={inputStyle}
-        onChange={(e) => setCategory(e.target.value)}
+        value={vendorType}
+        onChange={(e) => setVendorType(e.target.value)}
+        style={{
+        marginTop: "2px",
+        background: "black",
+        fontSize: "17px",
+        color: "white",
+        marginRight: "0px",
+        width:"100%",
+        }}
       >
-        <option value="">Supply Category</option>
-        <option>Aggregate</option>
-        <option>Sand</option>
-        <option>Cement</option>
-        <option>Hardware</option>
-        <option>Tiles</option>
-        <option>Steel</option>
-        <option>Paints</option>
-        <option>Wood</option>
-        <option>Glass</option>
-        <option>Other</option>
+        <option value="">Vendor Type</option>
+        <option value="supply">Supply</option>
+        <option value="work">Work</option>
       </select>
-    )}
 
-    {vendorType === "work" && (
       <select
         required
-        style={inputStyle}
+        value={category}
         onChange={(e) => setCategory(e.target.value)}
+        style={{
+        marginTop: "2px",
+        background: "black",
+        fontSize: "17px",
+        color: "white",
+         marginRight: "0px",
+         width: "100%",
+        }}
       >
-        <option value="">Work Category</option>
-        <option>Electrical</option>
-        <option>Civil</option>
-        <option>Plumbing</option>
-        <option>Carpentry</option>
-        <option>Interior Work</option>
-        <option>Painting</option>
-        <option>Fabrication</option>
-        <option>Other</option>
+        <option value="">Category</option>
+
+        {vendorType === "supply" && (
+          <>
+            <option>Aggregate</option>
+            <option>Sand</option>
+            <option>Cement</option>
+            <option>Hardware</option>
+            <option>Tiles</option>
+            <option>Steel</option>
+            <option>Paints</option>
+            <option>Wood</option>
+            <option>Glass</option>
+            <option>Other</option>
+          </>
+        )}
+
+        {vendorType === "work" && (
+          <>
+            <option>Electrical</option>
+            <option>Civil</option>
+            <option>Plumbing</option>
+            <option>Carpentry</option>
+            <option>Interior Work</option>
+            <option>Painting</option>
+            <option>Fabrication</option>
+            <option>Other</option>
+          </>
+        )}
       </select>
-    )}
+    </div>
 
-    <input
-      type="text"
-      placeholder="GST Number (Optional)"
-      style={inputStyle}
-      onChange={(e) => setGst(e.target.value)}
-    />
-
+    {/* Row 5 */}
     <input
       type="password"
       placeholder="Create Password"
@@ -471,6 +501,7 @@ const [gst, setGst] = useState("");
     />
   </>
 )}
+
 
 
               <button type="submit" style={buttonStyle}>
@@ -581,6 +612,18 @@ const spinnerStyle = {
   width: "50px",
   height: "50px",
   animation: "spin 1s linear infinite",
+};
+const rowStyle = {
+  display: "flex",
+  gap: "10px",
+  marginBottom: "2px",
+};
+
+const halfInput = {
+  ...inputStyle,
+  width: "100%",
+  marginBottom: "5px",
+
 };
 
 export default Login;
