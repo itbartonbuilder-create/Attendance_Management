@@ -56,7 +56,8 @@ footer {
 .workers-container, 
 .attendance-container, 
 .profile-container,
-.report-container, .task-container, .task-page {
+.report-container, .task-container, .task-page,
+.vendor-container{
    padding: 82px 40px;
 
 
