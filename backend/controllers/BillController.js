@@ -17,11 +17,12 @@ export const createBill = async (req, res) => {
     });
 
     res.status(201).json({
+      success: true,
       msg: "Bill submitted successfully",
       bill,
     });
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ msg: "Server error" });
+    console.error("Bill Error:", error);
+    res.status(500).json({ msg: "Server Error", error: error.message });
   }
 };
