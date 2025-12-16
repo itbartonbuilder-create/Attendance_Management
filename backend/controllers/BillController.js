@@ -1,10 +1,27 @@
 import Bill from "../models/BillModel.js";
 
 export const createBill = async (req, res) => {
-  const bill = await Bill.create({
-    ...req.body,
-    billFile: req.file.filename,
-  });
+  try {
+    if (!req.file) {
+      return res.status(400).json({ msg: "Bill file is required" });
+    }
 
-  res.json({ msg: "Bill submitted", bill });
+    const bill = await Bill.create({
+      workName: req.body.workName,
+      billNo: req.body.billNo,
+      site: req.body.site,
+      sentTo: req.body.sentTo,
+      amount: req.body.amount,
+      billDate: req.body.billDate,
+      billFile: req.file.filename,
+    });
+
+    res.status(201).json({
+      msg: "Bill submitted successfully",
+      bill,
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ msg: "Server error" });
+  }
 };
