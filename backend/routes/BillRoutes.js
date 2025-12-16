@@ -4,10 +4,6 @@ import { upload } from "../middleware/upload.js";
 
 const router = express.Router();
 
-router.post(
-  "/create",
-  upload.single("billFile"),
-  createBill
-);
+router.post("/create", upload.single("billFile"), createBill);
 
 export default router;
