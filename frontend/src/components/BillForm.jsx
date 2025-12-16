@@ -155,8 +155,8 @@ function BillForm() {
 
 const page = {
   padding: "30px",
-  background: "#f4f6f8",
-  minHeight: "100vh",
+  // background: "#f4f6f8",
+  // minHeight: "100vh",
 };
 
 const formBox = {
