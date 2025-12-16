@@ -12,6 +12,7 @@ function BillForm() {
   });
 
   const [billFile, setBillFile] = useState(null);
+  const [loading, setLoading] = useState(false);
 
   const handleChange = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value });
@@ -20,46 +21,92 @@ function BillForm() {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    const data = new FormData();
-    Object.keys(form).forEach((key) => data.append(key, form[key]));
-    data.append("billFile", billFile);
+    if (!billFile) {
+      alert("❌ Please attach bill file");
+      return;
+    }
 
-    await axios.post(
-      "https://attendance-management-backend-vh2w.onrender.com/api/bill/create",
-      data
-    );
+    try {
+      setLoading(true);
 
-    alert("✅ Bill Submitted Successfully");
+      const data = new FormData();
+      Object.keys(form).forEach((key) => data.append(key, form[key]));
+      data.append("billFile", billFile);
+
+      await axios.post(
+        "https://attendance-management-backend-vh2w.onrender.com/api/bill/create",
+        data,
+        {
+          headers: {
+            "Content-Type": "multipart/form-data",
+          },
+        }
+      );
+
+      alert("✅ Bill Submitted Successfully");
+
+      setForm({
+        workName: "",
+        billNo: "",
+        site: "",
+        sentTo: "",
+        amount: "",
+        billDate: "",
+      });
+      setBillFile(null);
+    } catch (err) {
+      console.error(err);
+      alert(err.response?.data?.msg || "❌ Server Error");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
     <div style={page}>
       <form style={formBox} onSubmit={handleSubmit}>
-        <h2 style={heading}>Submit Bill</h2>
+        <h2 style={heading}>Vendor Bill Submission</h2>
 
         <div style={row}>
           <input
             style={input}
             name="workName"
             placeholder="Work / Supply Name"
+            value={form.workName}
             onChange={handleChange}
+            required
           />
           <input
             style={input}
             name="billNo"
             placeholder="Bill No"
+            value={form.billNo}
             onChange={handleChange}
+            required
           />
         </div>
 
         <div style={row}>
-          <select style={input} name="site" onChange={handleChange}>
+          <select
+            style={input}
+            name="site"
+            value={form.site}
+            onChange={handleChange}
+            required
+          >
             <option value="">Select Site</option>
             <option>Bangalore</option>
             <option>Faridabad</option>
+            <option>Vaishali</option>
           </select>
 
-          <select style={input} name="sentTo" onChange={handleChange}>
+          <select
+            style={input}
+            name="sentTo"
+            value={form.sentTo}
+            onChange={handleChange}
+            required
+          >
             <option value="">Send To</option>
             <option>Admin</option>
             <option>Manager</option>
@@ -72,13 +119,17 @@ function BillForm() {
             name="amount"
             type="number"
             placeholder="Total Amount"
+            value={form.amount}
             onChange={handleChange}
+            required
           />
           <input
             style={input}
             name="billDate"
             type="date"
+            value={form.billDate}
             onChange={handleChange}
+            required
           />
         </div>
 
@@ -86,33 +137,41 @@ function BillForm() {
           <input
             style={fileInput}
             type="file"
+            accept=".jpg,.png,.pdf"
             onChange={(e) => setBillFile(e.target.files[0])}
+            required
           />
         </div>
 
-        <button style={btn}>Submit Bill</button>
+        <button style={btn} disabled={loading}>
+          {loading ? "Submitting..." : "Submit Bill"}
+        </button>
       </form>
     </div>
   );
 }
 
-/* ====== STYLES ====== */
+/* ===== STYLES ===== */
 
 const page = {
   padding: "30px",
+  background: "#f4f6f8",
+  minHeight: "100vh",
 };
 
 const formBox = {
-  // background: "#1f1f1f",
+  background: "#1e1e1e",
   padding: "25px",
-  borderRadius: "10px",
-  maxWidth: "1050px",
+  borderRadius: "12px",
+  maxWidth: "900px",
+  margin: "auto",
   color: "white",
-  boxShadow: "0 0 10px rgba(0,0,0,0.6)",
+  boxShadow: "0 0 15px rgba(0,0,0,0.4)",
 };
 
 const heading = {
   marginBottom: "20px",
+  textAlign: "center",
   borderBottom: "1px solid #444",
   paddingBottom: "10px",
 };
@@ -131,7 +190,6 @@ const input = {
   background: "#2c2c2c",
   color: "white",
   fontSize: "14px",
-  outline: "none",
 };
 
 const fileInput = {
@@ -139,14 +197,15 @@ const fileInput = {
 };
 
 const btn = {
-  marginTop: "10px",
+  marginTop: "15px",
+  width: "100%",
   background: "#1e88e5",
   color: "white",
-  padding: "12px 25px",
+  padding: "12px",
   border: "none",
   borderRadius: "6px",
+  fontSize: "16px",
   cursor: "pointer",
-  fontSize: "15px",
 };
 
 export default BillForm;
