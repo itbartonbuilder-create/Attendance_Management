@@ -1,3 +1,4 @@
+
 import Bill from "../models/BillModel.js";
 
 export const createBill = async (req, res) => {
@@ -10,19 +11,14 @@ export const createBill = async (req, res) => {
       workName: req.body.workName,
       billNo: req.body.billNo,
       site: req.body.site,
-      sentTo: req.body.sentTo,
+      managerId: req.body.managerId,
       amount: req.body.amount,
       billDate: req.body.billDate,
       billFile: req.file.filename,
     });
 
-    res.status(201).json({
-      success: true,
-      msg: "Bill submitted successfully",
-      bill,
-    });
+    res.status(201).json({ success: true, bill });
   } catch (error) {
-    console.error("Bill Error:", error);
-    res.status(500).json({ msg: "Server Error", error: error.message });
+    res.status(500).json({ msg: error.message });
   }
 };
