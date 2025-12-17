@@ -22,3 +22,14 @@ export const createBill = async (req, res) => {
     res.status(500).json({ msg: error.message });
   }
 };
+
+
+export const getBillsByManager = async (req, res) => {
+  try {
+    const bills = await Bill.find({ managerId: req.params.managerId });
+    res.json(bills);
+  } catch (error) {
+    res.status(500).json({ msg: error.message });
+  }
+};
+
