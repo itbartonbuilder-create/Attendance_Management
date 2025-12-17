@@ -1,4 +1,3 @@
-
 import Bill from "../models/BillModel.js";
 
 export const createBill = async (req, res) => {
@@ -11,25 +10,20 @@ export const createBill = async (req, res) => {
       workName: req.body.workName,
       billNo: req.body.billNo,
       site: req.body.site,
-      managerId: req.body.managerId,
+      sentTo: req.body.sentTo,
       amount: req.body.amount,
       billDate: req.body.billDate,
       billFile: req.file.filename,
     });
 
-    res.status(201).json({ success: true, bill });
+    res.status(201).json({
+      success: true,
+      msg: "Bill submitted successfully",
+      bill,
+    });
   } catch (error) {
-    res.status(500).json({ msg: error.message });
-  }
-};
-
-
-export const getBillsByManager = async (req, res) => {
-  try {
-    const bills = await Bill.find({ managerId: req.params.managerId });
-    res.json(bills);
-  } catch (error) {
-    res.status(500).json({ msg: error.message });
+    console.error("Bill Error:", error);
+    res.status(500).json({ msg: "Server Error", error: error.message });
   }
 };
 
