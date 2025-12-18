@@ -13,6 +13,8 @@ import Managers from "./pages/Managers";
 import TaskPage from "./pages/TaskPage";
 import Footer from "./components/Footer";
 import VendorDashboard from "./pages/VendorDashboard";
+import AdminBills from "./pages/AdminBills";
+import ManagerBills from "./pages/ManagerBills";
 
 function App() {
   return (
