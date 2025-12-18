@@ -67,7 +67,7 @@ const AdminBills = () => {
                 <td style={td}>{b.workName}</td>
                 <td style={td}>{b.billNo}</td>
                 <td style={td}>{b.site}</td>
-                <td style={td}>{b.sentTo}</td>
+               <td style={td}>{b.sentTo?.name || "N/A"}</td>
                 <td style={td}>{b.amount}</td>
                 <td style={td}>{new Date(b.billDate).toLocaleDateString()}</td>
                 <td style={td}>
