@@ -73,13 +73,13 @@ const AdminBills = () => {
                 <td style={td}>
                   {b.billFile ? (
                     <a
-                      href={`https://attendance-management-backend-vh2w.onrender.com/${b.billFile}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      style={{ color: "#1e88e5" }}
-                    >
-                      View
-                    </a>
+  href={`https://attendance-management-backend-vh2w.onrender.com/uploads/${b.billFile}`}
+  target="_blank"
+  rel="noopener noreferrer"
+  style={{ color: "#1e88e5" }}
+>
+  View
+</a>
                   ) : (
                     "N/A"
                   )}
