@@ -80,6 +80,7 @@ function Navbar() {
             <Link to="/managers" style={linkStyle}>Managers</Link>
             <Link to="/reports" style={linkStyle}>Reports</Link>
              <Link to="/task" style={linkStyle}>Task</Link>
+             <Link to="/admin/bills" style={linkStyle}>Bills</Link>
             <Link to="/profile" style={linkStyle}>Profile</Link>
           </>
         )}
@@ -91,6 +92,7 @@ function Navbar() {
             <Link to="/attendance" style={linkStyle}>Attendance</Link>
             <Link to="/reports" style={linkStyle}>Reports</Link>
              <Link to="/task" style={linkStyle}>Task</Link>
+              <Link to="/manager/bills" style={linkStyle}>Bills</Link>
             <Link to="/profile" style={linkStyle}>Profile</Link>
           </>
         )}
@@ -102,6 +104,11 @@ function Navbar() {
             <Link to="/profile" style={linkStyle}>Profile</Link>
           </>
         )}
+        {role === "vendor" && (
+  <Link to="/vendor-dashboard" style={linkStyle}>
+    Submit Bill
+  </Link>
+)}
 
         <button onClick={handleLogout} style={logoutStyle}>Logout</button>
       </div>
