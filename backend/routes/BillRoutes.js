@@ -13,8 +13,6 @@ router.get("/", async (req, res) => {
   try {
     const { role, site, manager } = req.query;
     let filter = {};
-
-    // Manager-specific filter
     if (role === "manager") {
       filter.site = site;
       filter.sentTo = manager;
