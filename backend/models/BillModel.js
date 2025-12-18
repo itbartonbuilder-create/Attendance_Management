@@ -5,7 +5,7 @@ const billSchema = new mongoose.Schema(
     workName: String,
     billNo: String,
     site: String,
-    sentTo: String,
+    sentTo: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
     amount: Number,
     billDate: String,
     billFile: String,
