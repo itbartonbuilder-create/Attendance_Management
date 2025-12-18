@@ -26,4 +26,3 @@ export const createBill = async (req, res) => {
     res.status(500).json({ msg: "Server Error", error: error.message });
   }
 };
-
