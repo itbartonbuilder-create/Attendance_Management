@@ -31,16 +31,16 @@ const ManagerBills = () => {
   }, [user.site, user._id]);
 
   return (
-    <div className="page">
+    <div className="page" style={{ padding: "30px" }}>
       <h2>My Site Bills</h2>
       {loading && <p>Loading bills...</p>}
       {error && <p style={{ color: "red" }}>{error}</p>}
       {!loading && bills.length === 0 && <p>No bills found</p>}
 
       {bills.length > 0 && (
-        <table>
+        <table style={{ width: "100%", borderCollapse: "collapse" }}>
           <thead>
-            <tr>
+            <tr style={{ borderBottom: "1px solid #ccc" }}>
               <th>Work</th>
               <th>Bill No</th>
               <th>Amount</th>
@@ -50,7 +50,7 @@ const ManagerBills = () => {
           </thead>
           <tbody>
             {bills.map((b) => (
-              <tr key={b._id}>
+              <tr key={b._id} style={{ borderBottom: "1px solid #444" }}>
                 <td>{b.workName}</td>
                 <td>{b.billNo}</td>
                 <td>{b.amount}</td>
