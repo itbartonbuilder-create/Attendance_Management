@@ -4,23 +4,24 @@ import axios from "axios";
 const AdminBills = () => {
   const user = JSON.parse(localStorage.getItem("user"));
   const [bills, setBills] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
-  // 🔐 Access Control
+  // Access control
   if (!user || user.role !== "admin") {
-    return <h2 style={{ color: "red" }}>Access Denied</h2>;
+    return <h2>Access Denied</h2>;
   }
 
   useEffect(() => {
     const fetchBills = async () => {
       try {
+        setLoading(true);
         const res = await axios.get(
           "https://attendance-management-backend-vh2w.onrender.com/api/bill"
         );
         setBills(res.data);
       } catch (err) {
-        console.error(err);
+        console.error("Error fetching bills:", err);
         setError("Failed to load bills");
       } finally {
         setLoading(false);
@@ -31,17 +32,23 @@ const AdminBills = () => {
   }, []);
 
   return (
-    <div className="page">
+    <div className="page" >
       <h2>All Vendor Bills (Admin)</h2>
 
       {loading && <p>Loading bills...</p>}
       {error && <p style={{ color: "red" }}>{error}</p>}
       {!loading && bills.length === 0 && <p>No bills found</p>}
 
-      {!loading && bills.length > 0 && (
-        <table style={tableStyle}>
+      {bills.length > 0 && (
+        <table
+          style={{
+            width: "100%",
+            borderCollapse: "collapse",
+            marginTop: "20px",
+          }}
+        >
           <thead>
-            <tr style={headerRow}>
+            <tr style={{ background: "#1f1f1f", color: "white" }}>
               <th style={th}>Work</th>
               <th style={th}>Bill No</th>
               <th style={th}>Site</th>
@@ -53,30 +60,26 @@ const AdminBills = () => {
           </thead>
           <tbody>
             {bills.map((b) => (
-              <tr key={b._id} style={bodyRow}>
+              <tr
+                key={b._id}
+                style={{ background: "#2c2c2c", color: "white", textAlign: "center" }}
+              >
                 <td style={td}>{b.workName}</td>
                 <td style={td}>{b.billNo}</td>
                 <td style={td}>{b.site}</td>
-
-                {/* ✅ Manager NAME */}
-                <td style={td}>
-                  {b.sentTo?.name ? b.sentTo.name : "No Manager"}
-                </td>
-
-                <td style={td}>₹ {b.amount}</td>
-                <td style={td}>
-                  {new Date(b.billDate).toLocaleDateString()}
-                </td>
+                <td style={td}>{b.sentTo}</td>
+                <td style={td}>{b.amount}</td>
+                <td style={td}>{new Date(b.billDate).toLocaleDateString()}</td>
                 <td style={td}>
                   {b.billFile ? (
                     <a
-                      href={`https://attendance-management-backend-vh2w.onrender.com/uploads/${b.billFile}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      style={{ color: "#1e88e5" }}
-                    >
-                      View
-                    </a>
+  href={`https://attendance-management-backend-vh2w.onrender.com/uploads/${b.billFile}`}
+  target="_blank"
+  rel="noopener noreferrer"
+  style={{ color: "#1e88e5" }}
+>
+  View
+</a>
                   ) : (
                     "N/A"
                   )}
@@ -88,25 +91,6 @@ const AdminBills = () => {
       )}
     </div>
   );
-};
-
-/* ================= STYLES ================= */
-
-const tableStyle = {
-  width: "100%",
-  borderCollapse: "collapse",
-  marginTop: "20px",
-};
-
-const headerRow = {
-  background: "#1f1f1f",
-  color: "white",
-};
-
-const bodyRow = {
-  background: "#2c2c2c",
-  color: "white",
-  textAlign: "center",
 };
 
 const th = {
