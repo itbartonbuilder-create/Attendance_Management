@@ -32,7 +32,7 @@ const AdminBills = () => {
   }, []);
 
   return (
-    <div className="page" style={{ padding: "30px" }}>
+    <div className="page" >
       <h2>All Vendor Bills (Admin)</h2>
 
       {loading && <p>Loading bills...</p>}
