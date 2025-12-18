@@ -5,19 +5,26 @@ import { upload } from "../middleware/upload.js";
 
 const router = express.Router();
 
+
 router.post("/create", upload.single("billFile"), createBill);
+
 
 router.get("/", async (req, res) => {
   try {
     const { role, site, manager } = req.query;
     let filter = {};
 
+    // Manager-specific filter
     if (role === "manager") {
       filter.site = site;
       filter.sentTo = manager;
     }
 
-    const bills = await Bill.find(filter).sort({ createdAt: -1 });
+  
+    const bills = await Bill.find(filter)
+      .sort({ createdAt: -1 })
+      .populate("sentTo", "name"); 
+
     res.json(bills);
   } catch (error) {
     console.error(error);
