@@ -31,7 +31,7 @@ const ManagerBills = () => {
   }, [user.site, user._id]);
 
   return (
-    <div className="page" style={{ padding: "30px" }}>
+    <div className="page" >
       <h2>My Site Bills</h2>
       {loading && <p>Loading bills...</p>}
       {error && <p style={{ color: "red" }}>{error}</p>}
