@@ -7,17 +7,9 @@ import { upload } from "../middleware/upload.js";
 
 const router = express.Router();
 
-/**
- * CREATE BILL
- */
+
 router.post("/create", upload.single("billFile"), createBill);
 
-/**
- * GET ALL BILLS
- * - Admin: all bills
- * - Manager: only own site bills
- * - Safe populate (no 500 error)
- */
 router.get("/", async (req, res) => {
   try {
     const { role, site, manager } = req.query;
@@ -26,20 +18,15 @@ router.get("/", async (req, res) => {
     // Manager filter
     if (role === "manager") {
       if (site) filter.site = site;
-
-      // ensure valid ObjectId before filtering
       if (manager && mongoose.Types.ObjectId.isValid(manager)) {
-        filter.sentTo = manager;
+        filter.sentTo = mongoose.Types.ObjectId(manager);
       }
     }
 
+    // Fetch bills and populate manager name
     const bills = await Bill.find(filter)
       .sort({ createdAt: -1 })
-      .populate({
-        path: "sentTo",
-        select: "name",
-        strictPopulate: false, 
-      });
+      .populate("sentTo", "name"); // simple and works reliably
 
     res.status(200).json(bills);
   } catch (error) {
