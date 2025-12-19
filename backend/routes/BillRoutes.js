@@ -5,18 +5,13 @@ import { upload } from "../middleware/upload.js";
 
 const router = express.Router();
 
-/* ===============================
-   CREATE BILL (Vendor Submit)
-================================ */
 router.post("/create", upload.single("billFile"), createBill);
-
 
 router.get("/", async (req, res) => {
   try {
     const { role, site, manager } = req.query;
     let filter = {};
 
-    // 🔐 Manager restriction
     if (role === "manager") {
       filter.site = site;
       filter.sentTo = manager;
