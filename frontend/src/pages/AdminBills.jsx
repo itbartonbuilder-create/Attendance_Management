@@ -45,7 +45,7 @@ const AdminBills = () => {
               <th style={th}>Work</th>
               <th style={th}>Bill No</th>
               <th style={th}>Site</th>
-              <th style={th}>Manager</th>
+              {/* <th style={th}>Manager</th> */}
               <th style={th}>Amount</th>
               <th style={th}>Date</th>
               <th style={th}>Bill File</th>
@@ -60,7 +60,7 @@ const AdminBills = () => {
                 <td style={td}>{b.workName}</td>
                 <td style={td}>{b.billNo}</td>
                 <td style={td}>{b.site}</td>
-                <td style={td}>{b.sentTo?.name || "N/A"}</td>
+                {/* <td style={td}>{b.sentTo?.name || "N/A"}</td> */}
                 <td style={td}>{b.amount}</td>
                 <td style={td}>
                   {new Date(b.billDate).toLocaleDateString()}
