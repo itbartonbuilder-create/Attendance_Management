@@ -1,6 +1,7 @@
 import express from "express";
 import mongoose from "mongoose";
 import Bill from "../models/BillModel.js";
+import "../models/User.js";
 import { createBill } from "../controllers/BillController.js";
 import { upload } from "../middleware/upload.js";
 
