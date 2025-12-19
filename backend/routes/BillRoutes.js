@@ -15,18 +15,16 @@ router.get("/", async (req, res) => {
     const { role, site, manager } = req.query;
     let filter = {};
 
-    // Manager filter
     if (role === "manager") {
       if (site) filter.site = site;
       if (manager && mongoose.Types.ObjectId.isValid(manager)) {
-        filter.sentTo = mongoose.Types.ObjectId(manager);
+        filter.sentTo = new mongoose.Types.ObjectId(manager); // ✅ use 'new'
       }
     }
 
-    // Fetch bills and populate manager name
     const bills = await Bill.find(filter)
       .sort({ createdAt: -1 })
-      .populate("sentTo", "name"); // simple and works reliably
+      .populate("sentTo", "name"); // populate only name
 
     res.status(200).json(bills);
   } catch (error) {
@@ -34,5 +32,4 @@ router.get("/", async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 });
-
 export default router;
