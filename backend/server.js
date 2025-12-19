@@ -37,7 +37,7 @@ app.use("/api/managers", managerRoutes);
 app.use("/api/tasks", taskRoutes);
 app.use("/api/vendor", vendorRoutes);
 app.use("/api/bill", BillRoutes);
-app.use("/uploads", express.static("uploads"));
+
 
 
 
