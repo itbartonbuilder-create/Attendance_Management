@@ -7,7 +7,6 @@ const AdminBills = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
-  // Access control
   if (!user || user.role !== "admin") {
     return <h2>Access Denied</h2>;
   }
@@ -32,7 +31,7 @@ const AdminBills = () => {
   }, []);
 
   return (
-    <div className="page" >
+    <div className="page">
       <h2>All Vendor Bills (Admin)</h2>
 
       {loading && <p>Loading bills...</p>}
@@ -40,13 +39,7 @@ const AdminBills = () => {
       {!loading && bills.length === 0 && <p>No bills found</p>}
 
       {bills.length > 0 && (
-        <table
-          style={{
-            width: "100%",
-            borderCollapse: "collapse",
-            marginTop: "20px",
-          }}
-        >
+        <table style={{ width: "100%", borderCollapse: "collapse", marginTop: "20px" }}>
           <thead>
             <tr style={{ background: "#1f1f1f", color: "white" }}>
               <th style={th}>Work</th>
@@ -67,19 +60,21 @@ const AdminBills = () => {
                 <td style={td}>{b.workName}</td>
                 <td style={td}>{b.billNo}</td>
                 <td style={td}>{b.site}</td>
-                <td style={td}>{b.sentTo}</td>
+                <td style={td}>{b.sentTo?.name || "N/A"}</td>
                 <td style={td}>{b.amount}</td>
-                <td style={td}>{new Date(b.billDate).toLocaleDateString()}</td>
+                <td style={td}>
+                  {new Date(b.billDate).toLocaleDateString()}
+                </td>
                 <td style={td}>
                   {b.billFile ? (
                     <a
-  href={`https://attendance-management-backend-vh2w.onrender.com/uploads/${b.billFile}`}
-  target="_blank"
-  rel="noopener noreferrer"
-  style={{ color: "#1e88e5" }}
->
-  View
-</a>
+                      href={`https://attendance-management-backend-vh2w.onrender.com/uploads/${b.billFile}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      style={{ color: "#1e88e5" }}
+                    >
+                      View
+                    </a>
                   ) : (
                     "N/A"
                   )}
@@ -93,14 +88,7 @@ const AdminBills = () => {
   );
 };
 
-const th = {
-  padding: "10px",
-  border: "1px solid #444",
-};
-
-const td = {
-  padding: "10px",
-  border: "1px solid #444",
-};
+const th = { padding: "10px", border: "1px solid #444" };
+const td = { padding: "10px", border: "1px solid #444" };
 
 export default AdminBills;
