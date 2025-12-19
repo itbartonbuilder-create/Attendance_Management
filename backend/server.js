@@ -2,6 +2,8 @@ import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
 import connectDB from "./config/db.js";
+import path from "path";
+import { fileURLToPath } from "url";
 import attendanceRoutes from "./routes/reports.js";
 import managerRoutes from "./routes/managerRoutes.js";
 import taskRoutes from "./routes/taskRoutes.js";
@@ -13,6 +15,13 @@ dotenv.config();
 const app = express();
 app.use(cors());
 app.use(express.json());
+
+// 🔥 REQUIRED FOR ES MODULES
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+// 🔥 MAKE UPLOADS PUBLIC (FIX)
+app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
 
 await connectDB();
