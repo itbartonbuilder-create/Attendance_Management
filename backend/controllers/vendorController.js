@@ -72,3 +72,12 @@ export const loginVendor = async (req, res) => {
     res.status(500).json({ msg: error.message });
   }
 };
+export const getAllVendors = async (req, res) => {
+  try {
+    const vendors = await Vendor.find().sort({ createdAt: -1 });
+
+    res.status(200).json(vendors);
+  } catch (error) {
+    res.status(500).json({ msg: error.message });
+  }
+};
