@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import axios from "axios";
 
 function BillForm() {
-  const user = JSON.parse(localStorage.getItem("user")); // ✅ logged-in vendor
+  const user = JSON.parse(localStorage.getItem("user")); 
 
   const initialForm = {
     workName: "",
@@ -20,9 +20,7 @@ function BillForm() {
   const [sites] = useState(["Bangalore", "Japuriya", "Vashali", "Faridabad"]);
   const [managers, setManagers] = useState([]);
 
-  // ===============================
-  // FETCH MANAGERS BY SITE
-  // ===============================
+
   useEffect(() => {
     if (!form.site) return;
 
