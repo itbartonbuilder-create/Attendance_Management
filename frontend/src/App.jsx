@@ -15,6 +15,7 @@ import Footer from "./components/Footer";
 import VendorDashboard from "./pages/VendorDashboard";
 import AdminBills from "./pages/AdminBills";
 import ManagerBills from "./pages/ManagerBills";
+import AdminVendors from "./pages/AdminVendors";
 
 function App() {
   return (
@@ -36,6 +37,7 @@ function App() {
         <Route path="/task" element={<TaskPage />} />
         <Route path="/vendor-dashboard" element={<VendorDashboard />} />
         <Route path="/admin/bills" element={<AdminBills />} />
+        <Route path="/vendors" element={<AdminVendors />} />
 <Route path="/manager/bills" element={<ManagerBills />} />
       </Routes>
             </div>
