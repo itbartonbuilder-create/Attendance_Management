@@ -66,13 +66,14 @@ export const registerVendor = async (req, res) => {
 
 export const loginVendor = async (req, res) => {
   try {
-    const { contactNo } = req.body;
+    const { name, contactNo } = req.body;
 
-    if (!contactNo ) {
+    if (!name || !contactNo) {
       return res.status(400).json({
-        msg: "Contact number",
+        msg: "Name and Contact Number are required",
       });
     }
+
 
     const vendor = await Vendor.findOne({ contactNo });
     if (!vendor) {
