@@ -92,9 +92,8 @@ export const loginVendor = async (req, res) => {
     res.json({
       msg: "Login successful",
       user: {
-        _id: vendor._id,
         name: vendor.name,
-        role: vendor.role,
+        contactNo: vendor.contactNo,
       },
     });
   } catch (error) {
