@@ -66,11 +66,11 @@ export const registerVendor = async (req, res) => {
 
 export const loginVendor = async (req, res) => {
   try {
-    const { contactNo, password } = req.body;
+    const { contactNo } = req.body;
 
-    if (!contactNo || !password) {
+    if (!contactNo ) {
       return res.status(400).json({
-        msg: "Contact number and password required",
+        msg: "Contact number",
       });
     }
 
