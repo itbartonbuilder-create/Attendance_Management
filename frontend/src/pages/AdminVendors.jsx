@@ -67,7 +67,7 @@ const AdminVendors = () => {
   if (loading) return <h2 style={{ color: "white" }}>Loading vendors...</h2>;
 
   return (
-    <div style={{ padding: "30px", color: "white" }}>
+    <div className="page">
       <h2>All Registered Vendors</h2>
 
       <button style={btn} onClick={downloadCSV}>
