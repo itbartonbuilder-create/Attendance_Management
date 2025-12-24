@@ -10,6 +10,7 @@ export const createBill = async (req, res) => {
       workName: req.body.workName,
       billNo: req.body.billNo,
       site: req.body.site,
+      vendor: req.body.vendor, // 🔥
       sentTo: req.body.sentTo,
       amount: req.body.amount,
       billDate: req.body.billDate,
@@ -22,7 +23,6 @@ export const createBill = async (req, res) => {
       bill,
     });
   } catch (error) {
-    console.error("Bill Error:", error);
-    res.status(500).json({ msg: "Server Error", error: error.message });
+    res.status(500).json({ msg: error.message });
   }
 };
