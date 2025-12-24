@@ -24,12 +24,16 @@ export const registerVendor = async (req, res) => {
       !category ||
       !password
     ) {
-      return res.status(400).json({ msg: "All required fields must be filled" });
+      return res.status(400).json({
+        msg: "All required fields must be filled",
+      });
     }
 
     const existingVendor = await Vendor.findOne({ contactNo });
     if (existingVendor) {
-      return res.status(400).json({ msg: "Vendor already registered" });
+      return res.status(400).json({
+        msg: "Vendor already registered",
+      });
     }
 
     const hashedPassword = await bcrypt.hash(password, 10);
@@ -44,11 +48,16 @@ export const registerVendor = async (req, res) => {
       category,
       gstNumber,
       password: hashedPassword,
+      role: "vendor",
     });
 
     res.status(201).json({
       msg: "Vendor registered successfully",
-      user: vendor,
+      user: {
+        _id: vendor._id,
+        name: vendor.name,
+        role: vendor.role,
+      },
     });
   } catch (error) {
     res.status(500).json({ msg: error.message });
@@ -57,17 +66,45 @@ export const registerVendor = async (req, res) => {
 
 export const loginVendor = async (req, res) => {
   try {
-    const { name, contactNo } = req.body;
+    const { contactNo, password } = req.body;
 
-    const vendor = await Vendor.findOne({ name, contactNo });
+    if (!contactNo || !password) {
+      return res.status(400).json({
+        msg: "Contact number and password required",
+      });
+    }
+
+    const vendor = await Vendor.findOne({ contactNo });
     if (!vendor) {
-      return res.status(401).json({ msg: "Invalid credentials" });
+      return res.status(401).json({
+        msg: "Vendor not found",
+      });
+    }
+
+    const isMatch = await bcrypt.compare(password, vendor.password);
+    if (!isMatch) {
+      return res.status(401).json({
+        msg: "Invalid credentials",
+      });
     }
 
     res.json({
       msg: "Login successful",
-      user: vendor,
+      user: {
+        _id: vendor._id,
+        name: vendor.name,
+        role: vendor.role,
+      },
     });
+  } catch (error) {
+    res.status(500).json({ msg: error.message });
+  }
+};
+
+export const getAllVendors = async (req, res) => {
+  try {
+    const vendors = await Vendor.find().select("-password");
+    res.json(vendors);
   } catch (error) {
     res.status(500).json({ msg: error.message });
   }
