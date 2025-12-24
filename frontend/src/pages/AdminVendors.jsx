@@ -12,7 +12,7 @@ const AdminVendors = () => {
   const fetchVendors = async () => {
     try {
       const res = await axios.get(
-        "https://attendance-management-backend-vh2w.onrender.com/api/vendor/all"
+        "https://attendance-management-backend-vh2w.onrender.com/api/vendor"
       );
       setVendors(res.data);
     } catch (err) {
