@@ -81,6 +81,7 @@ function Navbar() {
             <Link to="/reports" style={linkStyle}>Reports</Link>
              <Link to="/task" style={linkStyle}>Task</Link>
              <Link to="/admin/bills" style={linkStyle}>Bills</Link>
+             <Link to="/vendors" style={linkStyle}>Vendors</Link>
             <Link to="/profile" style={linkStyle}>Profile</Link>
           </>
         )}
