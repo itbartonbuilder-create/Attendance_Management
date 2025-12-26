@@ -29,79 +29,100 @@ const [gst, setGst] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
 
-  const handleLogin = async (e) => {
-    e.preventDefault();
-    setIsLoading(true);
+ const handleLogin = async (e) => {
+  e.preventDefault();
+  setIsLoading(true);
 
-    try {
-      let res;
+  try {
+    let res;
+    let userData;
 
-     
-      if (step === "office") {
-        if (role === "admin") {
-          res = await axios.post(
-            "https://attendance-management-backend-vh2w.onrender.com/api/auth/login",
-            { email, password }
-          );
-        } else if (role === "manager") {
-          res = await axios.post(
-            "https://attendance-management-backend-vh2w.onrender.com/api/auth/login",
-            { site: name, contactNo }
-          );
-        } else {
-          res = await axios.post(
-            "https://attendance-management-backend-vh2w.onrender.com/api/auth/login",
-            { name, contactNo }
-          );
-        }
+    /* ================= OFFICE ================= */
+    if (step === "office") {
+      if (role === "admin") {
+        res = await axios.post(
+          "https://attendance-management-backend-vh2w.onrender.com/api/auth/login",
+          { email, password }
+        );
+      } else if (role === "manager") {
+        res = await axios.post(
+          "https://attendance-management-backend-vh2w.onrender.com/api/auth/login",
+          { site: name, contactNo }
+        );
+      } else {
+        res = await axios.post(
+          "https://attendance-management-backend-vh2w.onrender.com/api/auth/login",
+          { name, contactNo }
+        );
       }
 
-      if (step === "vendor") {
-        if (vendorMode === "login") {
-          res = await axios.post(
-            "https://attendance-management-backend-vh2w.onrender.com/api/vendor/login",
-            { name, contactNo }
-          );
-        } else {
-          res = await axios.post(
-  "https://attendance-management-backend-vh2w.onrender.com/api/vendor/register",
-  {
-    name,
-    email, 
-    companyName,
-    contactNo,
-    aadharNumber: aadhar,
-    panNumber: pan,
-    vendorType,
-    category,
-    gstNumber: gst,
-    password,
-  }
-);
-
-        }
-      }
-
-      const userData = {
+      userData = {
         ...res.data.user,
-        displayName: res.data.user.name || res.data.user.site || "User",
+        displayName:
+          res.data.user.name ||
+          res.data.user.site ||
+          "User",
+      };
+
+      localStorage.setItem("user", JSON.stringify(userData));
+      alert(`✅ Login Successful — Welcome ${userData.displayName}`);
+      navigate("/dashboard");
+    }
+
+    /* ================= VENDOR ================= */
+    if (step === "vendor") {
+      if (vendorMode === "login") {
+        res = await axios.post(
+          "https://attendance-management-backend-vh2w.onrender.com/api/vendor/login",
+          { name, contactNo }
+        );
+      } else {
+        res = await axios.post(
+          "https://attendance-management-backend-vh2w.onrender.com/api/vendor/register",
+          {
+            name,
+            email,
+            companyName,
+            contactNo,
+            aadharNumber: aadhar,
+            panNumber: pan,
+            vendorType,
+            category,
+            gstNumber: gst,
+            password,
+          }
+        );
+      }
+
+      const vendor = res.data.vendor;
+
+      // ❌ NOT APPROVED
+      if (vendor.status !== "approved") {
+        alert("⏳ Vendor registered successfully. Admin approval pending.");
+        return;
+      }
+
+      // ✅ APPROVED
+      userData = {
+        ...vendor,
+        displayName: vendor.name,
       };
 
       localStorage.setItem("user", JSON.stringify(userData));
 
-      alert(`✅ Login Successful — Welcome ${userData.displayName}`);
-      // navigate("/dashboard");
-      if (step === "vendor") {
-        navigate("/vendor-dashboard");
-      } else {
-        navigate("/dashboard");
-      }
-    } catch (err) {
-      alert(err.response?.data?.msg || "❌ Action failed.");
-    } finally {
-      setIsLoading(false);
+      alert(
+        `✅ Vendor Approved\nStatus: ${vendor.status}\nCode: ${vendor.vendorCode}`
+      );
+
+      navigate("/vendor-dashboard");
     }
-  };
+  } catch (err) {
+    alert(err.response?.data?.message || "❌ Action failed.");
+  } finally {
+    setIsLoading(false);
+  }
+};
+
   return (
     <div
       style={{
