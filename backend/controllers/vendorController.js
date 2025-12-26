@@ -1,10 +1,13 @@
 import Vendor from "../models/vendorModel.js";
 import bcrypt from "bcryptjs";
+import { sendPendingMail } from "../utils/emailService.js";
+
 
 export const registerVendor = async (req, res) => {
   try {
     const {
       name,
+      email,
       companyName,
       contactNo,
       aadharNumber,
@@ -15,27 +18,19 @@ export const registerVendor = async (req, res) => {
       password,
     } = req.body;
 
-    if (
-      !name ||
-      !contactNo ||
-      !aadharNumber ||
-      !panNumber ||
-      !vendorType ||
-      !category ||
-      !password
-    ) {
-      return res.status(400).json({ msg: "All required fields must be filled" });
-    }
+    const exists = await Vendor.findOne({
+      $or: [{ email }, { contactNo }],
+    });
 
-    const existingVendor = await Vendor.findOne({ contactNo });
-    if (existingVendor) {
-      return res.status(400).json({ msg: "Vendor already registered" });
+    if (exists) {
+      return res.status(400).json({ msg: "Vendor already exists" });
     }
 
     const hashedPassword = await bcrypt.hash(password, 10);
 
     const vendor = await Vendor.create({
       name,
+      email,
       companyName,
       contactNo,
       aadharNumber,
@@ -44,39 +39,52 @@ export const registerVendor = async (req, res) => {
       category,
       gstNumber,
       password: hashedPassword,
+      status: "pending",
     });
 
+    await sendPendingMail(email, name);
+
     res.status(201).json({
-      msg: "Vendor registered successfully",
+      msg: "Registered successfully. Approval pending.",
       user: vendor,
     });
-  } catch (error) {
-    res.status(500).json({ msg: error.message });
+  } catch (err) {
+    res.status(500).json({ msg: err.message });
   }
 };
+
 
 export const loginVendor = async (req, res) => {
   try {
-    const { name, contactNo } = req.body;
+    const { email, password } = req.body;
 
-    const vendor = await Vendor.findOne({ name, contactNo });
+    const vendor = await Vendor.findOne({ email });
     if (!vendor) {
-      return res.status(401).json({ msg: "Invalid credentials" });
+      return res.status(404).json({ msg: "Vendor not found" });
     }
 
-    res.json({
-      msg: "Login successful",
-      user: vendor,
-    });
-  } catch (error) {
-    res.status(500).json({ msg: error.message });
+    if (vendor.status !== "approved") {
+      return res
+        .status(403)
+        .json({ msg: "Approval pending. Please wait." });
+    }
+
+    const isMatch = await bcrypt.compare(password, vendor.password);
+    if (!isMatch) {
+      return res.status(400).json({ msg: "Invalid credentials" });
+    }
+
+    res.json({ msg: "Login successful", vendor });
+  } catch (err) {
+    res.status(500).json({ msg: err.message });
   }
 };
+
+
 export const getAllVendors = async (req, res) => {
   try {
     const vendors = await Vendor.find().sort({ createdAt: -1 });
-
-    res.status(200).json(vendors);
+    res.json(vendors);
   } catch (error) {
     res.status(500).json({ msg: error.message });
   }
