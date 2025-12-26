@@ -24,20 +24,22 @@ const AdminVendors = () => {
   };
 
   // 🔥 APPROVE VENDOR
-  const approveVendor = async (vendorId) => {
-    if (!window.confirm("Approve this vendor?")) return;
+ const approveVendor = async (vendorId) => {
+  if (!window.confirm("Approve this vendor?")) return;
 
-    try {
-      await axios.put(
-        `https://attendance-management-backend-vh2w.onrender.com/api/admin/vendors/${vendorId}/approve`
-      );
-      alert("✅ Vendor approved successfully");
-      fetchVendors();
-    } catch (err) {
-      console.error(err);
-      alert("❌ Failed to approve vendor");
-    }
-  };
+  try {
+    await axios.put(
+      `https://attendance-management-backend-vh2w.onrender.com/api/vendor/approve/${vendorId}`
+    );
+
+    alert("✅ Vendor approved successfully");
+    fetchVendors();
+  } catch (err) {
+    console.error(err);
+    alert("❌ Failed to approve vendor");
+  }
+};
+
 
   // CSV DOWNLOAD
   const downloadCSV = () => {
