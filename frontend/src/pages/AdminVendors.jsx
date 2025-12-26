@@ -23,25 +23,24 @@ const AdminVendors = () => {
     }
   };
 
-  // 🔥 APPROVE VENDOR
- const approveVendor = async (vendorId) => {
-  if (!window.confirm("Approve this vendor?")) return;
+  /* ================= APPROVE VENDOR ================= */
+  const approveVendor = async (vendorId) => {
+    if (!window.confirm("Approve this vendor?")) return;
 
-  try {
-    await axios.put(
-      `https://attendance-management-backend-vh2w.onrender.com/api/vendor/approve/${vendorId}`
-    );
+    try {
+      await axios.put(
+        `https://attendance-management-backend-vh2w.onrender.com/api/vendor/approve/${vendorId}`
+      );
 
-    alert("✅ Vendor approved successfully");
-    fetchVendors();
-  } catch (err) {
-    console.error(err);
-    alert("❌ Failed to approve vendor");
-  }
-};
+      alert("✅ Vendor approved successfully");
+      fetchVendors();
+    } catch (err) {
+      console.error(err);
+      alert("❌ Failed to approve vendor");
+    }
+  };
 
-
-  // CSV DOWNLOAD
+  /* ================= CSV DOWNLOAD ================= */
   const downloadCSV = () => {
     const headers = [
       "Name",
@@ -50,7 +49,7 @@ const AdminVendors = () => {
       "Vendor Type",
       "Category",
       "GST",
-      "Approved",
+      "Status",
       "Vendor Code",
       "Registered On",
     ];
@@ -62,7 +61,7 @@ const AdminVendors = () => {
       v.vendorType,
       v.category,
       v.gstNumber || "",
-      v.isApproved ? "Yes" : "No",
+      v.status === "approved" ? "Approved" : "Pending",
       v.vendorCode || "",
       new Date(v.createdAt).toLocaleDateString(),
     ]);
@@ -83,7 +82,9 @@ const AdminVendors = () => {
     link.click();
   };
 
-  if (loading) return <h2 style={{ color: "white" }}>Loading vendors...</h2>;
+  if (loading) {
+    return <h2 style={{ color: "white" }}>Loading vendors...</h2>;
+  }
 
   return (
     <div className="page">
@@ -127,7 +128,7 @@ const AdminVendors = () => {
                 <td style={thTd}>{v.vendorCode || "-"}</td>
 
                 <td style={thTd}>
-                  {v.isApproved ? (
+                  {v.status === "approved" ? (
                     <span style={{ color: "lightgreen" }}>Approved</span>
                   ) : (
                     <span style={{ color: "orange" }}>Pending</span>
@@ -135,7 +136,7 @@ const AdminVendors = () => {
                 </td>
 
                 <td style={thTd}>
-                  {!v.isApproved ? (
+                  {v.status !== "approved" ? (
                     <button
                       style={approveBtn}
                       onClick={() => approveVendor(v._id)}
@@ -155,7 +156,7 @@ const AdminVendors = () => {
   );
 };
 
-/* styles */
+/* ================= STYLES ================= */
 
 const table = {
   width: "100%",
