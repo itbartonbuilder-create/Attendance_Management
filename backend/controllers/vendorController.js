@@ -89,3 +89,20 @@ export const getAllVendors = async (req, res) => {
     res.status(500).json({ msg: error.message });
   }
 };
+export const approveVendor = async (req, res) => {
+  try {
+    const vendor = await Vendor.findByIdAndUpdate(
+      req.params.id,
+      { isApproved: true },
+      { new: true }
+    );
+
+    if (!vendor) {
+      return res.status(404).json({ message: "Vendor not found" });
+    }
+
+    res.json({ message: "Vendor approved", vendor });
+  } catch (error) {
+    res.status(500).json({ message: "Approval failed" });
+  }
+};
