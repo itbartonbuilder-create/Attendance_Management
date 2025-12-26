@@ -2,7 +2,7 @@ import Vendor from "../models/vendorModel.js";
 import bcrypt from "bcryptjs";
 import { sendPendingMail } from "../utils/emailService.js";
 
-
+/* ================= REGISTER VENDOR ================= */
 export const registerVendor = async (req, res) => {
   try {
     const {
@@ -39,21 +39,21 @@ export const registerVendor = async (req, res) => {
       category,
       gstNumber,
       password: hashedPassword,
-      status: "pending",
+      status: "pending", // ✅ default
     });
 
     await sendPendingMail(email, name);
 
     res.status(201).json({
       msg: "Registered successfully. Approval pending.",
-      user: vendor,
+      vendor,
     });
   } catch (err) {
     res.status(500).json({ msg: err.message });
   }
 };
 
-
+/* ================= LOGIN VENDOR ================= */
 export const loginVendor = async (req, res) => {
   try {
     const { email, password } = req.body;
@@ -80,7 +80,7 @@ export const loginVendor = async (req, res) => {
   }
 };
 
-
+/* ================= GET ALL VENDORS ================= */
 export const getAllVendors = async (req, res) => {
   try {
     const vendors = await Vendor.find().sort({ createdAt: -1 });
@@ -89,20 +89,37 @@ export const getAllVendors = async (req, res) => {
     res.status(500).json({ msg: error.message });
   }
 };
+
+/* ================= APPROVE VENDOR ================= */
 export const approveVendor = async (req, res) => {
   try {
-    const vendor = await Vendor.findByIdAndUpdate(
-      req.params.id,
-      { isApproved: true },
-      { new: true }
-    );
+    const vendor = await Vendor.findById(req.params.id);
 
     if (!vendor) {
       return res.status(404).json({ message: "Vendor not found" });
     }
 
-    res.json({ message: "Vendor approved", vendor });
+    if (vendor.status === "approved") {
+      return res.json({
+        message: "Vendor already approved",
+        vendor,
+      });
+    }
+
+    // ✅ generate vendor code
+    const vendorCode = "VND-" + Math.floor(1000 + Math.random() * 9000);
+
+    vendor.status = "approved";   // ✅ SINGLE SOURCE OF TRUTH
+    vendor.vendorCode = vendorCode;
+
+    await vendor.save();
+
+    res.json({
+      message: "Vendor approved successfully",
+      vendor,
+    });
   } catch (error) {
+    console.error(error);
     res.status(500).json({ message: "Approval failed" });
   }
 };
