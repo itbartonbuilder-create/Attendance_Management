@@ -23,16 +23,33 @@ const AdminVendors = () => {
     }
   };
 
+  // 🔥 APPROVE VENDOR
+  const approveVendor = async (vendorId) => {
+    if (!window.confirm("Approve this vendor?")) return;
+
+    try {
+      await axios.put(
+        `https://attendance-management-backend-vh2w.onrender.com/api/admin/vendors/${vendorId}/approve`
+      );
+      alert("✅ Vendor approved successfully");
+      fetchVendors();
+    } catch (err) {
+      console.error(err);
+      alert("❌ Failed to approve vendor");
+    }
+  };
+
+  // CSV DOWNLOAD
   const downloadCSV = () => {
     const headers = [
       "Name",
       "Company",
       "Contact",
-      "Aadhar No",
-      "PAN No",
       "Vendor Type",
       "Category",
       "GST",
+      "Approved",
+      "Vendor Code",
       "Registered On",
     ];
 
@@ -40,11 +57,11 @@ const AdminVendors = () => {
       v.name,
       v.companyName || "",
       v.contactNo,
-      v.aadharNumber || "",
-      v.panNumber || "",
       v.vendorType,
       v.category,
       v.gstNumber || "",
+      v.isApproved ? "Yes" : "No",
+      v.vendorCode || "",
       new Date(v.createdAt).toLocaleDateString(),
     ]);
 
@@ -80,12 +97,12 @@ const AdminVendors = () => {
             <th style={thTd}>Name</th>
             <th style={thTd}>Company</th>
             <th style={thTd}>Contact</th>
-            <th style={thTd}>Aadhar No</th>
-            <th style={thTd}>PAN No</th>
-            <th style={thTd}>Vendor Type</th>
+            <th style={thTd}>Type</th>
             <th style={thTd}>Category</th>
             <th style={thTd}>GST</th>
-            <th style={thTd}>Registered On</th>
+            <th style={thTd}>Vendor Code</th>
+            <th style={thTd}>Status</th>
+            <th style={thTd}>Action</th>
           </tr>
         </thead>
 
@@ -102,15 +119,30 @@ const AdminVendors = () => {
                 <td style={thTd}>{v.name}</td>
                 <td style={thTd}>{v.companyName || "-"}</td>
                 <td style={thTd}>{v.contactNo}</td>
-                <td style={thTd}>{v.aadharNumber || "-"}</td>
-                <td style={thTd}>{v.panNumber || "-"}</td>
                 <td style={thTd}>{v.vendorType}</td>
                 <td style={thTd}>{v.category}</td>
                 <td style={thTd}>{v.gstNumber || "-"}</td>
+                <td style={thTd}>{v.vendorCode || "-"}</td>
+
                 <td style={thTd}>
-                  {v.createdAt
-                    ? new Date(v.createdAt).toLocaleDateString()
-                    : "-"}
+                  {v.isApproved ? (
+                    <span style={{ color: "lightgreen" }}>Approved</span>
+                  ) : (
+                    <span style={{ color: "orange" }}>Pending</span>
+                  )}
+                </td>
+
+                <td style={thTd}>
+                  {!v.isApproved ? (
+                    <button
+                      style={approveBtn}
+                      onClick={() => approveVendor(v._id)}
+                    >
+                      Approve
+                    </button>
+                  ) : (
+                    "-"
+                  )}
                 </td>
               </tr>
             ))
@@ -133,6 +165,7 @@ const thTd = {
   border: "1px solid #555",
   padding: "10px",
   fontSize: "14px",
+  textAlign: "center",
 };
 
 const btn = {
@@ -142,6 +175,15 @@ const btn = {
   border: "none",
   cursor: "pointer",
   marginBottom: "10px",
+};
+
+const approveBtn = {
+  padding: "6px 12px",
+  backgroundColor: "#007bff",
+  color: "#fff",
+  border: "none",
+  cursor: "pointer",
+  borderRadius: "4px",
 };
 
 export default AdminVendors;
