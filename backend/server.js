@@ -9,6 +9,7 @@ import managerRoutes from "./routes/managerRoutes.js";
 import taskRoutes from "./routes/taskRoutes.js";
 import vendorRoutes from "./routes/vendorRoutes.js";
 import BillRoutes from "./routes/BillRoutes.js"
+import adminRoutes from "./routes/adminRoutes.js";
 // import statsRoute from "./routes/Statistics.js";
 
 dotenv.config();
@@ -37,6 +38,7 @@ app.use("/api/managers", managerRoutes);
 app.use("/api/tasks", taskRoutes);
 app.use("/api/vendor", vendorRoutes);
 app.use("/api/bill", BillRoutes);
+app.use("/api/admin", adminRoutes);
 
 
 
