@@ -3,6 +3,7 @@ import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import logo from "../assets/logo.png";
 import loginPage from "../assets/loginPage.jpeg";
+
 function Login() {
   const [step, setStep] = useState("select");
   const [role, setRole] = useState("admin");
@@ -21,6 +22,7 @@ const [category, setCategory] = useState("");
 const [aadhar, setAadhar] = useState("");
 const [pan, setPan] = useState("");
 const [gst, setGst] = useState("");
+
 
   const [vendorMode, setVendorMode] = useState("login"); 
 
@@ -65,6 +67,7 @@ const [gst, setGst] = useState("");
   "https://attendance-management-backend-vh2w.onrender.com/api/vendor/register",
   {
     name,
+    email, 
     companyName,
     contactNo,
     aadharNumber: aadhar,
@@ -396,7 +399,9 @@ const [gst, setGst] = useState("");
         onChange={(e) => setCompanyName(e.target.value)}
         style={halfInput}
       />
+      
     </div>
+    
 
     {/* Row 2 */}
     <div style={rowStyle}>
@@ -504,7 +509,14 @@ const [gst, setGst] = useState("");
         )}
       </select>
     </div>
-
+<input
+  type="email"
+  placeholder="Email Address"
+  value={email}
+  onChange={(e) => setEmail(e.target.value)}
+  required
+  style={inputStyle}
+/>
     {/* Row 5 */}
     <input
       type="password"
@@ -518,18 +530,20 @@ const [gst, setGst] = useState("");
 )}
 
 
+              <div style={{ display: "flex", gap: "10px" }}>
+  <button type="submit" style={{ ...buttonStyle, flex: 1 }}>
+    {vendorMode === "login" ? "Login" : "Register"}
+  </button>
 
-              <button type="submit" style={buttonStyle}>
-                {vendorMode === "login" ? "Login" : "Register"}
-              </button>
+  <button
+    type="button"
+    style={{ ...backBtn, flex: 1 }}
+    onClick={() => setStep("select")}
+  >
+    Back
+  </button>
+</div>
 
-              <button
-                type="button"
-                style={backBtn}
-                onClick={() => setStep("select")}
-              >
-                Back
-              </button>
             </form>
           </>
         )}
