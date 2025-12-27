@@ -1,8 +1,8 @@
 import Vendor from "../models/vendorModel.js";
 import bcrypt from "bcryptjs";
-import { sendPendingMail } from "../utils/emailService.js";
+import { sendPendingMail, sendApprovalMail } from "../utils/emailService.js";
 
-/* ================= REGISTER VENDOR ================= */
+/* ================= REGISTER ================= */
 export const registerVendor = async (req, res) => {
   try {
     const {
@@ -17,6 +17,10 @@ export const registerVendor = async (req, res) => {
       gstNumber,
       password,
     } = req.body;
+
+    if (!name || !email || !contactNo || !password) {
+      return res.status(400).json({ msg: "Required fields missing" });
+    }
 
     const exists = await Vendor.findOne({
       $or: [{ email }, { contactNo }],
@@ -39,9 +43,10 @@ export const registerVendor = async (req, res) => {
       category,
       gstNumber,
       password: hashedPassword,
-      status: "pending", // ✅ default
+      status: "pending",
     });
 
+    // 📧 mail to vendor
     await sendPendingMail(email, name);
 
     res.status(201).json({
@@ -53,20 +58,22 @@ export const registerVendor = async (req, res) => {
   }
 };
 
-/* ================= LOGIN VENDOR ================= */
+/* ================= LOGIN ================= */
 export const loginVendor = async (req, res) => {
   try {
-    const { email, password } = req.body;
+    const { contactNo, password } = req.body;
 
-    const vendor = await Vendor.findOne({ email });
+    if (!contactNo || !password) {
+      return res.status(400).json({ msg: "Contact number and password required" });
+    }
+
+    const vendor = await Vendor.findOne({ contactNo });
     if (!vendor) {
       return res.status(404).json({ msg: "Vendor not found" });
     }
 
     if (vendor.status !== "approved") {
-      return res
-        .status(403)
-        .json({ msg: "Approval pending. Please wait." });
+      return res.status(403).json({ msg: "Approval pending" });
     }
 
     const isMatch = await bcrypt.compare(password, vendor.password);
@@ -74,7 +81,10 @@ export const loginVendor = async (req, res) => {
       return res.status(400).json({ msg: "Invalid credentials" });
     }
 
-    res.json({ msg: "Login successful", vendor });
+    res.json({
+      msg: "Login successful",
+      vendor,
+    });
   } catch (err) {
     res.status(500).json({ msg: err.message });
   }
@@ -85,41 +95,32 @@ export const getAllVendors = async (req, res) => {
   try {
     const vendors = await Vendor.find().sort({ createdAt: -1 });
     res.json(vendors);
-  } catch (error) {
-    res.status(500).json({ msg: error.message });
+  } catch (err) {
+    res.status(500).json({ msg: err.message });
   }
 };
 
-/* ================= APPROVE VENDOR ================= */
+/* ================= APPROVE ================= */
 export const approveVendor = async (req, res) => {
   try {
     const vendor = await Vendor.findById(req.params.id);
-
     if (!vendor) {
-      return res.status(404).json({ message: "Vendor not found" });
+      return res.status(404).json({ msg: "Vendor not found" });
     }
 
     if (vendor.status === "approved") {
-      return res.json({
-        message: "Vendor already approved",
-        vendor,
-      });
+      return res.json({ msg: "Already approved" });
     }
 
-    // ✅ generate vendor code
-    const vendorCode = "VND-" + Math.floor(1000 + Math.random() * 9000);
-
-    vendor.status = "approved";   // ✅ SINGLE SOURCE OF TRUTH
-    vendor.vendorCode = vendorCode;
-
+    vendor.status = "approved";
+    vendor.vendorCode = "VND-" + Math.floor(1000 + Math.random() * 9000);
     await vendor.save();
 
-    res.json({
-      message: "Vendor approved successfully",
-      vendor,
-    });
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: "Approval failed" });
+    // 📧 approval mail
+    await sendApprovalMail(vendor.email, vendor.name, vendor.vendorCode);
+
+    res.json({ msg: "Vendor approved successfully" });
+  } catch (err) {
+    res.status(500).json({ msg: err.message });
   }
 };
