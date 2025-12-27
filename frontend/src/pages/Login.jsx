@@ -67,54 +67,52 @@ const [gst, setGst] = useState("");
       localStorage.setItem("user", JSON.stringify(userData));
       alert(`✅ Login Successful — Welcome ${userData.displayName}`);
       navigate("/dashboard");
+      return;
     }
-
-    /* ================= VENDOR ================= */
+/* ================= VENDOR ================= */
     if (step === "vendor") {
+      // 🔐 LOGIN
       if (vendorMode === "login") {
         res = await axios.post(
           "https://attendance-management-backend-vh2w.onrender.com/api/vendor/login",
-          { name, contactNo }
-        );
-      } else {
-        res = await axios.post(
-          "https://attendance-management-backend-vh2w.onrender.com/api/vendor/register",
           {
-            name,
-            email,
-            companyName,
-            contactNo,
-            aadharNumber: aadhar,
-            panNumber: pan,
-            vendorType,
-            category,
-            gstNumber: gst,
-            password,
+           contactNo, 
+  password
           }
         );
-      }
 
-      const vendor = res.data.vendor;
+        const vendor = res.data.vendor || res.data.user;
 
-      // ❌ NOT APPROVED
-      if (vendor.status !== "approved") {
-        alert("⏳ Vendor registered successfully. Admin approval pending.");
+        userData = {
+          ...vendor,
+          displayName: vendor.name,
+        };
+
+        localStorage.setItem("user", JSON.stringify(userData));
+        alert(`✅ Login Successful — Welcome ${vendor.name}`);
+        navigate("/vendor-dashboard");
         return;
       }
 
-      // ✅ APPROVED
-      userData = {
-        ...vendor,
-        displayName: vendor.name,
-      };
-
-      localStorage.setItem("user", JSON.stringify(userData));
-
-      alert(
-        `✅ Vendor Approved\nStatus: ${vendor.status}\nCode: ${vendor.vendorCode}`
+      // 🧾 REGISTER
+      await axios.post(
+        "https://attendance-management-backend-vh2w.onrender.com/api/vendor/register",
+        {
+          name,
+          companyName,
+          contactNo,
+          aadharNumber: aadhar,
+          panNumber: pan,
+          vendorType,
+          category,
+          gstNumber: gst,
+          email,
+          password,
+        }
       );
 
-      navigate("/vendor-dashboard");
+      alert("⏳ Vendor registered successfully. Admin approval pending.");
+      return;
     }
   } catch (err) {
     alert(err.response?.data?.message || "❌ Action failed.");
@@ -122,7 +120,6 @@ const [gst, setGst] = useState("");
     setIsLoading(false);
   }
 };
-
   return (
     <div
       style={{
@@ -378,23 +375,19 @@ const [gst, setGst] = useState("");
              
               {vendorMode === "login" && (
                 <>
-                  <input
-                    type="text"
-                    placeholder="Enter Vendor Name"
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    required
-                    style={inputStyle}
-                  />
+                 <input
+  placeholder="Contact Number"
+  value={contactNo}   style={halfInput}
+  onChange={(e) => setContactNo(e.target.value)}
+/>
 
-                  <input
-                    type="text"
-                    placeholder="Enter Contact Number"
-                    value={contactNo}
-                    onChange={(e) => setContactNo(e.target.value)}
-                    required
-                    style={inputStyle}
-                  />
+<input 
+  type="password"
+  placeholder="Password"   style={halfInput}
+  value={password}
+  onChange={(e) => setPassword(e.target.value)}
+/>
+
                 </>
               )}
 
