@@ -56,7 +56,12 @@ export const registerVendor = async (req, res) => {
       status: "pending",
     });
 
-    await sendPendingMail(email, name);
+    // ✅ SAFE EMAIL (will NOT crash backend)
+    try {
+      await sendPendingMail(email, name);
+    } catch (mailErr) {
+      console.error("Pending email failed:", mailErr.message);
+    }
 
     res.status(201).json({
       msg: "Registered successfully. Approval pending.",
@@ -68,14 +73,15 @@ export const registerVendor = async (req, res) => {
   }
 };
 
-
 /* ================= LOGIN ================= */
 export const loginVendor = async (req, res) => {
   try {
     const { contactNo, password } = req.body;
 
     if (!contactNo || !password) {
-      return res.status(400).json({ msg: "Contact number and password required" });
+      return res
+        .status(400)
+        .json({ msg: "Contact number and password required" });
     }
 
     const vendor = await Vendor.findOne({ contactNo });
@@ -127,8 +133,16 @@ export const approveVendor = async (req, res) => {
     vendor.vendorCode = "VND-" + Math.floor(1000 + Math.random() * 9000);
     await vendor.save();
 
-    // 📧 approval mail
-    await sendApprovalMail(vendor.email, vendor.name, vendor.vendorCode);
+    // ✅ SAFE APPROVAL EMAIL
+    try {
+      await sendApprovalMail(
+        vendor.email,
+        vendor.name,
+        vendor.vendorCode
+      );
+    } catch (mailErr) {
+      console.error("Approval email failed:", mailErr.message);
+    }
 
     res.json({ msg: "Vendor approved successfully" });
   } catch (err) {
