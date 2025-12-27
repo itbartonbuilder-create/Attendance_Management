@@ -18,8 +18,18 @@ export const registerVendor = async (req, res) => {
       password,
     } = req.body;
 
-    if (!name || !email || !contactNo || !password) {
-      return res.status(400).json({ msg: "Required fields missing" });
+    // ✅ PROPER VALIDATION
+    if (
+      !name ||
+      !email ||
+      !contactNo ||
+      !password ||
+      !aadharNumber ||
+      !panNumber ||
+      !vendorType ||
+      !category
+    ) {
+      return res.status(400).json({ msg: "All required fields must be filled" });
     }
 
     const exists = await Vendor.findOne({
@@ -46,7 +56,6 @@ export const registerVendor = async (req, res) => {
       status: "pending",
     });
 
-    // 📧 mail to vendor
     await sendPendingMail(email, name);
 
     res.status(201).json({
@@ -54,9 +63,11 @@ export const registerVendor = async (req, res) => {
       vendor,
     });
   } catch (err) {
+    console.error(err);
     res.status(500).json({ msg: err.message });
   }
 };
+
 
 /* ================= LOGIN ================= */
 export const loginVendor = async (req, res) => {
