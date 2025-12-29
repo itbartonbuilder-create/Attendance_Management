@@ -1,8 +1,8 @@
 import Vendor from "../models/vendorModel.js";
 import bcrypt from "bcryptjs";
-import { sendPendingMail, sendApprovalMail } from "../utils/emailService.js";
+import { sendPendingMail } from "../utils/emailService.js";
 
-/* ================= REGISTER ================= */
+/* ================= REGISTER VENDOR ================= */
 export const registerVendor = async (req, res) => {
   try {
     const {
@@ -34,6 +34,7 @@ export const registerVendor = async (req, res) => {
       });
     }
 
+    // ✅ Check existing vendor
     const exists = await Vendor.findOne({
       $or: [{ email }, { contactNo }],
     });
@@ -44,8 +45,10 @@ export const registerVendor = async (req, res) => {
       });
     }
 
+    // ✅ Hash password
     const hashedPassword = await bcrypt.hash(password, 10);
 
+    // ✅ Save vendor
     const vendor = await Vendor.create({
       name,
       email,
@@ -60,16 +63,17 @@ export const registerVendor = async (req, res) => {
       status: "pending",
     });
 
-    // ✅ response pehle
+    // ✅ Send response FIRST
     res.status(201).json({
       message: "Registered successfully. Approval pending.",
       vendor,
     });
 
-    // 📧 Email non-blocking
-    sendPendingMail(email, name).catch((err) =>
-      console.error("❌ Pending email failed:", err.message)
-    );
+    // 📧 Send pending email (NON-BLOCKING)
+    sendPendingMail(email, name).catch((err) => {
+      console.error("❌ Pending email failed:", err.message);
+    });
+
   } catch (err) {
     console.error("Register vendor error:", err);
     res.status(500).json({
@@ -78,7 +82,7 @@ export const registerVendor = async (req, res) => {
   }
 };
 
-/* ================= LOGIN ================= */
+/* ================= LOGIN VENDOR ================= */
 export const loginVendor = async (req, res) => {
   try {
     const { contactNo, password } = req.body;
@@ -90,12 +94,14 @@ export const loginVendor = async (req, res) => {
     }
 
     const vendor = await Vendor.findOne({ contactNo });
+
     if (!vendor) {
       return res.status(404).json({
         message: "Vendor not found",
       });
     }
 
+    // ⛔ Approval pending case (IMPORTANT)
     if (vendor.status !== "approved") {
       return res.status(403).json({
         message:
@@ -104,6 +110,7 @@ export const loginVendor = async (req, res) => {
     }
 
     const isMatch = await bcrypt.compare(password, vendor.password);
+
     if (!isMatch) {
       return res.status(400).json({
         message: "Invalid credentials",
@@ -114,6 +121,7 @@ export const loginVendor = async (req, res) => {
       message: "Login successful",
       vendor,
     });
+
   } catch (err) {
     console.error("Vendor login error:", err);
     res.status(500).json({
@@ -122,50 +130,13 @@ export const loginVendor = async (req, res) => {
   }
 };
 
-/* ================= GET ALL ================= */
+/* ================= GET ALL VENDORS ================= */
 export const getAllVendors = async (req, res) => {
   try {
     const vendors = await Vendor.find().sort({ createdAt: -1 });
     res.json(vendors);
   } catch (err) {
-    res.status(500).json({
-      message: "Server error",
-    });
-  }
-};
-
-/* ================= APPROVE ================= */
-export const approveVendor = async (req, res) => {
-  try {
-    const vendor = await Vendor.findById(req.params.id);
-    if (!vendor) {
-      return res.status(404).json({
-        message: "Vendor not found",
-      });
-    }
-
-    if (vendor.status === "approved") {
-      return res.json({
-        message: "Already approved",
-      });
-    }
-
-    vendor.status = "approved";
-    vendor.vendorCode = "VND-" + Math.floor(1000 + Math.random() * 9000);
-    await vendor.save();
-
-    sendApprovalMail(
-      vendor.email,
-      vendor.name,
-      vendor.vendorCode
-    ).catch((err) =>
-      console.error("❌ Approval email failed:", err.message)
-    );
-
-    res.json({
-      message: "Vendor approved successfully",
-    });
-  } catch (err) {
+    console.error("Get vendors error:", err);
     res.status(500).json({
       message: "Server error",
     });
