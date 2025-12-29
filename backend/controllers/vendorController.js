@@ -2,7 +2,7 @@ import Vendor from "../models/vendorModel.js";
 import bcrypt from "bcryptjs";
 import { sendPendingMail, sendApprovalMail } from "../utils/emailService.js";
 
-/* ================= REGISTER ================= */
+
 export const registerVendor = async (req, res) => {
   try {
     const {
@@ -18,7 +18,7 @@ export const registerVendor = async (req, res) => {
       password,
     } = req.body;
 
-    // ✅ PROPER VALIDATION
+   
     if (
       !name ||
       !email ||
@@ -29,9 +29,12 @@ export const registerVendor = async (req, res) => {
       !vendorType ||
       !category
     ) {
-      return res.status(400).json({ msg: "All required fields must be filled" });
+      return res
+        .status(400)
+        .json({ msg: "All required fields must be filled" });
     }
 
+   
     const exists = await Vendor.findOne({
       $or: [{ email }, { contactNo }],
     });
@@ -40,8 +43,10 @@ export const registerVendor = async (req, res) => {
       return res.status(400).json({ msg: "Vendor already exists" });
     }
 
+    
     const hashedPassword = await bcrypt.hash(password, 10);
 
+ 
     const vendor = await Vendor.create({
       name,
       email,
@@ -56,24 +61,28 @@ export const registerVendor = async (req, res) => {
       status: "pending",
     });
 
-    // ✅ SAFE EMAIL (will NOT crash backend)
-    try {
-      await sendPendingMail(email, name);
-    } catch (mailErr) {
-      console.error("Pending email failed:", mailErr.message);
-    }
-
+ 
     res.status(201).json({
       msg: "Registered successfully. Approval pending.",
       vendor,
     });
+
+    
+    sendPendingMail(email, name)
+      .then(() => {
+        console.log("✅ Pending approval email sent to:", email);
+      })
+      .catch((err) => {
+        console.error("❌ Pending email failed:", err.message);
+      });
+
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ msg: err.message });
+    console.error("Register vendor error:", err);
+    res.status(500).json({ msg: "Server error" });
   }
 };
 
-/* ================= LOGIN ================= */
+
 export const loginVendor = async (req, res) => {
   try {
     const { contactNo, password } = req.body;
@@ -103,21 +112,22 @@ export const loginVendor = async (req, res) => {
       vendor,
     });
   } catch (err) {
-    res.status(500).json({ msg: err.message });
+    console.error("Vendor login error:", err);
+    res.status(500).json({ msg: "Server error" });
   }
 };
 
-/* ================= GET ALL VENDORS ================= */
 export const getAllVendors = async (req, res) => {
   try {
     const vendors = await Vendor.find().sort({ createdAt: -1 });
     res.json(vendors);
   } catch (err) {
-    res.status(500).json({ msg: err.message });
+    console.error("Get vendors error:", err);
+    res.status(500).json({ msg: "Server error" });
   }
 };
 
-/* ================= APPROVE ================= */
+
 export const approveVendor = async (req, res) => {
   try {
     const vendor = await Vendor.findById(req.params.id);
@@ -133,19 +143,18 @@ export const approveVendor = async (req, res) => {
     vendor.vendorCode = "VND-" + Math.floor(1000 + Math.random() * 9000);
     await vendor.save();
 
-    // ✅ SAFE APPROVAL EMAIL
-    try {
-      await sendApprovalMail(
-        vendor.email,
-        vendor.name,
-        vendor.vendorCode
-      );
-    } catch (mailErr) {
-      console.error("Approval email failed:", mailErr.message);
-    }
+
+    sendApprovalMail(vendor.email, vendor.name, vendor.vendorCode)
+      .then(() => {
+        console.log("✅ Approval email sent to:", vendor.email);
+      })
+      .catch((err) => {
+        console.error("❌ Approval email failed:", err.message);
+      });
 
     res.json({ msg: "Vendor approved successfully" });
   } catch (err) {
-    res.status(500).json({ msg: err.message });
+    console.error("Approve vendor error:", err);
+    res.status(500).json({ msg: "Server error" });
   }
 };
