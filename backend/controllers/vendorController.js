@@ -2,7 +2,7 @@ import Vendor from "../models/vendorModel.js";
 import bcrypt from "bcryptjs";
 import { sendPendingMail, sendApprovalMail } from "../utils/emailService.js";
 
-
+/* ================= REGISTER ================= */
 export const registerVendor = async (req, res) => {
   try {
     const {
@@ -18,7 +18,7 @@ export const registerVendor = async (req, res) => {
       password,
     } = req.body;
 
-   
+    // ✅ Validation
     if (
       !name ||
       !email ||
@@ -29,24 +29,23 @@ export const registerVendor = async (req, res) => {
       !vendorType ||
       !category
     ) {
-      return res
-        .status(400)
-        .json({ msg: "All required fields must be filled" });
+      return res.status(400).json({
+        message: "All required fields must be filled",
+      });
     }
 
-   
     const exists = await Vendor.findOne({
       $or: [{ email }, { contactNo }],
     });
 
     if (exists) {
-      return res.status(400).json({ msg: "Vendor already exists" });
+      return res.status(400).json({
+        message: "Vendor already exists",
+      });
     }
 
-    
     const hashedPassword = await bcrypt.hash(password, 10);
 
- 
     const vendor = await Vendor.create({
       name,
       email,
@@ -61,100 +60,114 @@ export const registerVendor = async (req, res) => {
       status: "pending",
     });
 
- 
+    // ✅ response pehle
     res.status(201).json({
-      msg: "Registered successfully. Approval pending.",
+      message: "Registered successfully. Approval pending.",
       vendor,
     });
 
-    
-    sendPendingMail(email, name)
-      .then(() => {
-        console.log("✅ Pending approval email sent to:", email);
-      })
-      .catch((err) => {
-        console.error("❌ Pending email failed:", err.message);
-      });
-
+    // 📧 Email non-blocking
+    sendPendingMail(email, name).catch((err) =>
+      console.error("❌ Pending email failed:", err.message)
+    );
   } catch (err) {
     console.error("Register vendor error:", err);
-    res.status(500).json({ msg: "Server error" });
+    res.status(500).json({
+      message: "Server error",
+    });
   }
 };
 
-
+/* ================= LOGIN ================= */
 export const loginVendor = async (req, res) => {
   try {
     const { contactNo, password } = req.body;
 
     if (!contactNo || !password) {
-      return res
-        .status(400)
-        .json({ msg: "Contact number and password required" });
+      return res.status(400).json({
+        message: "Contact number and password required",
+      });
     }
 
     const vendor = await Vendor.findOne({ contactNo });
     if (!vendor) {
-      return res.status(404).json({ msg: "Vendor not found" });
+      return res.status(404).json({
+        message: "Vendor not found",
+      });
     }
 
     if (vendor.status !== "approved") {
-      return res.status(403).json({ msg: "Approval pending" });
+      return res.status(403).json({
+        message:
+          "Your account is not approved yet. Please wait for admin approval.",
+      });
     }
 
     const isMatch = await bcrypt.compare(password, vendor.password);
     if (!isMatch) {
-      return res.status(400).json({ msg: "Invalid credentials" });
+      return res.status(400).json({
+        message: "Invalid credentials",
+      });
     }
 
     res.json({
-      msg: "Login successful",
+      message: "Login successful",
       vendor,
     });
   } catch (err) {
     console.error("Vendor login error:", err);
-    res.status(500).json({ msg: "Server error" });
+    res.status(500).json({
+      message: "Server error",
+    });
   }
 };
 
+/* ================= GET ALL ================= */
 export const getAllVendors = async (req, res) => {
   try {
     const vendors = await Vendor.find().sort({ createdAt: -1 });
     res.json(vendors);
   } catch (err) {
-    console.error("Get vendors error:", err);
-    res.status(500).json({ msg: "Server error" });
+    res.status(500).json({
+      message: "Server error",
+    });
   }
 };
 
-
+/* ================= APPROVE ================= */
 export const approveVendor = async (req, res) => {
   try {
     const vendor = await Vendor.findById(req.params.id);
     if (!vendor) {
-      return res.status(404).json({ msg: "Vendor not found" });
+      return res.status(404).json({
+        message: "Vendor not found",
+      });
     }
 
     if (vendor.status === "approved") {
-      return res.json({ msg: "Already approved" });
+      return res.json({
+        message: "Already approved",
+      });
     }
 
     vendor.status = "approved";
     vendor.vendorCode = "VND-" + Math.floor(1000 + Math.random() * 9000);
     await vendor.save();
 
+    sendApprovalMail(
+      vendor.email,
+      vendor.name,
+      vendor.vendorCode
+    ).catch((err) =>
+      console.error("❌ Approval email failed:", err.message)
+    );
 
-    sendApprovalMail(vendor.email, vendor.name, vendor.vendorCode)
-      .then(() => {
-        console.log("✅ Approval email sent to:", vendor.email);
-      })
-      .catch((err) => {
-        console.error("❌ Approval email failed:", err.message);
-      });
-
-    res.json({ msg: "Vendor approved successfully" });
+    res.json({
+      message: "Vendor approved successfully",
+    });
   } catch (err) {
-    console.error("Approve vendor error:", err);
-    res.status(500).json({ msg: "Server error" });
+    res.status(500).json({
+      message: "Server error",
+    });
   }
 };
