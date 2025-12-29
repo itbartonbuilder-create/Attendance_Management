@@ -130,7 +130,6 @@ export const loginVendor = async (req, res) => {
   }
 };
 
-/* ================= GET ALL VENDORS ================= */
 export const getAllVendors = async (req, res) => {
   try {
     const vendors = await Vendor.find().sort({ createdAt: -1 });
