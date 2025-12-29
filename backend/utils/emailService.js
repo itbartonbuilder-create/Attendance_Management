@@ -1,36 +1,49 @@
 import nodemailer from "nodemailer";
 
 export const transporter = nodemailer.createTransport({
-  service: "gmail",
+  host: "smtp.gmail.com",
+  port: 587,
+  secure: false, // TLS
   auth: {
     user: process.env.EMAIL_USER,
     pass: process.env.EMAIL_PASS,
   },
 });
 
-export const sendPendingMail = async (email, name) => {
+// verify only in production (optional)
+if (process.env.NODE_ENV === "production") {
+  transporter.verify((error, success) => {
+    if (error) {
+      console.log("❌ Email config error:", error);
+    } else {
+      console.log("✅ Email server ready");
+    }
+  });
+}
+
+// ================== PENDING MAIL ==================
+export const sendPendingMail = async (toEmail, name) => {
   await transporter.sendMail({
-    from: `"Bartons Builders" <${process.env.EMAIL_USER}>`,
-    to: email,
-    subject: "Vendor Registration Received",
+    from: `"Attendance App" <${process.env.EMAIL_USER}>`,
+    to: toEmail,
+    subject: "Vendor Registration Pending",
     html: `
-      <h3>Hello ${name},</h3>
-      <p>Thank you for registering as a vendor.</p>
-      <p>Your approval is <b>pending</b>.</p>
-      <p>You will receive another email once approved.</p>
+      <h2>Hello ${name}</h2>
+      <p>Your vendor registration is <b>pending approval</b>.</p>
+      <p>We will notify you once approved.</p>
     `,
   });
 };
 
-export const sendApprovalMail = async (email, name, vendorCode) => {
+// ================== APPROVAL MAIL ==================
+export const sendApprovalMail = async (toEmail, name) => {
   await transporter.sendMail({
-    from: `"Bartons Builders" <${process.env.EMAIL_USER}>`,
-    to: email,
-    subject: "Vendor Approved 🎉",
+    from: `"Attendance App" <${process.env.EMAIL_USER}>`,
+    to: toEmail,
+    subject: "Vendor Registration Approved",
     html: `
-      <h3>Congratulations ${name},</h3>
-      <p>Your vendor account has been approved.</p>
-      <h2>Vendor Code: ${vendorCode}</h2>
+      <h2>Congratulations ${name} 🎉</h2>
+      <p>Your vendor account has been <b>approved</b>.</p>
       <p>You can now login.</p>
     `,
   });
