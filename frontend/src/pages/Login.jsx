@@ -28,6 +28,18 @@ const [gst, setGst] = useState("");
 
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
+  const resetVendorForm = () => {
+    setName("");
+    setCompanyName("");
+    setContactNo("");
+    setAadhar("");
+    setPan("");
+    setGst("");
+    setVendorType("");
+    setCategory("");
+    setEmail("");
+    setPassword("");
+  };
 
  const handleLogin = async (e) => {
   e.preventDefault();
@@ -110,6 +122,7 @@ const [gst, setGst] = useState("");
           password,
         }
       );
+       resetVendorForm(); 
 
       alert("⏳ Vendor registered successfully. Admin approval pending.");
       return;
