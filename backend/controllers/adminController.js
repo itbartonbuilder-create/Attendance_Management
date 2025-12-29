@@ -4,28 +4,23 @@ import { sendApprovalMail } from "../utils/emailService.js";
 export const approveVendor = async (req, res) => {
   try {
     const vendor = await Vendor.findById(req.params.id);
-    if (!vendor) {
-      return res.status(404).json({ message: "Vendor not found" });
-    }
+    if (!vendor) return res.status(404).json({ msg: "Vendor not found" });
 
-    if (vendor.status === "approved") {
-      return res.json({ message: "Already approved" });
-    }
+    const lastVendor = await Vendor.findOne({ vendorCode: { $ne: null } })
+      .sort({ vendorCode: -1 });
+
+    const newCode = lastVendor
+      ? String(Number(lastVendor.vendorCode) + 1).padStart(3, "0")
+      : "001";
 
     vendor.status = "approved";
-    vendor.vendorCode = "VND-" + Math.floor(1000 + Math.random() * 9000);
+    vendor.vendorCode = newCode;
     await vendor.save();
 
-    
-    await sendApprovalMail(
-      vendor.email,
-      vendor.name,
-      vendor.vendorCode
-    );
+    await sendApprovalMail(vendor.email, vendor.name, newCode);
 
-    res.json({ message: "Vendor approved successfully" });
+    res.json({ msg: "Vendor approved successfully" });
   } catch (err) {
-    console.error("Approve vendor error:", err);
-    res.status(500).json({ message: err.message });
+    res.status(500).json({ msg: err.message });
   }
 };
