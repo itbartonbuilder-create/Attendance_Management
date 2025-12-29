@@ -390,13 +390,13 @@ const [gst, setGst] = useState("");
                 <>
                  <input
   placeholder="Contact Number"
-  value={contactNo}   style={halfInput}
+  value={contactNo}   style={inputStyle}
   onChange={(e) => setContactNo(e.target.value)}
 />
 
 <input 
   type="password"
-  placeholder="Password"   style={halfInput}
+  placeholder="Password"   style={inputStyle}
   value={password}
   onChange={(e) => setPassword(e.target.value)}
 />
