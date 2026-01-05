@@ -15,9 +15,16 @@ function Navbar() {
     if (savedUser) setUser(JSON.parse(savedUser));
   }, [location.pathname]);
 
+ useEffect(() => {
+  setMenuOpen(false);
+  setWorkerDropdown(false);
+}, [location.pathname]);
+
   useEffect(() => {
-    setMenuOpen(false);
-  }, [location.pathname]);
+    const closeDropdown = () => setWorkerDropdown(false);
+    document.addEventListener("click", closeDropdown);
+    return () => document.removeEventListener("click", closeDropdown);
+  }, []);
 
   if (location.pathname === "/" || location.pathname === "/login") return null;
   if (!user) return null;
