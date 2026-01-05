@@ -259,8 +259,8 @@ function Employees() {
                     <td>{emp.contactNo}</td>
                     <td>₹{emp.salary}</td>
                     <td>
-                      <button onClick={() => editEmployee(emp)}>✏️</button>
-                      <button onClick={() => deleteEmployee(emp._id)}>❌</button>
+                      <button onClick={() => editEmployee(emp)}>Edit</button>
+                      <button onClick={() => deleteEmployee(emp._id)}>Delete</button>
                     </td>
                   </tr>
                 ))}
