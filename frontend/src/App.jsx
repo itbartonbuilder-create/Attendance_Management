@@ -16,6 +16,7 @@ import VendorDashboard from "./pages/VendorDashboard";
 import AdminBills from "./pages/AdminBills";
 import ManagerBills from "./pages/ManagerBills";
 import AdminVendors from "./pages/AdminVendors";
+import Employees from "./pages/Employees";
 
 function App() {
   return (
@@ -39,6 +40,7 @@ function App() {
         <Route path="/admin/bills" element={<AdminBills />} />
         <Route path="/vendors" element={<AdminVendors />} />
 <Route path="/manager/bills" element={<ManagerBills />} />
+        <Route path="/employees" element={<Employees />} />
       </Routes>
             </div>
         <Footer />
