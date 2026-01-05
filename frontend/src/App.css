@@ -1013,5 +1013,131 @@ select{
 }
 
 
+.page {
+  min-height: 100vh;
+  background: #1f1f1f;
+  color: #ffffff;
+  padding: 40px 30px;
+  font-family: "Segoe UI", sans-serif;
+}
+
+.page h2 {
+  font-size: 28px;
+  margin-bottom: 25px;
+  font-weight: 600;
+}
+
+/* ================= FORM SECTION ================= */
+
+.page input[type="text"],
+.page input[type="file"],
+.page input {
+  background: #2a2a2a;
+  border: 1px solid #3b3b3b;
+  color: #fff;
+  padding: 10px 12px;
+  border-radius: 6px;
+  font-size: 14px;
+  outline: none;
+}
+
+.page input::placeholder {
+  color: #aaa;
+}
+
+.page input:focus {
+  border-color: #1e90ff;
+}
+
+/* Grid layout for inputs */
+.page > input {
+  margin-bottom: 12px;
+}
+
+.page > input:nth-child(-n + 7) {
+  width: 13%;
+  margin-right: 1%;
+}
+
+/* ================= BUTTON ================= */
+
+.page button {
+  background: #1e90ff;
+  border: none;
+  padding: 10px 18px;
+  color: white;
+  font-weight: 600;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background 0.3s ease;
+}
+
+.page button:hover {
+  background: #0d6efd;
+}
+
+/* ================= DIVIDER ================= */
+
+.page hr {
+  border: none;
+  border-top: 1px solid #333;
+  margin: 25px 0;
+}
+
+/* ================= EMPLOYEE LIST ================= */
+
+.page > div[key] {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: #2b2b2b;
+  padding: 12px 16px;
+  border-radius: 6px;
+  margin-bottom: 10px;
+  font-size: 14px;
+}
+
+.page > div[key] button {
+  background: #e74c3c;
+  padding: 6px 12px;
+  font-size: 13px;
+}
+
+.page > div[key] button:hover {
+  background: #c0392b;
+}
+
+/* ================= RESPONSIVE ================= */
+
+@media (max-width: 1024px) {
+  .page > input:nth-child(-n + 7) {
+    width: 48%;
+    margin-right: 2%;
+  }
+}
+
+@media (max-width: 600px) {
+  .page {
+    padding: 20px 15px;
+  }
+
+  .page > input:nth-child(-n + 7) {
+    width: 100%;
+    margin-right: 0;
+  }
+
+  .page > div[key] {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+}
+
+
+
+
+
+
+
 
 
