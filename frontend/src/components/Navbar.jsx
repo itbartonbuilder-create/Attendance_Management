@@ -3,6 +3,8 @@ import { Link, useNavigate, useLocation } from "react-router-dom";
 import logo from "../assets/logo.png";
 
 function Navbar() {
+  const [workerDropdown, setWorkerDropdown] = useState(false);
+
   const [user, setUser] = useState(null);
   const [menuOpen, setMenuOpen] = useState(false);
   const navigate = useNavigate();
@@ -75,7 +77,7 @@ function Navbar() {
         {role === "admin" && (
           <>
             <Link to="/dashboard" style={linkStyle}>Dashboard</Link>
-                 <div style={{ position: "relative" }}>
+           <div style={{ position: "relative" }}>
   <span
     style={{ ...linkStyle, cursor: "pointer" }}
     onClick={(e) => {
@@ -106,13 +108,17 @@ function Navbar() {
     </div>
   )}
 </div>
-            {/* <Link to="/workers" style={linkStyle}>Workers</Link> */}
+
+
+             {/* <Link to="/employees" style={linkStyle}>Employees</Link> */}
+
+            {/* <Link to="/workers" style={linkStyle}>Workers</Link>  */}
             <Link to="/attendance" style={linkStyle}>Attendance</Link>
             <Link to="/managers" style={linkStyle}>Managers</Link>
             <Link to="/reports" style={linkStyle}>Reports</Link>
              <Link to="/task" style={linkStyle}>Task</Link>
              <Link to="/admin/bills" style={linkStyle}>Bills</Link>
-                <Link to="/vendors" style={linkStyle}>Vendors</Link>
+                 <Link to="/vendors" style={linkStyle}>Vendors</Link>
             <Link to="/profile" style={linkStyle}>Profile</Link>
           </>
         )}
@@ -200,5 +206,28 @@ const menuButtonStyle = {
   fontSize: 24,
   cursor: "pointer",
 };
+const dropdownStyle = {
+  position: "absolute",
+  top: "35px",
+  left: 0,
+  background: "#34495e",
+  borderRadius: 6,
+  minWidth: "140px",
+  display: "flex",
+  flexDirection: "column",
+  boxShadow: "0 4px 10px rgba(0,0,0,0.3)",
+  zIndex: 9999,
+  pointerEvents: "auto",
+};
+
+
+const dropdownItemStyle = {
+  color: "white",
+  padding: "10px 12px",
+  textDecoration: "none",
+  fontWeight: 500,
+};
+
+
 
 export default Navbar;
