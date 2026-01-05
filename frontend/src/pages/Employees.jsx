@@ -1,17 +1,9 @@
-import React, { useEffect, useState, useCallback } from "react";
+import React, { useEffect, useState } from "react";
 import axios from "axios";
 import "../App.css";
 
 function Employees() {
-  /* ================= USER ================= */
-  const [user, setUser] = useState(null);
-
-  useEffect(() => {
-    const savedUser = localStorage.getItem("user");
-    if (savedUser) {
-      setUser(JSON.parse(savedUser));
-    }
-  }, []);
+  const user = JSON.parse(localStorage.getItem("user"));
 
   const defaultSites = ["Bangalore", "Japuriya", "Vaishali", "Faridabad", "Other"];
 
@@ -32,21 +24,18 @@ function Employees() {
 
   /* ================= AUTH ================= */
   useEffect(() => {
-    if (!user) return;
-
-    if (user.role !== "admin" && user.role !== "manager") {
+    if (!user || (user.role !== "admin" && user.role !== "manager")) {
       alert("❌ Unauthorized");
       window.location.href = "/login";
-      return;
     }
 
-    if (user.role === "manager") {
+    if (user?.role === "manager") {
       setForm((prev) => ({ ...prev, site: user.site }));
     }
   }, [user]);
 
   /* ================= FETCH ================= */
-  const fetchEmployees = useCallback(async () => {
+  const fetchEmployees = async () => {
     try {
       const res = await axios.get(
         "https://attendance-management-backend-vh2w.onrender.com/api/employees"
@@ -54,7 +43,7 @@ function Employees() {
 
       const data = Array.isArray(res.data) ? res.data : [];
 
-      if (user?.role === "manager") {
+      if (user.role === "manager") {
         setEmployees(data.filter((e) => e.site === user.site));
       } else {
         setEmployees(data);
@@ -63,18 +52,18 @@ function Employees() {
       console.error(err);
       setEmployees([]);
     }
-  }, [user]);
+  };
 
   useEffect(() => {
-    if (user) fetchEmployees();
-  }, [user, fetchEmployees]);
+    fetchEmployees();
+  }, []);
 
   /* ================= RESET ================= */
   const resetForm = () => {
     setForm({
       name: "",
       role: "",
-      site: user?.role === "manager" ? user.site : "",
+      site: user.role === "manager" ? user.site : "",
       siteCustom: "",
       contactNo: "",
       salary: "",
@@ -134,6 +123,7 @@ function Employees() {
   /* ================= EDIT ================= */
   const editEmployee = (emp) => {
     setEditingId(emp._id);
+
     setForm({
       name: emp.name,
       role: emp.role,
@@ -158,11 +148,10 @@ function Employees() {
     }
   };
 
-  /* ================= UI ================= */
-  if (!user) return null;
-
+  /* ================= SITES ================= */
   const allSites = [...new Set(employees.map((e) => e.site))];
 
+  /* ================= UI ================= */
   return (
     <div className="workers-container">
       <h2>👨‍💼 Employees</h2>
@@ -170,7 +159,7 @@ function Employees() {
       {/* FORM */}
       <form className="workers-form" onSubmit={handleSubmit}>
         <input
-          placeholder="Name"
+          placeholder="Employee Name"
           value={form.name}
           onChange={(e) => setForm({ ...form, name: e.target.value })}
           required
@@ -183,6 +172,7 @@ function Employees() {
           required
         />
 
+        {/* SITE */}
         {user.role === "admin" ? (
           <>
             <select
@@ -214,7 +204,7 @@ function Employees() {
         )}
 
         <input
-          placeholder="Contact"
+          placeholder="Contact Number"
           value={form.contactNo}
           onChange={(e) => setForm({ ...form, contactNo: e.target.value })}
           maxLength={10}
@@ -229,8 +219,24 @@ function Employees() {
           required
         />
 
-        <input type="file" onChange={(e) => setAadhaarFile(e.target.files[0])} />
-        <input type="file" onChange={(e) => setPanFile(e.target.files[0])} />
+        {/* FILE INPUTS */}
+        <label>
+          Aadhaar Card:
+          <input
+            type="file"
+            accept="image/*"
+            onChange={(e) => setAadhaarFile(e.target.files[0])}
+          />
+        </label>
+
+        <label>
+          PAN Card:
+          <input
+            type="file"
+            accept="image/*"
+            onChange={(e) => setPanFile(e.target.files[0])}
+          />
+        </label>
 
         <button type="submit">
           {editingId ? "Update Employee" : "Add Employee"}
@@ -243,7 +249,7 @@ function Employees() {
         )}
       </form>
 
-      {/* TABLE */}
+      {/* TABLES SITE WISE */}
       {allSites.map((site) => (
         <div key={site}>
           <h3>🏗 {site}</h3>
@@ -255,6 +261,8 @@ function Employees() {
                 <th>Role</th>
                 <th>Contact</th>
                 <th>Salary</th>
+                <th>Aadhaar</th>
+                <th>PAN</th>
                 <th>Action</th>
               </tr>
             </thead>
@@ -268,6 +276,35 @@ function Employees() {
                     <td>{emp.role}</td>
                     <td>{emp.contactNo}</td>
                     <td>₹{emp.salary}</td>
+
+                    <td>
+                      {emp.aadhaarDoc ? (
+                        <a
+                          href={`https://attendance-management-backend-vh2w.onrender.com/${emp.aadhaarDoc}`}
+                          target="_blank"
+                          rel="noreferrer"
+                        >
+                          View
+                        </a>
+                      ) : (
+                        "N/A"
+                      )}
+                    </td>
+
+                    <td>
+                      {emp.panDoc ? (
+                        <a
+                          href={`https://attendance-management-backend-vh2w.onrender.com/${emp.panDoc}`}
+                          target="_blank"
+                          rel="noreferrer"
+                        >
+                          View
+                        </a>
+                      ) : (
+                        "N/A"
+                      )}
+                    </td>
+
                     <td>
                       <button onClick={() => editEmployee(emp)}>Edit</button>
                       <button onClick={() => deleteEmployee(emp._id)}>Delete</button>
