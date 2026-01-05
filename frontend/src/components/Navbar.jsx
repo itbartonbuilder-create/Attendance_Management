@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import logo from "../assets/logo.png";
-
 function Navbar() {
   const [workerDropdown, setWorkerDropdown] = useState(false);
 
