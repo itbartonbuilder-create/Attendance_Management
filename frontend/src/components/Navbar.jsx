@@ -75,7 +75,38 @@ function Navbar() {
         {role === "admin" && (
           <>
             <Link to="/dashboard" style={linkStyle}>Dashboard</Link>
-            <Link to="/workers" style={linkStyle}>Workers</Link>
+                 <div style={{ position: "relative" }}>
+  <span
+    style={{ ...linkStyle, cursor: "pointer" }}
+    onClick={(e) => {
+      e.stopPropagation(); 
+      setWorkerDropdown(!workerDropdown);
+    }}
+  >
+    Workers ▾
+  </span>
+
+  {workerDropdown && (
+    <div style={dropdownStyle}>
+      <Link
+        to="/employees"
+        style={dropdownItemStyle}
+        onClick={() => setWorkerDropdown(false)}
+      >
+        Employees
+      </Link>
+
+      <Link
+        to="/workers"
+        style={dropdownItemStyle}
+        onClick={() => setWorkerDropdown(false)}
+      >
+        Workers
+      </Link>
+    </div>
+  )}
+</div>
+            {/* <Link to="/workers" style={linkStyle}>Workers</Link> */}
             <Link to="/attendance" style={linkStyle}>Attendance</Link>
             <Link to="/managers" style={linkStyle}>Managers</Link>
             <Link to="/reports" style={linkStyle}>Reports</Link>
