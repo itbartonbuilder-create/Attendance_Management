@@ -1,44 +1,55 @@
 import React, { useEffect, useState } from "react";
-import "../App.css";
 import axios from "axios";
+import "../App.css";
 
 function Employees() {
+  const user = JSON.parse(localStorage.getItem("user"));
+
+  const defaultSites = ["Bangalore", "Japuriya", "Vaishali", "Faridabad", "Other"];
+
   const [employees, setEmployees] = useState([]);
+  const [editingId, setEditingId] = useState(null);
+
   const [form, setForm] = useState({
     name: "",
     role: "",
     site: "",
+    siteCustom: "",
     contactNo: "",
     salary: "",
-    siteCustom: "",
   });
+
   const [aadhaarFile, setAadhaarFile] = useState(null);
   const [panFile, setPanFile] = useState(null);
-  const [editingId, setEditingId] = useState(null);
 
-  const defaultSites = ["Bangalore", "Japuriya", "Vashali", "Faridabad", "Other"];
-  const user = JSON.parse(localStorage.getItem("user"));
-
+  /* ================= AUTH ================= */
   useEffect(() => {
     if (!user || (user.role !== "admin" && user.role !== "manager")) {
-      alert("❌ You are not authorized!");
+      alert("❌ Unauthorized");
       window.location.href = "/login";
+    }
+
+    if (user?.role === "manager") {
+      setForm((prev) => ({ ...prev, site: user.site }));
     }
   }, [user]);
 
+  /* ================= FETCH ================= */
   const fetchEmployees = async () => {
     try {
       const res = await axios.get(
         "https://attendance-management-backend-vh2w.onrender.com/api/employees"
       );
-      const empArray = Array.isArray(res.data) ? res.data : [];
+
+      const data = Array.isArray(res.data) ? res.data : [];
+
       if (user.role === "manager") {
-        setEmployees(empArray.filter((e) => e.site === user.site));
+        setEmployees(data.filter((e) => e.site === user.site));
       } else {
-        setEmployees(empArray);
+        setEmployees(data);
       }
     } catch (err) {
-      console.error("Error fetching employees:", err);
+      console.error(err);
       setEmployees([]);
     }
   };
@@ -47,33 +58,35 @@ function Employees() {
     fetchEmployees();
   }, []);
 
+  /* ================= RESET ================= */
   const resetForm = () => {
     setForm({
       name: "",
       role: "",
-      site: "",
+      site: user.role === "manager" ? user.site : "",
       siteCustom: "",
       contactNo: "",
       salary: "",
     });
+    setEditingId(null);
     setAadhaarFile(null);
     setPanFile(null);
-    setEditingId(null);
   };
 
+  /* ================= SUBMIT ================= */
   const handleSubmit = async (e) => {
     e.preventDefault();
 
     if (!/^\d{10}$/.test(form.contactNo)) {
-      alert("Enter valid 10-digit contact number");
+      alert("Enter valid 10 digit number");
       return;
     }
 
     const finalSite =
-      form.site === "Other" && form.siteCustom ? form.siteCustom : form.site;
+      form.site === "Other" ? form.siteCustom.trim() : form.site;
 
     if (!finalSite) {
-      alert("Please select or enter a site");
+      alert("Site required");
       return;
     }
 
@@ -99,84 +112,73 @@ function Employees() {
           data
         );
       }
+
       fetchEmployees();
       resetForm();
-    } catch (err) {
-      console.error("Error adding/updating employee:", err);
-    }
-  };
-
-  const editEmployee = (emp) => {
-    if (user.role === "manager" && emp.site !== user.site) {
-      alert("❌ You cannot edit employees from another site!");
-      return;
-    }
-    setForm({
-      name: emp.name,
-      role: emp.role,
-      site: defaultSites.includes(emp.site) ? emp.site : "Other",
-      siteCustom: !defaultSites.includes(emp.site) ? emp.site : "",
-      contactNo: emp.contactNo,
-      salary: emp.salary,
-    });
-    setEditingId(emp._id);
-  };
-
-  const deleteEmployee = async (id) => {
-    const emp = employees.find((e) => e._id === id);
-    if (user.role === "manager" && emp.site !== user.site) {
-      alert("❌ You cannot delete employees from another site!");
-      return;
-    }
-    try {
-      await axios.delete(
-        `https://attendance-management-backend-vh2w.onrender.com/api/employees/${id}`
-      );
-      setEmployees(employees.filter((e) => e._id !== id));
     } catch (err) {
       console.error(err);
     }
   };
 
-  // Dynamically get all unique site names from employees
-  const allSites = [
-    ...new Set(employees.map((e) => e.site))
-  ];
+  /* ================= EDIT ================= */
+  const editEmployee = (emp) => {
+    setEditingId(emp._id);
 
+    setForm({
+      name: emp.name,
+      role: emp.role,
+      site: defaultSites.includes(emp.site) ? emp.site : "Other",
+      siteCustom: defaultSites.includes(emp.site) ? "" : emp.site,
+      contactNo: emp.contactNo,
+      salary: emp.salary,
+    });
+  };
+
+  /* ================= DELETE ================= */
+  const deleteEmployee = async (id) => {
+    if (!window.confirm("Delete employee?")) return;
+
+    try {
+      await axios.delete(
+        `https://attendance-management-backend-vh2w.onrender.com/api/employees/${id}`
+      );
+      fetchEmployees();
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  /* ================= SITES ================= */
+  const allSites = [...new Set(employees.map((e) => e.site))];
+
+  /* ================= UI ================= */
   return (
     <div className="workers-container">
       <h2>👨‍💼 Employees</h2>
 
-      <form
-        onSubmit={handleSubmit}
-        className="workers-form"
-        style={{ marginBottom: "20px" }}
-      >
+      {/* FORM */}
+      <form className="workers-form" onSubmit={handleSubmit}>
         <input
-          type="text"
-          placeholder="Enter employee name"
+          placeholder="Name"
           value={form.name}
           onChange={(e) => setForm({ ...form, name: e.target.value })}
           required
-          style={{ marginRight: "10px", padding: "9px" }}
         />
 
         <input
-          type="text"
-          placeholder="Enter role"
+          placeholder="Role"
           value={form.role}
           onChange={(e) => setForm({ ...form, role: e.target.value })}
           required
-          style={{ marginRight: "10px", padding: "9px" }}
         />
 
-        {user.role === "admin" && (
+        {/* SITE */}
+        {user.role === "admin" ? (
           <>
             <select
               value={form.site}
               onChange={(e) => setForm({ ...form, site: e.target.value })}
               required
-              style={{ marginRight: "10px", padding: "9px" }}
             >
               <option value="">Select Site</option>
               {defaultSites.map((s) => (
@@ -188,160 +190,77 @@ function Employees() {
 
             {form.site === "Other" && (
               <input
-                type="text"
-                placeholder="Enter site name"
+                placeholder="Custom Site Name"
                 value={form.siteCustom}
                 onChange={(e) =>
                   setForm({ ...form, siteCustom: e.target.value })
                 }
                 required
-                style={{ marginRight: "10px", padding: "9px" }}
               />
             )}
           </>
+        ) : (
+          <input value={user.site} readOnly />
         )}
 
         <input
-          type="text"
-          placeholder="Contact Number"
+          placeholder="Contact"
           value={form.contactNo}
           onChange={(e) => setForm({ ...form, contactNo: e.target.value })}
+          maxLength={10}
           required
-          maxLength="10"
-          style={{ marginRight: "10px", padding: "9px" }}
         />
 
         <input
-          type="number"
           placeholder="Salary"
+          type="number"
           value={form.salary}
           onChange={(e) => setForm({ ...form, salary: e.target.value })}
           required
-          style={{ marginRight: "10px", padding: "9px" }}
         />
 
-        <label>
-          Aadhaar:
-          <input
-            type="file"
-            accept="image/*"
-            onChange={(e) => setAadhaarFile(e.target.files[0])}
-            style={{ marginRight: "10px" }}
-          />
-        </label>
-
-        <label>
-          PAN:
-          <input
-            type="file"
-            accept="image/*"
-            onChange={(e) => setPanFile(e.target.files[0])}
-            style={{ marginRight: "10px" }}
-          />
-        </label>
+        <input type="file" onChange={(e) => setAadhaarFile(e.target.files[0])} />
+        <input type="file" onChange={(e) => setPanFile(e.target.files[0])} />
 
         <button type="submit">
           {editingId ? "Update Employee" : "Add Employee"}
         </button>
 
         {editingId && (
-          <button
-            type="button"
-            onClick={resetForm}
-            style={{ marginLeft: "10px" }}
-          >
+          <button type="button" onClick={resetForm}>
             Cancel
           </button>
         )}
       </form>
 
-      {/* Employee tables per site */}
-      {allSites.map((siteName) => (
-        <div key={siteName}>
-          <h3 style={{ marginTop: "20px" }}>🏗 Site: {siteName}</h3>
-          <table
-            border="1"
-            cellPadding="8"
-            style={{ width: "100%", borderCollapse: "collapse" }}
-          >
-            <thead style={{ background: "#2C3E50", color: "white" }}>
+      {/* TABLES SITE WISE */}
+      {allSites.map((site) => (
+        <div key={site}>
+          <h3>🏗 {site}</h3>
+          <table border="1" width="100%">
+            <thead>
               <tr>
-                <th>ID</th>
+                <th>#</th>
                 <th>Name</th>
                 <th>Role</th>
-                <th>Site</th>
-                <th>Contact No</th>
+                <th>Contact</th>
                 <th>Salary</th>
-                <th>Aadhaar</th>
-                <th>PAN</th>
                 <th>Action</th>
               </tr>
             </thead>
             <tbody>
               {employees
-                .filter((e) => e.site === siteName)
-                .map((emp, index) => (
+                .filter((e) => e.site === site)
+                .map((emp, i) => (
                   <tr key={emp._id}>
-                    <td>{index + 1}</td>
+                    <td>{i + 1}</td>
                     <td>{emp.name}</td>
                     <td>{emp.role}</td>
-                    <td>{emp.site}</td>
                     <td>{emp.contactNo}</td>
                     <td>₹{emp.salary}</td>
                     <td>
-                      {emp.aadhaarDoc ? (
-                        <a
-                          href={`https://attendance-management-backend-vh2w.onrender.com/${emp.aadhaarDoc}`}
-                          target="_blank"
-                          rel="noreferrer"
-                        >
-                          View
-                        </a>
-                      ) : (
-                        "N/A"
-                      )}
-                    </td>
-                    <td>
-                      {emp.panDoc ? (
-                        <a
-                          href={`https://attendance-management-backend-vh2w.onrender.com/${emp.panDoc}`}
-                          target="_blank"
-                          rel="noreferrer"
-                        >
-                          View
-                        </a>
-                      ) : (
-                        "N/A"
-                      )}
-                    </td>
-                    <td>
-                      <button
-                        onClick={() => editEmployee(emp)}
-                        style={{
-                          background: "#3498db",
-                          color: "white",
-                          border: "none",
-                          padding: "5px 10px",
-                          cursor: "pointer",
-                          borderRadius: "4px",
-                          marginRight: "5px",
-                        }}
-                      >
-                        ✏️ Edit
-                      </button>
-                      <button
-                        onClick={() => deleteEmployee(emp._id)}
-                        style={{
-                          background: "#e74c3c",
-                          color: "white",
-                          border: "none",
-                          padding: "5px 10px",
-                          cursor: "pointer",
-                          borderRadius: "4px",
-                        }}
-                      >
-                        ❌ Delete
-                      </button>
+                      <button onClick={() => editEmployee(emp)}>✏️</button>
+                      <button onClick={() => deleteEmployee(emp._id)}>❌</button>
                     </td>
                   </tr>
                 ))}
