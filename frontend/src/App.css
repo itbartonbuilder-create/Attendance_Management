@@ -1017,7 +1017,7 @@ select{
   min-height: 100vh;
   background: #1f1f1f;
   color: #ffffff;
-  padding: 40px 30px;
+  /* padding: 40px 30px; */
   font-family: "Segoe UI", sans-serif;
 }
 
