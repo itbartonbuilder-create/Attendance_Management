@@ -1,9 +1,17 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import axios from "axios";
 import "../App.css";
 
 function Employees() {
-  const user = JSON.parse(localStorage.getItem("user"));
+  /* ================= USER ================= */
+  const [user, setUser] = useState(null);
+
+  useEffect(() => {
+    const savedUser = localStorage.getItem("user");
+    if (savedUser) {
+      setUser(JSON.parse(savedUser));
+    }
+  }, []);
 
   const defaultSites = ["Bangalore", "Japuriya", "Vaishali", "Faridabad", "Other"];
 
@@ -24,18 +32,21 @@ function Employees() {
 
   /* ================= AUTH ================= */
   useEffect(() => {
-    if (!user || (user.role !== "admin" && user.role !== "manager")) {
+    if (!user) return;
+
+    if (user.role !== "admin" && user.role !== "manager") {
       alert("❌ Unauthorized");
       window.location.href = "/login";
+      return;
     }
 
-    if (user?.role === "manager") {
+    if (user.role === "manager") {
       setForm((prev) => ({ ...prev, site: user.site }));
     }
   }, [user]);
 
   /* ================= FETCH ================= */
-  const fetchEmployees = async () => {
+  const fetchEmployees = useCallback(async () => {
     try {
       const res = await axios.get(
         "https://attendance-management-backend-vh2w.onrender.com/api/employees"
@@ -43,7 +54,7 @@ function Employees() {
 
       const data = Array.isArray(res.data) ? res.data : [];
 
-      if (user.role === "manager") {
+      if (user?.role === "manager") {
         setEmployees(data.filter((e) => e.site === user.site));
       } else {
         setEmployees(data);
@@ -52,18 +63,18 @@ function Employees() {
       console.error(err);
       setEmployees([]);
     }
-  };
+  }, [user]);
 
   useEffect(() => {
-    fetchEmployees();
-  }, []);
+    if (user) fetchEmployees();
+  }, [user, fetchEmployees]);
 
   /* ================= RESET ================= */
   const resetForm = () => {
     setForm({
       name: "",
       role: "",
-      site: user.role === "manager" ? user.site : "",
+      site: user?.role === "manager" ? user.site : "",
       siteCustom: "",
       contactNo: "",
       salary: "",
@@ -123,7 +134,6 @@ function Employees() {
   /* ================= EDIT ================= */
   const editEmployee = (emp) => {
     setEditingId(emp._id);
-
     setForm({
       name: emp.name,
       role: emp.role,
@@ -148,10 +158,11 @@ function Employees() {
     }
   };
 
-  /* ================= SITES ================= */
+  /* ================= UI ================= */
+  if (!user) return null;
+
   const allSites = [...new Set(employees.map((e) => e.site))];
 
-  /* ================= UI ================= */
   return (
     <div className="workers-container">
       <h2>👨‍💼 Employees</h2>
@@ -172,7 +183,6 @@ function Employees() {
           required
         />
 
-        {/* SITE */}
         {user.role === "admin" ? (
           <>
             <select
@@ -233,7 +243,7 @@ function Employees() {
         )}
       </form>
 
-      {/* TABLES SITE WISE */}
+      {/* TABLE */}
       {allSites.map((site) => (
         <div key={site}>
           <h3>🏗 {site}</h3>
