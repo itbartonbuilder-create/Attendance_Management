@@ -17,8 +17,8 @@ function Employees() {
   const [pan, setPan] = useState(null);
 
   const fetchEmployees = async () => {
-    const res = await axios.get("/api/employees");
-    setEmployees(res.data.employees); // ✅ IMPORTANT
+    const res = await axios.get("https://attendance-management-backend-vh2w.onrender.com/api/employees");
+    setEmployees(res.data.employees); 
   };
 
   useEffect(() => {
@@ -31,7 +31,7 @@ function Employees() {
     data.append("aadhaar", aadhaar);
     data.append("pan", pan);
 
-    await axios.post("/api/employees", data);
+    await axios.post("https://attendance-management-backend-vh2w.onrender.com/api/employees", data);
     fetchEmployees();
   };
 
@@ -58,7 +58,7 @@ function Employees() {
         employees.map((emp) => (
           <div key={emp._id}>
             {emp.name} – {emp.role} – {emp.site}
-            <button onClick={()=>axios.delete(`/api/employees/${emp._id}`).then(fetchEmployees)}>
+            <button onClick={()=>axios.delete(`https://attendance-management-backend-vh2w.onrender.com/api/employees/${emp._id}`).then(fetchEmployees)}>
               Delete
             </button>
           </div>
