@@ -6,21 +6,23 @@ function Attendance() {
   const navigate = useNavigate();
   const [user, setUser] = useState(null);
   const [recordType, setRecordType] = useState("worker"); // worker or employee
-  const [sites, setSites] = useState([]); // dynamic sites from backend
+  const [sites, setSites] = useState([]);
   const [selectedSite, setSelectedSite] = useState("");
+  const [date, setDate] = useState(new Date().toISOString().split("T")[0]);
+
+  // Cache attendance per site + type + date
+  const [attendanceCache, setAttendanceCache] = useState({});
   const [records, setRecords] = useState([]);
-  const [date, setDate] = useState(() => new Date().toISOString().split("T")[0]);
 
   const BASE_API = "https://attendance-management-backend-vh2w.onrender.com/api";
 
-  // Load user & fetch sites
+  // --- Load user and sites ---
   useEffect(() => {
     const savedUser = localStorage.getItem("user");
     if (!savedUser) {
       navigate("/login");
       return;
     }
-
     const u = JSON.parse(savedUser);
     setUser(u);
 
@@ -29,16 +31,16 @@ function Attendance() {
       navigate("/dashboard");
     }
 
-    // Fetch all sites dynamically
     const fetchSites = async () => {
       try {
-        const resWorkers = await axios.get(`${BASE_API}/workers`);
-        const resEmployees = await axios.get(`${BASE_API}/employees`);
+        const [resWorkers, resEmployees] = await Promise.all([
+          axios.get(`${BASE_API}/workers`),
+          axios.get(`${BASE_API}/employees`)
+        ]);
         const allSites = new Set();
-        resWorkers.data.forEach((w) => allSites.add(w.site));
-        resEmployees.data.forEach((e) => allSites.add(e.site));
+        resWorkers.data.forEach(w => allSites.add(w.site));
+        resEmployees.data.forEach(e => allSites.add(e.site));
         setSites(Array.from(allSites));
-
         if (u.role === "manager") setSelectedSite(u.site);
       } catch (err) {
         console.error("Error fetching sites:", err);
@@ -47,122 +49,107 @@ function Attendance() {
     fetchSites();
   }, [navigate]);
 
-  // Fetch all workers/employees for selected site
-  const fetchRecordsBySite = async (site) => {
+  // --- Fetch records by type and site ---
+  const fetchRecordsByTypeAndSite = async (type, site) => {
     if (!site) return;
     try {
-      const urls =
-        recordType === "worker"
-          ? [`${BASE_API}/workers`]
-          : [`${BASE_API}/employees`];
+      const url = type === "worker" ? `${BASE_API}/workers` : `${BASE_API}/employees`;
+      const res = await axios.get(url);
 
-      const dataArrays = await Promise.all(
-        urls.map((url) => axios.get(url).then((res) => res.data))
-      );
-      let data = dataArrays.flat();
+      const filtered = res.data
+        .filter(p => p.site === site)
+        .map(p => ({
+          id: p._id,
+          name: p.name,
+          roleType: p.roleType || "Employee",
+          role: p.role || "N/A",
+          perDaySalary: Number(p.perDaySalary || p.salary) || 0,
+          status: "",
+          isFullDay: false,
+          overtimeHours: 0,
+          totalHours: 0,
+          salary: 0,
+          leaveType: { holiday: false, accepted: false },
+        }));
 
-      // Filter by selected site
-      data = data.filter((r) => r.site === site);
+      const cacheKey = `${site}-${type}-${date}`;
+      const cached = attendanceCache[cacheKey] || [];
+      const merged = filtered.map(f => cached.find(c => c.id === f.id) || f);
 
-      const formatted = data.map((w, i) => ({
-        srNo: i + 1,
-        id: w._id,
-        name: w.name,
-        roleType: w.roleType || "Employee",
-        role: w.role || "N/A",
-        perDaySalary: Number(w.perDaySalary || w.salary) || 0,
-        status: "",
-        isFullDay: false,
-        overtimeHours: 0,
-        totalHours: 0,
-        salary: 0,
-        leaveType: { holiday: false, accepted: false },
-      }));
-
-      setRecords(formatted);
+      const withSrNo = merged.map((r, i) => ({ ...r, srNo: i + 1 }));
+      setRecords(withSrNo);
     } catch (err) {
       console.error("Error fetching records:", err);
       setRecords([]);
     }
   };
 
-  // Fetch existing attendance for selected date
-  const fetchExistingAttendance = async (site, selectedDate) => {
+  // --- Fetch existing attendance from backend ---
+  const fetchExistingAttendance = async (site, selectedDate, type) => {
     if (!site || !selectedDate) return;
     try {
       const res = await axios.get(`${BASE_API}/attendance/get`, {
-        params: { date: selectedDate, site, type: recordType },
+        params: { date: selectedDate, site, type }
       });
+      const cacheKey = `${site}-${type}-${selectedDate}`;
 
       if (res.data?.records?.length > 0) {
-        setRecords((prev) =>
-          prev.map((r) => {
-            const match = res.data.records.find((a) => a.workerId === r.id);
-            if (!match) return r;
+        const formatted = res.data.records.map((r, i) => ({
+          id: r.workerId,
+          name: r.name,
+          roleType: r.roleType,
+          role: r.role,
+          perDaySalary: r.salary / (r.hoursWorked || 8),
+          status: r.status,
+          isFullDay: r.status === "Present" ? r.hoursWorked >= 8 : r.status === "Leave",
+          overtimeHours: r.overtimeHours || 0,
+          totalHours: r.hoursWorked || 0,
+          salary: r.salary || 0,
+          leaveType: r.leaveType || { holiday: false, accepted: false },
+        }));
 
-            const leaveType = match.leaveType || { holiday: false, accepted: false };
-            const isPaidLeave = leaveType.holiday || leaveType.accepted;
+        // Update cache separately for worker/employee
+        setAttendanceCache(prev => ({ ...prev, [cacheKey]: formatted }));
 
-            let totalHours = match.hoursWorked || 0;
-            let salary = match.salary || 0;
-
-            // ✅ Correct full day logic
-            let isFullDay = false;
-            if (match.status === "Present") {
-              isFullDay = match.hoursWorked >= 8;
-            } else if (match.status === "Leave" && isPaidLeave) {
-              totalHours = 8;
-              salary = r.perDaySalary;
-              isFullDay = true;
-            }
-
-            const overtime =
-              match.overtimeHours || (match.hoursWorked > 8 ? match.hoursWorked - 8 : 0);
-
-            return {
-              ...r,
-              status: match.status,
-              isFullDay,
-              overtimeHours: overtime,
-              totalHours,
-              salary,
-              leaveType,
-            };
-          })
-        );
+        const withSrNo = formatted.map((r, i) => ({ ...r, srNo: i + 1 }));
+        setRecords(withSrNo);
       }
     } catch (err) {
       console.error("Error fetching attendance:", err);
     }
   };
 
-  // Fetch records whenever site, date, or type changes
+  // --- Update records whenever site, date, or type changes ---
   useEffect(() => {
     if (!selectedSite) return;
-    fetchRecordsBySite(selectedSite);
-    fetchExistingAttendance(selectedSite, date);
+
+    const cacheKey = `${selectedSite}-${recordType}-${date}`;
+    if (attendanceCache[cacheKey]) {
+      const cached = attendanceCache[cacheKey].map((r, i) => ({ ...r, srNo: i + 1 }));
+      setRecords(cached);
+    } else {
+      fetchRecordsByTypeAndSite(recordType, selectedSite);
+      fetchExistingAttendance(selectedSite, date, recordType);
+    }
   }, [selectedSite, date, recordType]);
 
   // --- Handlers ---
   const handleStatusChange = (id, status) => {
-    setRecords((prev) =>
-      prev.map((r) => {
+    setRecords(prev =>
+      prev.map(r => {
         if (r.id !== id) return r;
         const resetLeave = { holiday: false, accepted: false };
-        if (status === "Present")
-          return { ...r, status, isFullDay: true, overtimeHours: 0, totalHours: 8, salary: r.perDaySalary, leaveType: resetLeave };
-        if (status === "Absent")
-          return { ...r, status, isFullDay: false, overtimeHours: 0, totalHours: 0, salary: 0, leaveType: resetLeave };
-        if (status === "Leave")
-          return { ...r, status, isFullDay: false, overtimeHours: 0, totalHours: 0, salary: 0, leaveType: resetLeave };
+        if (status === "Present") return { ...r, status, isFullDay: true, totalHours: 8, salary: r.perDaySalary, overtimeHours: 0, leaveType: resetLeave };
+        if (status === "Absent") return { ...r, status, isFullDay: false, totalHours: 0, salary: 0, overtimeHours: 0, leaveType: resetLeave };
+        if (status === "Leave") return { ...r, status, isFullDay: false, totalHours: 0, salary: 0, overtimeHours: 0, leaveType: resetLeave };
         return r;
       })
     );
   };
 
   const handleFullDayToggle = (id, checked) => {
-    setRecords((prev) =>
-      prev.map((r) => {
+    setRecords(prev =>
+      prev.map(r => {
         if (r.id === id) {
           const total = (checked ? 8 : 0) + r.overtimeHours;
           const salary = Math.round((r.perDaySalary / 8) * total);
@@ -174,8 +161,8 @@ function Attendance() {
   };
 
   const handleOvertimeChange = (id, hours) => {
-    setRecords((prev) =>
-      prev.map((r) => {
+    setRecords(prev =>
+      prev.map(r => {
         if (r.id === id) {
           const h = Math.max(0, Math.min(12, hours));
           const total = (r.isFullDay ? 8 : 0) + h;
@@ -188,8 +175,8 @@ function Attendance() {
   };
 
   const handleLeaveTypeChange = (id, type, checked) => {
-    setRecords((prev) =>
-      prev.map((r) => {
+    setRecords(prev =>
+      prev.map(r => {
         if (r.id === id) {
           const updatedLeave = { ...r.leaveType, [type]: checked };
           const isPaidLeave = updatedLeave.holiday || updatedLeave.accepted;
@@ -202,18 +189,18 @@ function Attendance() {
     );
   };
 
+  // --- Submit attendance separately per type ---
   const submitAttendance = async () => {
     if (!date || !selectedSite) {
       alert("⚠️ Please select date & site!");
       return;
     }
-
     try {
-      await axios.post(`${BASE_API}/attendance`, {
+      const payload = {
         date,
         site: selectedSite,
         type: recordType,
-        records: records.map((r) => ({
+        records: records.map(r => ({
           workerId: r.id,
           name: r.name,
           roleType: r.roleType,
@@ -222,10 +209,15 @@ function Attendance() {
           hoursWorked: r.totalHours,
           overtimeHours: r.overtimeHours,
           salary: r.salary,
-          leaveType: r.leaveType,
-        })),
-      });
-      alert("✅ Attendance saved successfully!");
+          leaveType: r.leaveType
+        }))
+      };
+      await axios.post(`${BASE_API}/attendance`, payload);
+      alert(`✅ ${recordType.toUpperCase()} attendance saved successfully!`);
+
+      // Update cache separately for worker/employee
+      const cacheKey = `${selectedSite}-${recordType}-${date}`;
+      setAttendanceCache(prev => ({ ...prev, [cacheKey]: records }));
     } catch (err) {
       console.error(err);
       alert("❌ Error saving attendance.");
@@ -238,7 +230,7 @@ function Attendance() {
 
       <label>
         Select Type:{" "}
-        <select value={recordType} onChange={(e) => setRecordType(e.target.value)} style={{ padding: "8px 12px", margin: "10px 0" }}>
+        <select value={recordType} onChange={e => setRecordType(e.target.value)} style={{ padding: "8px 12px", margin: "10px 0" }}>
           <option value="worker">Worker</option>
           <option value="employee">Employee</option>
         </select>
@@ -246,17 +238,15 @@ function Attendance() {
 
       <label>
         Select Date:{" "}
-        <input type="date" value={date} onChange={(e) => setDate(e.target.value)} style={{ padding: "8px 12px", margin: "10px 0" }} />
+        <input type="date" value={date} onChange={e => setDate(e.target.value)} style={{ padding: "8px 12px", margin: "10px 0" }} />
       </label>
 
       {user?.role === "admin" && (
         <label>
           Select Site:{" "}
-          <select value={selectedSite} onChange={(e) => setSelectedSite(e.target.value)} style={{ padding: "8px 12px", margin: "10px 0" }}>
+          <select value={selectedSite} onChange={e => setSelectedSite(e.target.value)} style={{ padding: "8px 12px", margin: "10px 0" }}>
             <option value="">-- Select Site --</option>
-            {sites.map((s) => (
-              <option key={s} value={s}>{s}</option>
-            ))}
+            {sites.map(s => <option key={s} value={s}>{s}</option>)}
           </select>
         </label>
       )}
@@ -281,41 +271,19 @@ function Attendance() {
             </tr>
           </thead>
           <tbody>
-            {records.map((r) => (
+            {records.map(r => (
               <tr key={r.id}>
                 <td>{r.srNo}</td>
                 <td>{r.name}</td>
                 <td>{r.roleType}</td>
                 <td>{r.role}</td>
-                <td>
-                  <input type="radio" name={`status-${r.id}`} checked={r.status === "Present"} onChange={() => handleStatusChange(r.id, "Present")} />
-                </td>
-                <td>
-                  <input type="radio" name={`status-${r.id}`} checked={r.status === "Absent"} onChange={() => handleStatusChange(r.id, "Absent")} />
-                </td>
-                <td>
-                  <input type="radio" name={`status-${r.id}`} checked={r.status === "Leave"} onChange={() => handleStatusChange(r.id, "Leave")} />
-                </td>
-                <td>
-                  {r.status === "Leave" && (
-                    <input type="checkbox" checked={r.leaveType.holiday} onChange={(e) => handleLeaveTypeChange(r.id, "holiday", e.target.checked)} />
-                  )}
-                </td>
-                <td>
-                  {r.status === "Leave" && (
-                    <input type="checkbox" checked={r.leaveType.accepted} onChange={(e) => handleLeaveTypeChange(r.id, "accepted", e.target.checked)} />
-                  )}
-                </td>
-                <td>
-                  {r.status === "Present" && (
-                    <input type="checkbox" checked={r.isFullDay} onChange={(e) => handleFullDayToggle(r.id, e.target.checked)} />
-                  )}
-                </td>
-                <td>
-                  {r.status === "Present" && (
-                    <input type="number" min="0" max="12" value={r.overtimeHours} onChange={(e) => handleOvertimeChange(r.id, Number(e.target.value))} style={{ width: "60px" }} />
-                  )}
-                </td>
+                <td><input type="radio" name={`status-${r.id}`} checked={r.status === "Present"} onChange={() => handleStatusChange(r.id, "Present")} /></td>
+                <td><input type="radio" name={`status-${r.id}`} checked={r.status === "Absent"} onChange={() => handleStatusChange(r.id, "Absent")} /></td>
+                <td><input type="radio" name={`status-${r.id}`} checked={r.status === "Leave"} onChange={() => handleStatusChange(r.id, "Leave")} /></td>
+                <td>{r.status === "Leave" && <input type="checkbox" checked={r.leaveType.holiday} onChange={e => handleLeaveTypeChange(r.id, "holiday", e.target.checked)} />}</td>
+                <td>{r.status === "Leave" && <input type="checkbox" checked={r.leaveType.accepted} onChange={e => handleLeaveTypeChange(r.id, "accepted", e.target.checked)} />}</td>
+                <td>{r.status === "Present" && <input type="checkbox" checked={r.isFullDay} onChange={e => handleFullDayToggle(r.id, e.target.checked)} />}</td>
+                <td>{r.status === "Present" && <input type="number" min="0" max="12" value={r.overtimeHours} onChange={e => handleOvertimeChange(r.id, Number(e.target.value))} style={{ width: "60px" }} />}</td>
                 <td>{r.totalHours || "-"}</td>
                 <td>{r.salary ? `₹${r.salary}` : "-"}</td>
               </tr>
