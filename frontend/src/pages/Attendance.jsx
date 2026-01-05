@@ -5,13 +5,15 @@ import { useNavigate } from "react-router-dom";
 function Attendance() {
   const navigate = useNavigate();
   const [user, setUser] = useState(null);
-  const [recordType, setRecordType] = useState("worker"); // "worker" or "employee"
-  const [sites] = useState(["Bangalore", "Japuriya", "Vashali", "Faridabad"]);
+  const [recordType, setRecordType] = useState("worker"); // worker or employee
+  const [sites, setSites] = useState([]); // dynamic sites from backend
   const [selectedSite, setSelectedSite] = useState("");
-  const [records, setRecords] = useState([]); // either workers or employees
+  const [records, setRecords] = useState([]);
   const [date, setDate] = useState(() => new Date().toISOString().split("T")[0]);
 
-  // ✅ Load user & access check
+  const BASE_API = "https://attendance-management-backend-vh2w.onrender.com/api";
+
+  // Load user & fetch sites
   useEffect(() => {
     const savedUser = localStorage.getItem("user");
     if (!savedUser) {
@@ -21,32 +23,47 @@ function Attendance() {
 
     const u = JSON.parse(savedUser);
     setUser(u);
-    if (u.role === "manager") setSelectedSite(u.site);
+
     if (u.role === "worker") {
       alert("❌ Access denied for workers.");
       navigate("/dashboard");
     }
+
+    // Fetch all sites dynamically
+    const fetchSites = async () => {
+      try {
+        const resWorkers = await axios.get(`${BASE_API}/workers`);
+        const resEmployees = await axios.get(`${BASE_API}/employees`);
+        const allSites = new Set();
+        resWorkers.data.forEach((w) => allSites.add(w.site));
+        resEmployees.data.forEach((e) => allSites.add(e.site));
+        setSites(Array.from(allSites));
+
+        if (u.role === "manager") setSelectedSite(u.site);
+      } catch (err) {
+        console.error("Error fetching sites:", err);
+      }
+    };
+    fetchSites();
   }, [navigate]);
 
-  // ✅ Fetch data based on recordType
+  // Fetch all workers/employees for selected site
   const fetchRecordsBySite = async (site) => {
-    if (!site || !recordType) return;
+    if (!site) return;
     try {
-      let url = "";
-      if (recordType === "worker") {
-        url = "https://attendance-management-backend-vh2w.onrender.com/api/workers";
-      } else if (recordType === "employee") {
-        url = "https://attendance-management-backend-vh2w.onrender.com/api/employees";
-      }
+      const urls =
+        recordType === "worker"
+          ? [`${BASE_API}/workers`]
+          : [`${BASE_API}/employees`];
 
-      const res = await axios.get(url);
-      let data = res.data;
+      const dataArrays = await Promise.all(
+        urls.map((url) => axios.get(url).then((res) => res.data))
+      );
+      let data = dataArrays.flat();
 
-      // Manager: only their site
-      if (user.role === "manager") data = data.filter((w) => w.site === user.site);
-      else if (site) data = data.filter((w) => w.site === site);
+      // Filter by selected site
+      data = data.filter((r) => r.site === site);
 
-      // Map to attendance format
       const formatted = data.map((w, i) => ({
         srNo: i + 1,
         id: w._id,
@@ -65,18 +82,17 @@ function Attendance() {
       setRecords(formatted);
     } catch (err) {
       console.error("Error fetching records:", err);
-      alert("❌ Error fetching data.");
+      setRecords([]);
     }
   };
 
-  // ✅ Fetch existing attendance
+  // Fetch existing attendance for selected date
   const fetchExistingAttendance = async (site, selectedDate) => {
     if (!site || !selectedDate) return;
     try {
-      const res = await axios.get(
-        "https://attendance-management-backend-vh2w.onrender.com/api/attendance/get",
-        { params: { date: selectedDate, site, type: recordType } }
-      );
+      const res = await axios.get(`${BASE_API}/attendance/get`, {
+        params: { date: selectedDate, site, type: recordType },
+      });
 
       if (res.data?.records?.length > 0) {
         setRecords((prev) =>
@@ -90,9 +106,14 @@ function Attendance() {
             let totalHours = match.hoursWorked || 0;
             let salary = match.salary || 0;
 
-            if (match.status === "Leave" && isPaidLeave) {
+            // ✅ Correct full day logic
+            let isFullDay = false;
+            if (match.status === "Present") {
+              isFullDay = match.hoursWorked >= 8;
+            } else if (match.status === "Leave" && isPaidLeave) {
               totalHours = 8;
               salary = r.perDaySalary;
+              isFullDay = true;
             }
 
             const overtime =
@@ -101,7 +122,7 @@ function Attendance() {
             return {
               ...r,
               status: match.status,
-              isFullDay: match.hoursWorked >= 8,
+              isFullDay,
               overtimeHours: overtime,
               totalHours,
               salary,
@@ -115,37 +136,30 @@ function Attendance() {
     }
   };
 
-  // ✅ Update when recordType, site or date changes
+  // Fetch records whenever site, date, or type changes
   useEffect(() => {
-    if (!selectedSite || !user) return;
-    (async () => {
-      await fetchRecordsBySite(selectedSite);
-      await fetchExistingAttendance(selectedSite, date);
-    })();
-  }, [selectedSite, date, user, recordType]);
+    if (!selectedSite) return;
+    fetchRecordsBySite(selectedSite);
+    fetchExistingAttendance(selectedSite, date);
+  }, [selectedSite, date, recordType]);
 
-  // ✅ Handle status change
+  // --- Handlers ---
   const handleStatusChange = (id, status) => {
     setRecords((prev) =>
       prev.map((r) => {
         if (r.id !== id) return r;
         const resetLeave = { holiday: false, accepted: false };
-
-        if (status === "Present") {
+        if (status === "Present")
           return { ...r, status, isFullDay: true, overtimeHours: 0, totalHours: 8, salary: r.perDaySalary, leaveType: resetLeave };
-        }
-        if (status === "Absent") {
+        if (status === "Absent")
           return { ...r, status, isFullDay: false, overtimeHours: 0, totalHours: 0, salary: 0, leaveType: resetLeave };
-        }
-        if (status === "Leave") {
+        if (status === "Leave")
           return { ...r, status, isFullDay: false, overtimeHours: 0, totalHours: 0, salary: 0, leaveType: resetLeave };
-        }
         return r;
       })
     );
   };
 
-  // ✅ Full day toggle
   const handleFullDayToggle = (id, checked) => {
     setRecords((prev) =>
       prev.map((r) => {
@@ -159,7 +173,6 @@ function Attendance() {
     );
   };
 
-  // ✅ Overtime input
   const handleOvertimeChange = (id, hours) => {
     setRecords((prev) =>
       prev.map((r) => {
@@ -174,7 +187,6 @@ function Attendance() {
     );
   };
 
-  // ✅ Holiday / Accepted Leave toggle
   const handleLeaveTypeChange = (id, type, checked) => {
     setRecords((prev) =>
       prev.map((r) => {
@@ -190,7 +202,6 @@ function Attendance() {
     );
   };
 
-  // ✅ Submit attendance
   const submitAttendance = async () => {
     if (!date || !selectedSite) {
       alert("⚠️ Please select date & site!");
@@ -198,25 +209,22 @@ function Attendance() {
     }
 
     try {
-      await axios.post(
-        "https://attendance-management-backend-vh2w.onrender.com/api/attendance",
-        {
-          date,
-          site: selectedSite,
-          type: recordType,
-          records: records.map((r) => ({
-            workerId: r.id,
-            name: r.name,
-            roleType: r.roleType,
-            role: r.role,
-            status: r.status,
-            hoursWorked: r.totalHours,
-            overtimeHours: r.overtimeHours,
-            salary: r.salary,
-            leaveType: r.leaveType,
-          })),
-        }
-      );
+      await axios.post(`${BASE_API}/attendance`, {
+        date,
+        site: selectedSite,
+        type: recordType,
+        records: records.map((r) => ({
+          workerId: r.id,
+          name: r.name,
+          roleType: r.roleType,
+          role: r.role,
+          status: r.status,
+          hoursWorked: r.totalHours,
+          overtimeHours: r.overtimeHours,
+          salary: r.salary,
+          leaveType: r.leaveType,
+        })),
+      });
       alert("✅ Attendance saved successfully!");
     } catch (err) {
       console.error(err);
@@ -228,51 +236,33 @@ function Attendance() {
     <div className="attendance-container">
       <h2>📝 Mark Attendance</h2>
 
-      {/* Type Selection */}
       <label>
         Select Type:{" "}
-        <select
-          value={recordType}
-          onChange={(e) => setRecordType(e.target.value)}
-          style={{ padding: "8px 12px", margin: "10px 0" }}
-        >
+        <select value={recordType} onChange={(e) => setRecordType(e.target.value)} style={{ padding: "8px 12px", margin: "10px 0" }}>
           <option value="worker">Worker</option>
           <option value="employee">Employee</option>
         </select>
       </label>
 
-      {/* Date & Site */}
       <label>
         Select Date:{" "}
-        <input
-          type="date"
-          value={date}
-          onChange={(e) => setDate(e.target.value)}
-          style={{ padding: "8px 12px", margin: "10px 0" }}
-        />
+        <input type="date" value={date} onChange={(e) => setDate(e.target.value)} style={{ padding: "8px 12px", margin: "10px 0" }} />
       </label>
 
       {user?.role === "admin" && (
         <label>
           Select Site:{" "}
-          <select
-            value={selectedSite}
-            onChange={(e) => setSelectedSite(e.target.value)}
-            style={{ padding: "8px 12px", margin: "10px 0" }}
-          >
+          <select value={selectedSite} onChange={(e) => setSelectedSite(e.target.value)} style={{ padding: "8px 12px", margin: "10px 0" }}>
             <option value="">-- Select Site --</option>
             {sites.map((s) => (
-              <option key={s} value={s}>
-                {s}
-              </option>
+              <option key={s} value={s}>{s}</option>
             ))}
           </select>
         </label>
       )}
 
-      {/* Attendance Table */}
       {records.length > 0 && (
-        <table border="1" cellPadding="8" style={{ width: "100%", textAlign: "center" }}>
+        <table border="1" cellPadding="8" style={{ width: "100%", textAlign: "center", marginTop: "15px" }}>
           <thead style={{ background: "#2C3E50", color: "white" }}>
             <tr>
               <th>Sr No.</th>
@@ -298,68 +288,32 @@ function Attendance() {
                 <td>{r.roleType}</td>
                 <td>{r.role}</td>
                 <td>
-                  <input
-                    type="radio"
-                    name={`status-${r.id}`}
-                    checked={r.status === "Present"}
-                    onChange={() => handleStatusChange(r.id, "Present")}
-                  />
+                  <input type="radio" name={`status-${r.id}`} checked={r.status === "Present"} onChange={() => handleStatusChange(r.id, "Present")} />
                 </td>
                 <td>
-                  <input
-                    type="radio"
-                    name={`status-${r.id}`}
-                    checked={r.status === "Absent"}
-                    onChange={() => handleStatusChange(r.id, "Absent")}
-                  />
+                  <input type="radio" name={`status-${r.id}`} checked={r.status === "Absent"} onChange={() => handleStatusChange(r.id, "Absent")} />
                 </td>
                 <td>
-                  <input
-                    type="radio"
-                    name={`status-${r.id}`}
-                    checked={r.status === "Leave"}
-                    onChange={() => handleStatusChange(r.id, "Leave")}
-                  />
+                  <input type="radio" name={`status-${r.id}`} checked={r.status === "Leave"} onChange={() => handleStatusChange(r.id, "Leave")} />
                 </td>
                 <td>
                   {r.status === "Leave" && (
-                    <input
-                      type="checkbox"
-                      checked={r.leaveType.holiday}
-                      onChange={(e) => handleLeaveTypeChange(r.id, "holiday", e.target.checked)}
-                    />
+                    <input type="checkbox" checked={r.leaveType.holiday} onChange={(e) => handleLeaveTypeChange(r.id, "holiday", e.target.checked)} />
                   )}
                 </td>
                 <td>
                   {r.status === "Leave" && (
-                    <input
-                      type="checkbox"
-                      checked={r.leaveType.accepted}
-                      onChange={(e) =>
-                        handleLeaveTypeChange(r.id, "accepted", e.target.checked)
-                      }
-                    />
+                    <input type="checkbox" checked={r.leaveType.accepted} onChange={(e) => handleLeaveTypeChange(r.id, "accepted", e.target.checked)} />
                   )}
                 </td>
                 <td>
                   {r.status === "Present" && (
-                    <input
-                      type="checkbox"
-                      checked={r.isFullDay}
-                      onChange={(e) => handleFullDayToggle(r.id, e.target.checked)}
-                    />
+                    <input type="checkbox" checked={r.isFullDay} onChange={(e) => handleFullDayToggle(r.id, e.target.checked)} />
                   )}
                 </td>
                 <td>
                   {r.status === "Present" && (
-                    <input
-                      type="number"
-                      min="0"
-                      max="12"
-                      value={r.overtimeHours}
-                      onChange={(e) => handleOvertimeChange(r.id, Number(e.target.value))}
-                      style={{ width: "60px" }}
-                    />
+                    <input type="number" min="0" max="12" value={r.overtimeHours} onChange={(e) => handleOvertimeChange(r.id, Number(e.target.value))} style={{ width: "60px" }} />
                   )}
                 </td>
                 <td>{r.totalHours || "-"}</td>
@@ -371,17 +325,7 @@ function Attendance() {
       )}
 
       {records.length > 0 && (
-        <button
-          onClick={submitAttendance}
-          style={{
-            marginTop: 15,
-            padding: "10px 20px",
-            background: "#27ae60",
-            color: "white",
-            border: "none",
-            borderRadius: 8,
-          }}
-        >
+        <button onClick={submitAttendance} style={{ marginTop: 15, padding: "10px 20px", background: "#27ae60", color: "white", border: "none", borderRadius: 8 }}>
           ✅ Submit Attendance
         </button>
       )}
