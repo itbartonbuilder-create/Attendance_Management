@@ -113,7 +113,7 @@ function Employees() {
                   <td>{i + 1}</td><td>{emp.name}</td><td>{emp.role}</td><td>{emp.contactNo}</td><td>₹{emp.salary}</td>
                   <td>{emp.aadhaarDoc ? <a href={`https://attendance-management-backend-vh2w.onrender.com/${emp.aadhaarDoc}`} target="_blank" rel="noreferrer">View</a> : "N/A"}</td>
                   <td>{emp.panDoc ? <a href={`https://attendance-management-backend-vh2w.onrender.com/${emp.panDoc}`} target="_blank" rel="noreferrer">View</a> : "N/A"}</td>
-                  <td><button onClick={() => editEmployee(emp)}>✏️</button> <button onClick={() => deleteEmployee(emp._id)}>❌</button></td>
+                  <td><button onClick={() => editEmployee(emp)}>Edit</button> <button onClick={() => deleteEmployee(emp._id)}>Delete</button></td>
                 </tr>
               ))}
             </tbody>
