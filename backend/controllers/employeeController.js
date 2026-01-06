@@ -1,18 +1,13 @@
 import Employee from "../models/employeeModel.js";
+import cloudinary from "../utils/cloudinary.js";
 
-// ================= ADD EMPLOYEE =================
+/* ================= ADD EMPLOYEE ================= */
 export const addEmployee = async (req, res) => {
   try {
     const { name, role, site, contactNo, salary } = req.body;
 
-    // 🔥 Normalize paths (Windows + Linux safe)
-    const aadhaarPath = req.files?.aadhaar?.[0]?.path
-      ? req.files.aadhaar[0].path.replace(/\\/g, "/")
-      : null;
-
-    const panPath = req.files?.pan?.[0]?.path
-      ? req.files.pan[0].path.replace(/\\/g, "/")
-      : null;
+    const aadhaarFile = req.files?.aadhaar?.[0];
+    const panFile = req.files?.pan?.[0];
 
     const employee = new Employee({
       name,
@@ -20,36 +15,37 @@ export const addEmployee = async (req, res) => {
       site,
       contactNo,
       salary,
-      aadhaarDoc: aadhaarPath,
-      panDoc: panPath,
+      aadhaarDoc: aadhaarFile
+        ? { url: aadhaarFile.path, public_id: aadhaarFile.filename }
+        : null,
+      panDoc: panFile
+        ? { url: panFile.path, public_id: panFile.filename }
+        : null,
     });
 
     await employee.save();
     res.status(201).json(employee);
   } catch (error) {
-    console.error("Add Employee Error:", error);
     res.status(500).json({ message: error.message });
   }
 };
 
-// ================= GET ALL EMPLOYEES =================
+/* ================= GET EMPLOYEES ================= */
 export const getEmployees = async (req, res) => {
   try {
     const employees = await Employee.find().sort({ createdAt: -1 });
     res.json(employees);
-  } catch (error) {
-    console.error("Get Employees Error:", error);
-    res.status(500).json({ message: error.message });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
   }
 };
 
-// ================= UPDATE EMPLOYEE =================
+/* ================= UPDATE EMPLOYEE ================= */
 export const updateEmployee = async (req, res) => {
   try {
     const employee = await Employee.findById(req.params.id);
-    if (!employee) {
+    if (!employee)
       return res.status(404).json({ message: "Employee not found" });
-    }
 
     const { name, role, site, contactNo, salary } = req.body;
 
@@ -59,30 +55,52 @@ export const updateEmployee = async (req, res) => {
     employee.contactNo = contactNo;
     employee.salary = salary;
 
-    // 🔥 Normalize updated files (if provided)
-    if (req.files?.aadhaar?.[0]?.path) {
-      employee.aadhaarDoc = req.files.aadhaar[0].path.replace(/\\/g, "/");
+    const aadhaarFile = req.files?.aadhaar?.[0];
+    const panFile = req.files?.pan?.[0];
+
+    // 🔥 Delete old Aadhaar if new uploaded
+    if (aadhaarFile && employee.aadhaarDoc?.public_id) {
+      await cloudinary.uploader.destroy(employee.aadhaarDoc.public_id);
+      employee.aadhaarDoc = {
+        url: aadhaarFile.path,
+        public_id: aadhaarFile.filename,
+      };
     }
 
-    if (req.files?.pan?.[0]?.path) {
-      employee.panDoc = req.files.pan[0].path.replace(/\\/g, "/");
+    // 🔥 Delete old PAN if new uploaded
+    if (panFile && employee.panDoc?.public_id) {
+      await cloudinary.uploader.destroy(employee.panDoc.public_id);
+      employee.panDoc = {
+        url: panFile.path,
+        public_id: panFile.filename,
+      };
     }
 
     await employee.save();
     res.json(employee);
-  } catch (error) {
-    console.error("Update Employee Error:", error);
-    res.status(500).json({ message: error.message });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
   }
 };
 
-// ================= DELETE EMPLOYEE =================
+/* ================= DELETE EMPLOYEE ================= */
 export const deleteEmployee = async (req, res) => {
   try {
-    await Employee.findByIdAndDelete(req.params.id);
+    const employee = await Employee.findById(req.params.id);
+    if (!employee)
+      return res.status(404).json({ message: "Employee not found" });
+
+    if (employee.aadhaarDoc?.public_id) {
+      await cloudinary.uploader.destroy(employee.aadhaarDoc.public_id);
+    }
+
+    if (employee.panDoc?.public_id) {
+      await cloudinary.uploader.destroy(employee.panDoc.public_id);
+    }
+
+    await employee.deleteOne();
     res.json({ message: "Employee Deleted Successfully" });
-  } catch (error) {
-    console.error("Delete Employee Error:", error);
-    res.status(500).json({ message: error.message });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
   }
 };
