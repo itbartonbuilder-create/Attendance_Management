@@ -2,290 +2,339 @@ import React, { useEffect, useState } from "react";
 import "../App.css";
 
 function Workers() {
+  const user = JSON.parse(localStorage.getItem("user"));
+
+  /* ================= STATES ================= */
   const [workers, setWorkers] = useState([]);
-  const [name, setName] = useState("");
-  const [contactNo, setContactNo] = useState("");
-  const [roleType, setRoleType] = useState("");
-  const [role, setRole] = useState("");
-  const [site, setSite] = useState("");
-  const [perDaySalary, setPerDaySalary] = useState("");
   const [editingId, setEditingId] = useState(null);
 
-  const [sites] = useState(["Bangalore", "Japuriya", "Vashali", "Faridabad"]);
+  const defaultSites = ["Bangalore", "Japuriya", "Vaishali", "Faridabad", "Other"];
 
   const roleOptions = {
     Skilled: ["Electrician", "Plumber", "Carpenter"],
     "Semi-Skilled": ["Helper", "Assistant", "Operator"],
     Worker: ["Male", "Female"],
+    Other: [],
   };
 
+  const [form, setForm] = useState({
+    name: "",
+    contactNo: "",
+    roleType: "",
+    roleTypeCustom: "",
+    role: "",
+    roleCustom: "",
+    site: "",
+    siteCustom: "",
+    perDaySalary: "",
+  });
 
-  const user = JSON.parse(localStorage.getItem("user"));
-
+  /* ================= AUTH ================= */
   useEffect(() => {
     if (!user || (user.role !== "admin" && user.role !== "manager")) {
-      alert("❌ You are not authorized to access this page!");
+      alert("❌ Unauthorized");
       window.location.href = "/login";
+    }
+    if (user?.role === "manager") {
+      setForm((prev) => ({ ...prev, site: user.site }));
     }
   }, [user]);
 
-  const fetchWorkers = () => {
-    fetch("https://attendance-management-backend-vh2w.onrender.com/api/workers")
-      .then((res) => res.json())
-      .then((data) => {
-        if (user.role === "manager") {
-         
-          const filtered = data.filter((w) => w.site === user.site);
-          setWorkers(filtered);
-        } else {
-        
-          setWorkers(data);
-        }
-      })
-      .catch((err) => console.error("Error fetching workers:", err));
+  /* ================= FETCH ================= */
+  const fetchWorkers = async () => {
+    try {
+      const res = await fetch(
+        "https://attendance-management-backend-vh2w.onrender.com/api/workers"
+      );
+      const data = await res.json();
+      setWorkers(
+        user.role === "manager"
+          ? data.filter((w) => w.site === user.site)
+          : data
+      );
+    } catch (err) {
+      console.error(err);
+    }
   };
 
   useEffect(() => {
     fetchWorkers();
   }, []);
 
-  const handleSubmit = (e) => {
+  /* ================= FORM ================= */
+  const resetForm = () => {
+    setForm({
+      name: "",
+      contactNo: "",
+      roleType: "",
+      roleTypeCustom: "",
+      role: "",
+      roleCustom: "",
+      site: user.role === "manager" ? user.site : "",
+      siteCustom: "",
+      perDaySalary: "",
+    });
+    setEditingId(null);
+  };
+
+  const handleSubmit = async (e) => {
     e.preventDefault();
 
-    if (!/^\d{10}$/.test(contactNo)) {
-      alert("Please enter a valid 10-digit contact number.");
+    if (!/^\d{10}$/.test(form.contactNo)) {
+      alert("Enter valid 10 digit contact number");
+      return;
+    }
+
+    const finalSite =
+      form.site === "Other" ? form.siteCustom.trim() : form.site;
+
+    const finalRoleType =
+      form.roleType === "Other"
+        ? form.roleTypeCustom.trim()
+        : form.roleType;
+
+    const finalRole =
+      form.role === "Other" ? form.roleCustom.trim() : form.role;
+
+    if (!finalSite || !finalRoleType || !finalRole) {
+      alert("All fields required");
       return;
     }
 
     const payload = {
-      name,
-      roleType,
-      role,
-      site: user.role === "manager" ? user.site : site,
-      perDaySalary,
-      contactNo,
+      name: form.name,
+      contactNo: form.contactNo,
+      roleType: finalRoleType,
+      role: finalRole,
+      site: finalSite,
+      perDaySalary: form.perDaySalary,
     };
 
-    if (editingId) {
-      const workerToEdit = workers.find((w) => w._id === editingId);
-      if (user.role === "manager" && workerToEdit.site !== user.site) {
-        alert("❌ You cannot edit workers from another site!");
-        return;
+    try {
+      if (editingId) {
+        await fetch(
+          `https://attendance-management-backend-vh2w.onrender.com/api/workers/${editingId}`,
+          {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload),
+          }
+        );
+      } else {
+        await fetch(
+          "https://attendance-management-backend-vh2w.onrender.com/api/workers",
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload),
+          }
+        );
       }
-
-      fetch(`https://attendance-management-backend-vh2w.onrender.com/api/workers/${editingId}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      })
-        .then((res) => res.json())
-        .then((updatedWorker) => {
-          setWorkers(workers.map((w) => (w._id === editingId ? updatedWorker : w)));
-          resetForm();
-        })
-        .catch((err) => console.error("Error updating worker:", err));
-    } else {
-      fetch("https://attendance-management-backend-vh2w.onrender.com/api/workers", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      })
-        .then((res) => res.json())
-        .then((newWorker) => {
-          setWorkers((prev) => [...prev, newWorker]);
-          resetForm();
-        })
-        .catch((err) => console.error("Error adding worker:", err));
+      fetchWorkers();
+      resetForm();
+    } catch (err) {
+      console.error(err);
     }
   };
 
-  const resetForm = () => {
-    setName("");
-    setContactNo("");
-    setRoleType("");
-    setRole("");
-    setSite("");
-    setPerDaySalary("");
-    setEditingId(null);
+  /* ================= EDIT / DELETE ================= */
+  const editWorker = (w) => {
+    setEditingId(w._id);
+    setForm({
+      name: w.name,
+      contactNo: w.contactNo,
+      roleType: Object.keys(roleOptions).includes(w.roleType)
+        ? w.roleType
+        : "Other",
+      roleTypeCustom: Object.keys(roleOptions).includes(w.roleType)
+        ? ""
+        : w.roleType,
+      role: roleOptions[w.roleType]?.includes(w.role) ? w.role : "Other",
+      roleCustom: roleOptions[w.roleType]?.includes(w.role) ? "" : w.role,
+      site: defaultSites.includes(w.site) ? w.site : "Other",
+      siteCustom: defaultSites.includes(w.site) ? "" : w.site,
+      perDaySalary: w.perDaySalary,
+    });
   };
 
-  const deleteWorker = (id) => {
-    const workerToDelete = workers.find((w) => w._id === id);
-    if (user.role === "manager" && workerToDelete.site !== user.site) {
-      alert("❌ You cannot delete workers from another site!");
-      return;
-    }
-
-    fetch(`https://attendance-management-backend-vh2w.onrender.com/api/workers/${id}`, {
-      method: "DELETE",
-    })
-      .then((res) => res.json())
-      .then(() => setWorkers(workers.filter((w) => w._id !== id)))
-      .catch((err) => console.error("Error deleting worker:", err));
+  const deleteWorker = async (id) => {
+    if (!window.confirm("Delete worker?")) return;
+    await fetch(
+      `https://attendance-management-backend-vh2w.onrender.com/api/workers/${id}`,
+      { method: "DELETE" }
+    );
+    fetchWorkers();
   };
 
-  const editWorker = (worker) => {
-    if (user.role === "manager" && worker.site !== user.site) {
-      alert("❌ You cannot edit workers from another site!");
-      return;
-    }
-    setName(worker.name);
-    setContactNo(worker.contactNo);
-    setRoleType(worker.roleType);
-    setRole(worker.role);
-    setSite(worker.site);
-    setPerDaySalary(worker.perDaySalary);
-    setEditingId(worker._id);
-  };
+  const allSites = [...new Set(workers.map((w) => w.site))];
 
-  const displaySites = user.role === "manager" ? [user.site] : sites;
-
+  /* ================= UI ================= */
   return (
     <div className="workers-container">
-      <h2>👷 Workers List</h2>
+      <h2>👷 Workers</h2>
 
-      <form onSubmit={handleSubmit} className="workers-form" style={{ marginBottom: "20px" }}>
+      <form className="workers-form" onSubmit={handleSubmit}>
         <input
-          type="text"
-          placeholder="Enter worker name"
-          value={name}
-          onChange={(e) => setName(e.target.value)}
+          placeholder="Worker Name"
+          value={form.name}
+          onChange={(e) => setForm({ ...form, name: e.target.value })}
           required
-          style={{ marginRight: "10px", padding: "9px" }}
         />
 
+        {/* ROLE TYPE */}
         <select
-          value={roleType}
-          onChange={(e) => {
-            setRoleType(e.target.value);
-            setRole("");
-          }}
+          value={form.roleType}
+          onChange={(e) =>
+            setForm({
+              ...form,
+              roleType: e.target.value,
+              role: "",
+              roleTypeCustom: "",
+            })
+          }
           required
-          style={{ marginRight: "10px", padding: "9px" }}
         >
           <option value="">Select Role Type</option>
-          {Object.keys(roleOptions).map((type) => (
-            <option key={type} value={type}>
-              {type}
+          {Object.keys(roleOptions).map((rt) => (
+            <option key={rt} value={rt}>
+              {rt}
             </option>
           ))}
         </select>
 
+        {form.roleType === "Other" && (
+          <input
+            placeholder="Custom Role Type"
+            value={form.roleTypeCustom}
+            onChange={(e) =>
+              setForm({ ...form, roleTypeCustom: e.target.value })
+            }
+            required
+          />
+        )}
+
+        {/* ROLE */}
         <select
-          value={role}
-          onChange={(e) => setRole(e.target.value)}
+          value={form.role}
+          onChange={(e) => setForm({ ...form, role: e.target.value })}
           required
-          disabled={!roleType}
-          style={{ marginRight: "10px", padding: "9px" }}
         >
-          <option value="">Select Sub Role</option>
-          {roleType &&
-            roleOptions[roleType].map((subRole) => (
-              <option key={subRole} value={subRole}>
-                {subRole}
+          <option value="">Select Role</option>
+          {form.roleType &&
+            roleOptions[form.roleType]?.map((r) => (
+              <option key={r} value={r}>
+                {r}
               </option>
             ))}
+          <option value="Other">Other</option>
         </select>
 
-        {user.role === "admin" && (
-          <select
-            value={site}
-            onChange={(e) => setSite(e.target.value)}
+        {form.role === "Other" && (
+          <input
+            placeholder="Custom Role"
+            value={form.roleCustom}
+            onChange={(e) =>
+              setForm({ ...form, roleCustom: e.target.value })
+            }
             required
-            style={{ marginRight: "10px", padding: "9px" }}
-          >
-            <option value="">Select Site</option>
-            {sites.map((s) => (
-              <option key={s} value={s}>
-                {s}
-              </option>
-            ))}
-          </select>
+          />
+        )}
+
+        {/* SITE */}
+        {user.role === "admin" ? (
+          <>
+            <select
+              value={form.site}
+              onChange={(e) =>
+                setForm({ ...form, site: e.target.value })
+              }
+              required
+            >
+              <option value="">Select Site</option>
+              {defaultSites.map((s) => (
+                <option key={s} value={s}>
+                  {s}
+                </option>
+              ))}
+            </select>
+
+            {form.site === "Other" && (
+              <input
+                placeholder="Custom Site"
+                value={form.siteCustom}
+                onChange={(e) =>
+                  setForm({ ...form, siteCustom: e.target.value })
+                }
+                required
+              />
+            )}
+          </>
+        ) : (
+          <input value={user.site} readOnly />
         )}
 
         <input
-          type="text"
-          placeholder="Enter contact number"
-          value={contactNo}
-          onChange={(e) => setContactNo(e.target.value)}
+          placeholder="Contact Number"
+          value={form.contactNo}
+          onChange={(e) =>
+            setForm({ ...form, contactNo: e.target.value })
+          }
+          maxLength={10}
           required
-          maxLength="10"
-          style={{ marginRight: "10px", padding: "9px" }}
         />
 
         <input
           type="number"
           placeholder="Per Day Salary"
-          value={perDaySalary}
-          onChange={(e) => setPerDaySalary(e.target.value)}
+          value={form.perDaySalary}
+          onChange={(e) =>
+            setForm({ ...form, perDaySalary: e.target.value })
+          }
           required
-          style={{ marginRight: "10px", padding: "9px" }}
         />
 
-        <button type="submit">{editingId ? "Update Worker" : "Add Worker"}</button>
+        <button type="submit">
+          {editingId ? "Update Worker" : "Add Worker"}
+        </button>
 
         {editingId && (
-          <button type="button" onClick={resetForm} style={{ marginLeft: "10px" }}>
+          <button type="button" onClick={resetForm}>
             Cancel
           </button>
         )}
       </form>
 
-      {displaySites.map((s) => (
+      {/* ================= TABLE ================= */}
+      {allSites.map((s) => (
         <div key={s}>
-          <h3 style={{ marginTop: "20px" }}>🏗 Site: {s}</h3>
-          <table border="1" cellPadding="8" style={{ width: "100%", borderCollapse: "collapse" }}>
-            <thead style={{ background: "#2C3E50", color: "white" }}>
+          <h3>🏗 {s}</h3>
+          <table border="1" width="100%">
+            <thead>
               <tr>
-                <th>ID</th>
+                <th>#</th>
                 <th>Name</th>
                 <th>Role Type</th>
-                <th>Sub Role</th>
-                <th>Site</th>
-                <th>Contact No</th>
-                <th>Per Day Salary</th>
+                <th>Role</th>
+                <th>Contact</th>
+                <th>Salary</th>
                 <th>Action</th>
               </tr>
             </thead>
             <tbody>
               {workers
                 .filter((w) => w.site === s)
-                .map((w, index) => (
+                .map((w, i) => (
                   <tr key={w._id}>
-                    <td>{index + 1}</td>
+                    <td>{i + 1}</td>
                     <td>{w.name}</td>
                     <td>{w.roleType}</td>
                     <td>{w.role}</td>
-                    <td>{w.site}</td>
                     <td>{w.contactNo}</td>
                     <td>₹{w.perDaySalary}</td>
                     <td>
-                      <button
-                        onClick={() => editWorker(w)}
-                        style={{
-                          background: "#3498db",
-                          color: "white",
-                          border: "none",
-                          padding: "5px 10px",
-                          cursor: "pointer",
-                          borderRadius: "4px",
-                          marginRight: "5px",
-                        }}
-                      >
-                        ✏️ Edit
-                      </button>
-                      <button
-                        onClick={() => deleteWorker(w._id)}
-                        style={{
-                          background: "#e74c3c",
-                          color: "white",
-                          border: "none",
-                          padding: "5px 10px",
-                          cursor: "pointer",
-                          borderRadius: "4px",
-                        }}
-                      >
-                        ❌ Delete
+                      <button onClick={() => editWorker(w)}>Edit</button>{" "}
+                      <button onClick={() => deleteWorker(w._id)}>
+                        Delete
                       </button>
                     </td>
                   </tr>
