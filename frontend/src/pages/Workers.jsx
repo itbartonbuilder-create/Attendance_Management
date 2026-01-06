@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import "../App.css";
 
 function Workers() {
-  const user = JSON.parse(localStorage.getItem("user"));
+  const [user, setUser] = useState(null);
 
   /* ================= STATES ================= */
   const [workers, setWorkers] = useState([]);
@@ -31,17 +31,22 @@ function Workers() {
 
   /* ================= AUTH ================= */
   useEffect(() => {
-    if (!user || (user.role !== "admin" && user.role !== "manager")) {
+    const savedUser = JSON.parse(localStorage.getItem("user"));
+    if (!savedUser || (savedUser.role !== "admin" && savedUser.role !== "manager")) {
       alert("❌ Unauthorized");
       window.location.href = "/login";
+      return;
     }
-    if (user?.role === "manager") {
-      setForm((prev) => ({ ...prev, site: user.site }));
+    setUser(savedUser);
+
+    if (savedUser.role === "manager") {
+      setForm((prev) => ({ ...prev, site: savedUser.site }));
     }
-  }, [user]);
+  }, []); // empty dependency array fixes infinite loop
 
   /* ================= FETCH ================= */
   const fetchWorkers = async () => {
+    if (!user) return;
     try {
       const res = await fetch(
         "https://attendance-management-backend-vh2w.onrender.com/api/workers"
@@ -59,7 +64,7 @@ function Workers() {
 
   useEffect(() => {
     fetchWorkers();
-  }, []);
+  }, [user]); // fetch only when user is set
 
   /* ================= FORM ================= */
   const resetForm = () => {
@@ -70,7 +75,7 @@ function Workers() {
       roleTypeCustom: "",
       role: "",
       roleCustom: "",
-      site: user.role === "manager" ? user.site : "",
+      site: user?.role === "manager" ? user.site : "",
       siteCustom: "",
       perDaySalary: "",
     });
@@ -85,16 +90,9 @@ function Workers() {
       return;
     }
 
-    const finalSite =
-      form.site === "Other" ? form.siteCustom.trim() : form.site;
-
-    const finalRoleType =
-      form.roleType === "Other"
-        ? form.roleTypeCustom.trim()
-        : form.roleType;
-
-    const finalRole =
-      form.role === "Other" ? form.roleCustom.trim() : form.role;
+    const finalSite = form.site === "Other" ? form.siteCustom.trim() : form.site;
+    const finalRoleType = form.roleType === "Other" ? form.roleTypeCustom.trim() : form.roleType;
+    const finalRole = form.role === "Other" ? form.roleCustom.trim() : form.role;
 
     if (!finalSite || !finalRoleType || !finalRole) {
       alert("All fields required");
@@ -143,12 +141,8 @@ function Workers() {
     setForm({
       name: w.name,
       contactNo: w.contactNo,
-      roleType: Object.keys(roleOptions).includes(w.roleType)
-        ? w.roleType
-        : "Other",
-      roleTypeCustom: Object.keys(roleOptions).includes(w.roleType)
-        ? ""
-        : w.roleType,
+      roleType: Object.keys(roleOptions).includes(w.roleType) ? w.roleType : "Other",
+      roleTypeCustom: Object.keys(roleOptions).includes(w.roleType) ? "" : w.roleType,
       role: roleOptions[w.roleType]?.includes(w.role) ? w.role : "Other",
       roleCustom: roleOptions[w.roleType]?.includes(w.role) ? "" : w.role,
       site: defaultSites.includes(w.site) ? w.site : "Other",
@@ -206,9 +200,7 @@ function Workers() {
           <input
             placeholder="Custom Role Type"
             value={form.roleTypeCustom}
-            onChange={(e) =>
-              setForm({ ...form, roleTypeCustom: e.target.value })
-            }
+            onChange={(e) => setForm({ ...form, roleTypeCustom: e.target.value })}
             required
           />
         )}
@@ -233,21 +225,17 @@ function Workers() {
           <input
             placeholder="Custom Role"
             value={form.roleCustom}
-            onChange={(e) =>
-              setForm({ ...form, roleCustom: e.target.value })
-            }
+            onChange={(e) => setForm({ ...form, roleCustom: e.target.value })}
             required
           />
         )}
 
         {/* SITE */}
-        {user.role === "admin" ? (
+        {user?.role === "admin" ? (
           <>
             <select
               value={form.site}
-              onChange={(e) =>
-                setForm({ ...form, site: e.target.value })
-              }
+              onChange={(e) => setForm({ ...form, site: e.target.value })}
               required
             >
               <option value="">Select Site</option>
@@ -262,23 +250,19 @@ function Workers() {
               <input
                 placeholder="Custom Site"
                 value={form.siteCustom}
-                onChange={(e) =>
-                  setForm({ ...form, siteCustom: e.target.value })
-                }
+                onChange={(e) => setForm({ ...form, siteCustom: e.target.value })}
                 required
               />
             )}
           </>
         ) : (
-          <input value={user.site} readOnly />
+          <input value={user?.site} readOnly />
         )}
 
         <input
           placeholder="Contact Number"
           value={form.contactNo}
-          onChange={(e) =>
-            setForm({ ...form, contactNo: e.target.value })
-          }
+          onChange={(e) => setForm({ ...form, contactNo: e.target.value })}
           maxLength={10}
           required
         />
@@ -287,9 +271,7 @@ function Workers() {
           type="number"
           placeholder="Per Day Salary"
           value={form.perDaySalary}
-          onChange={(e) =>
-            setForm({ ...form, perDaySalary: e.target.value })
-          }
+          onChange={(e) => setForm({ ...form, perDaySalary: e.target.value })}
           required
         />
 
@@ -333,9 +315,7 @@ function Workers() {
                     <td>₹{w.perDaySalary}</td>
                     <td>
                       <button onClick={() => editWorker(w)}>Edit</button>{" "}
-                      <button onClick={() => deleteWorker(w._id)}>
-                        Delete
-                      </button>
+                      <button onClick={() => deleteWorker(w._id)}>Delete</button>
                     </td>
                   </tr>
                 ))}
