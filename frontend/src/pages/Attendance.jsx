@@ -8,6 +8,8 @@ function Attendance() {
   const [recordType, setRecordType] = useState("worker"); // worker or employee
   const [sites, setSites] = useState([]);
   const [selectedSite, setSelectedSite] = useState("");
+  const [noPeopleFound, setNoPeopleFound] = useState(false);
+
   const [date, setDate] = useState(new Date().toISOString().split("T")[0]);
 
   // Cache attendance per site + type + date
@@ -56,21 +58,30 @@ function Attendance() {
       const url = type === "worker" ? `${BASE_API}/workers` : `${BASE_API}/employees`;
       const res = await axios.get(url);
 
-      const filtered = res.data
-        .filter(p => p.site === site)
-        .map(p => ({
-          id: p._id,
-          name: p.name,
-          roleType: p.roleType || "Employee",
-          role: p.role || "N/A",
-          perDaySalary: Number(p.perDaySalary || p.salary) || 0,
-          status: "",
-          isFullDay: false,
-          overtimeHours: 0,
-          totalHours: 0,
-          salary: 0,
-          leaveType: { holiday: false, accepted: false },
-        }));
+ const filteredPeople = res.data.filter(p => p.site === site);
+
+if (filteredPeople.length === 0) {
+  setRecords([]);
+  setNoPeopleFound(true);
+  return;
+}
+
+setNoPeopleFound(false);
+
+const filtered = filteredPeople.map(p => ({
+  id: p._id,
+  name: p.name,
+  roleType: p.roleType || "Employee",
+  role: p.role || "N/A",
+  perDaySalary: Number(p.perDaySalary || p.salary) || 0,
+  status: "",
+  isFullDay: false,
+  overtimeHours: 0,
+  totalHours: 0,
+  salary: 0,
+  leaveType: { holiday: false, accepted: false },
+}));
+
 
       const cacheKey = `${site}-${type}-${date}`;
       const cached = attendanceCache[cacheKey] || [];
@@ -249,6 +260,11 @@ function Attendance() {
             {sites.map(s => <option key={s} value={s}>{s}</option>)}
           </select>
         </label>
+      )}
+       {selectedSite && noPeopleFound && (
+        <div style={{ marginTop: 20, color: "red", fontWeight: "bold" }}>
+         No {recordType} records are available for the selected site.
+        </div>
       )}
 
       {records.length > 0 && (
