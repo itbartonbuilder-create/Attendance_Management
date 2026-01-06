@@ -3,9 +3,9 @@ import axios from "axios";
 import "../App.css";
 
 function Employees() {
-  const user = JSON.parse(localStorage.getItem("user"));
   const defaultSites = ["Bangalore", "Japuriya", "Vaishali", "Faridabad", "Other"];
 
+  const [user, setUser] = useState(null);
   const [employees, setEmployees] = useState([]);
   const [editingId, setEditingId] = useState(null);
   const [form, setForm] = useState({
@@ -21,17 +21,22 @@ function Employees() {
 
   /* ================= AUTH ================= */
   useEffect(() => {
-    if (!user || (user.role !== "admin" && user.role !== "manager")) {
+    const savedUser = JSON.parse(localStorage.getItem("user"));
+    if (!savedUser || (savedUser.role !== "admin" && savedUser.role !== "manager")) {
       alert("❌ Unauthorized");
       window.location.href = "/login";
+      return;
     }
-    if (user?.role === "manager") {
-      setForm((prev) => ({ ...prev, site: user.site }));
+    setUser(savedUser);
+
+    if (savedUser.role === "manager") {
+      setForm((prev) => ({ ...prev, site: savedUser.site }));
     }
-  }, [user]);
+  }, []); // empty dependency array fixes infinite loop
 
   /* ================= FETCH ================= */
   const fetchEmployees = async () => {
+    if (!user) return;
     try {
       const res = await axios.get(
         "https://attendance-management-backend-vh2w.onrender.com/api/employees"
@@ -50,14 +55,14 @@ function Employees() {
 
   useEffect(() => {
     fetchEmployees();
-  }, []);
+  }, [user]); // only fetch when user is set
 
   /* ================= FORM ================= */
   const resetForm = () => {
     setForm({
       name: "",
       role: "",
-      site: user.role === "manager" ? user.site : "",
+      site: user?.role === "manager" ? user.site : "",
       siteCustom: "",
       contactNo: "",
       salary: "",
@@ -158,7 +163,7 @@ function Employees() {
           required
         />
 
-        {user.role === "admin" ? (
+        {user?.role === "admin" ? (
           <>
             <select
               value={form.site}
@@ -185,7 +190,7 @@ function Employees() {
             )}
           </>
         ) : (
-          <input value={user.site} readOnly />
+          <input value={user?.site} readOnly />
         )}
 
         <input
@@ -263,7 +268,6 @@ function Employees() {
                     <td>{emp.contactNo}</td>
                     <td>₹{emp.salary}</td>
 
-                    {/* ✅ CLOUDINARY URL */}
                     <td>
                       {emp.aadhaarDoc?.url ? (
                         <a
