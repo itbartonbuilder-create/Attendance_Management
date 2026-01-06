@@ -293,9 +293,9 @@ function Employees() {
                     </td>
 
                     <td>
-                      <button onClick={() => editEmployee(emp)}>✏️</button>{" "}
+                      <button onClick={() => editEmployee(emp)}>Edit</button>{" "}
                       <button onClick={() => deleteEmployee(emp._id)}>
-                        ❌
+                        Delete
                       </button>
                     </td>
                   </tr>
