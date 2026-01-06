@@ -1,215 +1,267 @@
 import React, { useEffect, useState } from "react";
+import axios from "axios";
 import "../App.css";
 
 function Managers() {
+  const defaultSites = ["Bangalore", "Japuriya", "Vaishali", "Faridabad", "Other"];
+
   const [user, setUser] = useState(null);
-  const [loadingUser, setLoadingUser] = useState(true);
-
   const [managers, setManagers] = useState([]);
-  const [name, setName] = useState("");
-  const [contactNo, setContactNo] = useState("");
-  const [email, setEmail] = useState("");
-  const [site, setSite] = useState("");
   const [editingId, setEditingId] = useState(null);
+  const [form, setForm] = useState({
+    name: "",
+    email: "",
+    contactNo: "",
+    site: "",
+    siteCustom: "",
+  });
+  const [aadhaarFile, setAadhaarFile] = useState(null);
+  const [panFile, setPanFile] = useState(null);
 
-  const [sites] = useState(["Bangalore", "Japuriya", "Vashali", "Faridabad"]);
-  const [loadingManagers, setLoadingManagers] = useState(false);
-  const [error, setError] = useState("");
-
-  // Load user from localStorage
+  /* ================= AUTH ================= */
   useEffect(() => {
-    const savedUser = localStorage.getItem("user");
-    if (savedUser) setUser(JSON.parse(savedUser));
-    setLoadingUser(false);
+    const savedUser = JSON.parse(localStorage.getItem("user"));
+    if (!savedUser || savedUser.role.toLowerCase() !== "admin") {
+      alert("❌ Unauthorized");
+      window.location.href = "/login";
+      return;
+    }
+    setUser(savedUser);
   }, []);
 
-  // Fetch managers
-  const fetchManagers = () => {
-    setLoadingManagers(true);
-    fetch("https://attendance-management-backend-vh2w.onrender.com/api/managers")
-      .then((res) => res.json())
-      .then((data) => setManagers(data))
-      .catch((err) => setError("Error fetching managers"))
-      .finally(() => setLoadingManagers(false));
+  /* ================= FETCH ================= */
+  const fetchManagers = async () => {
+    if (!user) return;
+    try {
+      const res = await axios.get(
+        "https://attendance-management-backend-vh2w.onrender.com/api/managers"
+      );
+      const data = Array.isArray(res.data) ? res.data : [];
+      setManagers(data);
+    } catch (err) {
+      console.error(err);
+      setManagers([]);
+    }
   };
 
   useEffect(() => {
     fetchManagers();
-  }, []);
+  }, [user]);
 
-  // Handle add/update manager
-  const handleSubmit = (e) => {
+  /* ================= FORM ================= */
+  const resetForm = () => {
+    setForm({
+      name: "",
+      email: "",
+      contactNo: "",
+      site: "",
+      siteCustom: "",
+    });
+    setEditingId(null);
+    setAadhaarFile(null);
+    setPanFile(null);
+  };
+
+  const handleSubmit = async (e) => {
     e.preventDefault();
 
-    if (!/^\d{10}$/.test(contactNo)) {
-      alert("Please enter a valid 10-digit contact number.");
+    if (!/^\d{10}$/.test(form.contactNo)) {
+      alert("Enter valid 10 digit number");
       return;
     }
 
-    const payload = { name, email, contactNo, site };
+    const finalSite = form.site === "Other" ? form.siteCustom.trim() : form.site;
 
-    if (editingId) {
-      fetch(`https://attendance-management-backend-vh2w.onrender.com/api/managers/${editingId}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      })
-        .then((res) => res.json())
-        .then((updated) => {
-          setManagers(managers.map((m) => (m._id === editingId ? updated : m)));
-          resetForm();
-        })
-        .catch((err) => console.error("Error updating manager:", err));
-    } else {
-      fetch("https://attendance-management-backend-vh2w.onrender.com/api/managers", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      })
-        .then((res) => res.json())
-        .then((newManager) => {
-          setManagers((prev) => [...prev, newManager]);
-          resetForm();
-        })
-        .catch((err) => console.error("Error adding manager:", err));
+    if (!finalSite) {
+      alert("Site required");
+      return;
+    }
+
+    const data = new FormData();
+    data.append("name", form.name);
+    data.append("email", form.email);
+    data.append("contactNo", form.contactNo);
+    data.append("site", finalSite);
+    if (aadhaarFile) data.append("aadhaar", aadhaarFile);
+    if (panFile) data.append("pan", panFile);
+
+    try {
+      if (editingId) {
+        await axios.put(
+          `https://attendance-management-backend-vh2w.onrender.com/api/managers/${editingId}`,
+          data
+        );
+      } else {
+        await axios.post(
+          "https://attendance-management-backend-vh2w.onrender.com/api/managers",
+          data
+        );
+      }
+      fetchManagers();
+      resetForm();
+    } catch (err) {
+      console.error(err);
     }
   };
 
-  const resetForm = () => {
-    setName("");
-    setContactNo("");
-    setEmail("");
-    setSite("");
-    setEditingId(null);
+  /* ================= EDIT / DELETE ================= */
+  const editManager = (m) => {
+    setEditingId(m._id);
+    setForm({
+      name: m.name,
+      email: m.email,
+      contactNo: m.contactNo,
+      site: defaultSites.includes(m.site) ? m.site : "Other",
+      siteCustom: defaultSites.includes(m.site) ? "" : m.site,
+    });
   };
 
-  const deleteManager = (id) => {
-    fetch(`https://attendance-management-backend-vh2w.onrender.com/api/managers/${id}`, {
-      method: "DELETE",
-    })
-      .then(() => setManagers(managers.filter((m) => m._id !== id)))
-      .catch((err) => console.error("Error deleting manager:", err));
+  const deleteManager = async (id) => {
+    if (!window.confirm("Delete manager?")) return;
+    try {
+      await axios.delete(
+        `https://attendance-management-backend-vh2w.onrender.com/api/managers/${id}`
+      );
+      fetchManagers();
+    } catch (err) {
+      console.error(err);
+    }
   };
 
-  const editManager = (manager) => {
-    setName(manager.name);
-    setEmail(manager.email);
-    setContactNo(manager.contactNo);
-    setSite(manager.site);
-    setEditingId(manager._id);
-  };
+  const allSites = [...new Set(managers.map((m) => m.site))];
 
-  // Render loading or access check
-  if (loadingUser) return <p>Loading...</p>;
-  if (!user || user.role.toLowerCase() !== "admin") return <p>Access Denied</p>;
-
+  /* ================= UI ================= */
   return (
     <div className="workers-container">
-      <h2>👨‍💼 Managers List</h2>
+      <h2>👨‍💼 Managers</h2>
 
-      <form onSubmit={handleSubmit} className="workers-form" style={{ marginBottom: "20px" }}>
+      <form className="workers-form" onSubmit={handleSubmit}>
         <input
           type="text"
-          placeholder="Enter manager name"
-          value={name}
-          onChange={(e) => setName(e.target.value)}
+          placeholder="Manager Name"
+          value={form.name}
+          onChange={(e) => setForm({ ...form, name: e.target.value })}
           required
-          style={{ marginRight: "10px", padding: "9px" }}
         />
+
         <input
           type="email"
-          placeholder="Enter email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
+          placeholder="Email"
+          value={form.email}
+          onChange={(e) => setForm({ ...form, email: e.target.value })}
           required
-          style={{ marginRight: "10px", padding: "9px" }}
         />
+
         <input
-          type="text"
-          placeholder="Enter contact number"
-          value={contactNo}
-          onChange={(e) => setContactNo(e.target.value)}
+          placeholder="Contact Number"
+          value={form.contactNo}
+          onChange={(e) => setForm({ ...form, contactNo: e.target.value })}
+          maxLength={10}
           required
-          maxLength="10"
-          style={{ marginRight: "10px", padding: "9px" }}
         />
+
         <select
-          value={site}
-          onChange={(e) => setSite(e.target.value)}
+          value={form.site}
+          onChange={(e) => setForm({ ...form, site: e.target.value })}
           required
-          style={{ marginRight: "10px", padding: "9px" }}
         >
           <option value="">Select Site</option>
-          {sites.map((s) => (
+          {defaultSites.map((s) => (
             <option key={s} value={s}>
               {s}
             </option>
           ))}
         </select>
 
-        <button type="submit">{editingId ? "Update Manager" : "Add Manager"}</button>
+        {form.site === "Other" && (
+          <input
+            placeholder="Custom Site Name"
+            value={form.siteCustom}
+            onChange={(e) => setForm({ ...form, siteCustom: e.target.value })}
+            required
+          />
+        )}
+
+        <label>
+          Aadhaar Card:
+          <input
+            type="file"
+            accept="image/*,application/pdf"
+            onChange={(e) => setAadhaarFile(e.target.files[0])}
+          />
+        </label>
+
+        <label>
+          PAN Card:
+          <input
+            type="file"
+            accept="image/*,application/pdf"
+            onChange={(e) => setPanFile(e.target.files[0])}
+          />
+        </label>
+
+        <button type="submit">
+          {editingId ? "Update Manager" : "Add Manager"}
+        </button>
+
         {editingId && (
-          <button type="button" onClick={resetForm} style={{ marginLeft: "10px" }}>
+          <button type="button" onClick={resetForm}>
             Cancel
           </button>
         )}
       </form>
 
-      {loadingManagers && <p>Loading managers...</p>}
-      {error && <p style={{ color: "red" }}>{error}</p>}
+      {/* ================= TABLE ================= */}
+      {allSites.map((site) => (
+        <div key={site}>
+          <h3>🏗 {site}</h3>
 
-      {sites.map((s) => (
-        <div key={s}>
-          <h3 style={{ marginTop: "20px" }}>🏗 Site: {s}</h3>
-          <table border="1" cellPadding="8" style={{ width: "100%", borderCollapse: "collapse" }}>
-            <thead style={{ background: "#2C3E50", color: "white" }}>
+          <table border="1" width="100%">
+            <thead>
               <tr>
-                <th>ID</th>
+                <th>#</th>
                 <th>Name</th>
                 <th>Email</th>
-                <th>Site</th>
-                <th>Contact No</th>
+                <th>Contact</th>
+                <th>Aadhaar</th>
+                <th>PAN</th>
                 <th>Action</th>
               </tr>
             </thead>
+
             <tbody>
               {managers
-                .filter((m) => m.site === s)
-                .map((m, index) => (
+                .filter((m) => m.site === site)
+                .map((m, i) => (
                   <tr key={m._id}>
-                    <td>{index + 1}</td>
+                    <td>{i + 1}</td>
                     <td>{m.name}</td>
                     <td>{m.email}</td>
-                    <td>{m.site}</td>
                     <td>{m.contactNo}</td>
+
                     <td>
-                      <button
-                        onClick={() => editManager(m)}
-                        style={{
-                          background: "#3498db",
-                          color: "white",
-                          border: "none",
-                          padding: "5px 10px",
-                          cursor: "pointer",
-                          borderRadius: "4px",
-                          marginRight: "5px",
-                        }}
-                      >
-                        ✏️ Edit
-                      </button>
-                      <button
-                        onClick={() => deleteManager(m._id)}
-                        style={{
-                          background: "#e74c3c",
-                          color: "white",
-                          border: "none",
-                          padding: "5px 10px",
-                          cursor: "pointer",
-                          borderRadius: "4px",
-                        }}
-                      >
-                        ❌ Delete
-                      </button>
+                      {m.aadhaarDoc?.url ? (
+                        <a href={m.aadhaarDoc.url} target="_blank" rel="noreferrer">
+                          View
+                        </a>
+                      ) : (
+                        "N/A"
+                      )}
+                    </td>
+
+                    <td>
+                      {m.panDoc?.url ? (
+                        <a href={m.panDoc.url} target="_blank" rel="noreferrer">
+                          View
+                        </a>
+                      ) : (
+                        "N/A"
+                      )}
+                    </td>
+
+                    <td>
+                      <button onClick={() => editManager(m)}>Edit</button>{" "}
+                      <button onClick={() => deleteManager(m._id)}>Delete</button>
                     </td>
                   </tr>
                 ))}
