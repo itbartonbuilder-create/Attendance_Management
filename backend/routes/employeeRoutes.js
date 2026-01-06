@@ -9,7 +9,6 @@ import {
 
 const router = express.Router();
 
-// Add Employee
 router.post(
   "/",
   upload.fields([
@@ -19,10 +18,8 @@ router.post(
   addEmployee
 );
 
-// Get All Employees
 router.get("/", getEmployees);
 
-// Update Employee
 router.put(
   "/:id",
   upload.fields([
@@ -32,7 +29,6 @@ router.put(
   updateEmployee
 );
 
-// Delete Employee
 router.delete("/:id", deleteEmployee);
 
 export default router;
