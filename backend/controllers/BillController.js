@@ -1,16 +1,13 @@
 import Bill from "../models/BillModel.js";
 
 const generateBillNo = async () => {
-  const lastBill = await Bill.findOne().sort({ createdAt: -1 });
+  const lastBill = await Bill.findOne().sort({ billNo: -1 });
 
-  let nextNumber = 1;
-
-  if (lastBill && lastBill.billNo) {
-    const lastNo = parseInt(lastBill.billNo.split("-")[1]);
-    nextNumber = lastNo + 1;
+  if (!lastBill) {
+    return 1;
   }
 
-  return `BILL-${String(nextNumber).padStart(4, "0")}`;
+  return Number(lastBill.billNo) + 1;
 };
 
 export const createBill = async (req, res) => {
@@ -19,7 +16,7 @@ export const createBill = async (req, res) => {
       return res.status(400).json({ message: "Bill file required" });
     }
 
-    const billNo = await generateBillNo();
+    const billNo = await generateBillNo(); // ✅ 1,2,3,4
 
     const bill = await Bill.create({
       workName: req.body.workName,
