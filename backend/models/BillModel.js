@@ -2,34 +2,33 @@ import mongoose from "mongoose";
 
 const billSchema = new mongoose.Schema(
   {
-    workName: String,
+    workName: { type: String, required: true },
 
-    billNo: {
-      type: String,
-      unique: true,
-    },
+    billNo: { type: String, required: true },
 
-    site: String,
+    site: { type: String, required: true },
 
     vendor: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "Vendor",
+      ref: "User",
       required: true,
     },
 
     sentTo: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "Manager",
+      ref: "User",
       required: true,
     },
 
-    amount: Number,
-    billDate: Date,
+    amount: { type: Number, required: true },
 
-    billFile: String,
-    billFileId: String,
+    billDate: { type: Date, required: true },
+
+    billFile: { type: String, required: true },
+
+    billFileId: { type: String, required: true },
   },
-  { timestamps: true }
+  { timestamps: true } // 🔥 THIS FIXES 500
 );
 
 export default mongoose.model("Bill", billSchema);
