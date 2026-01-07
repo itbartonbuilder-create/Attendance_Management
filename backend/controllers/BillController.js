@@ -3,7 +3,7 @@ import Bill from "../models/BillModel.js";
 export const createBill = async (req, res) => {
   try {
     if (!req.file) {
-      return res.status(400).json({ msg: "Bill file is required" });
+      return res.status(400).json({ message: "Bill file required" });
     }
 
     const bill = await Bill.create({
@@ -15,16 +15,12 @@ export const createBill = async (req, res) => {
       amount: req.body.amount,
       billDate: req.body.billDate,
 
-      // ✅ Cloudinary URL
-      billFile: req.file.path,
+      billFile: req.file.path,       // ✅ Cloudinary URL
+      billFileId: req.file.filename, // ✅ Cloudinary public_id
     });
 
-    res.status(201).json({
-      success: true,
-      msg: "Bill submitted successfully",
-      bill,
-    });
+    res.status(201).json(bill);
   } catch (error) {
-    res.status(500).json({ msg: error.message });
+    res.status(500).json({ message: error.message });
   }
 };
