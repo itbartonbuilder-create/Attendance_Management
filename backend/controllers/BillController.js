@@ -32,7 +32,6 @@ export const createBill = async (req, res) => {
       billFile: req.file.path,
       billFileId: req.file.filename,
     });
-
     res.status(201).json(bill);
   } catch (err) {
     console.error("CREATE BILL ERROR ❌", err);
