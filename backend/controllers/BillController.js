@@ -14,13 +14,14 @@ export const createBill = async (req, res) => {
       sentTo: req.body.sentTo,
       amount: req.body.amount,
       billDate: req.body.billDate,
-      billFile: req.file.path,
-      billFileId: req.file.filename,
+
+      billFile: req.file.path,        // ✅ Cloudinary URL
+      billFileId: req.file.filename,  // ✅ Cloudinary public_id
     });
 
     res.status(201).json(bill);
-  } catch (err) {
-    console.error("CREATE BILL ERROR ❌", err);
-    res.status(500).json({ message: err.message });
+  } catch (error) {
+    console.error("Create bill error:", error);
+    res.status(500).json({ message: error.message });
   }
 };
