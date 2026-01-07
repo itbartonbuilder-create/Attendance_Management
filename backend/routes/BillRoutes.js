@@ -6,9 +6,10 @@ import { uploadBill } from "../middleware/upload.js";
 
 const router = express.Router();
 
+/* ========= CREATE BILL ========= */
 router.post("/create", uploadBill.single("billFile"), createBill);
 
-
+/* ========= GET BILLS ========= */
 router.get("/", async (req, res) => {
   try {
     const { role, site, manager, vendor } = req.query;
@@ -27,13 +28,16 @@ router.get("/", async (req, res) => {
       }
     }
 
+    // admin → no filter
+
     const bills = await Bill.find(filter)
       .sort({ createdAt: -1 })
       .populate("sentTo", "name email")
       .populate("vendor", "name companyName contactNo");
 
-    res.status(200).json(bills);
+    res.json(bills);
   } catch (error) {
+    console.error("Fetch bills error:", error);
     res.status(500).json({ message: error.message });
   }
 });
