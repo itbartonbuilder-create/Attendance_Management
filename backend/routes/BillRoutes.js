@@ -6,29 +6,33 @@ import { uploadBill } from "../middleware/upload.js";
 
 const router = express.Router();
 
-/* ========== CREATE BILL (VENDOR) ========== */
+/* CREATE BILL */
 router.post("/create", uploadBill.single("billFile"), createBill);
 
-/* ========== GET BILLS (ADMIN / MANAGER / VENDOR) ========== */
+/* GET BILLS */
 router.get("/", async (req, res) => {
   try {
     const { role, site, manager, vendor } = req.query;
     let filter = {};
 
-    // ✅ ADMIN → ALL BILLS
-    if (!role || role === "admin") {
+    /* ADMIN → ALL BILLS */
+    if (role === "admin") {
       filter = {};
     }
 
-    // ✅ MANAGER
+    /* MANAGER → ONLY OWN SITE */
     if (role === "manager") {
-      if (site) filter.site = site;
+      if (!site) {
+        return res.status(400).json({ message: "Site required" });
+      }
+      filter.site = site;
+
       if (manager && mongoose.Types.ObjectId.isValid(manager)) {
         filter.sentTo = manager;
       }
     }
 
-    // ✅ VENDOR
+    /* VENDOR → ONLY OWN */
     if (role === "vendor") {
       if (vendor && mongoose.Types.ObjectId.isValid(vendor)) {
         filter.vendor = vendor;
@@ -37,13 +41,13 @@ router.get("/", async (req, res) => {
 
     const bills = await Bill.find(filter)
       .sort({ createdAt: -1 })
-      .populate("vendor", "name companyName contactNo")
-      .populate("sentTo", "name");
+      .populate("vendor", "name companyName")
+      .populate("sentTo", "name email");
 
-    res.json(bills);
-  } catch (err) {
-    console.error("FETCH BILL ERROR ❌", err);
-    res.status(500).json({ message: err.message });
+    res.status(200).json(bills);
+  } catch (error) {
+    console.error("Bill fetch error:", error);
+    res.status(500).json({ message: "Server Error" });
   }
 });
 
