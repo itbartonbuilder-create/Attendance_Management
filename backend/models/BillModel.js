@@ -5,7 +5,7 @@ const billSchema = new mongoose.Schema(
     workName: String,
 
     billNo: {
-      type: String,
+      type: Number, // ✅ NUMBER ONLY
       unique: true,
     },
 
