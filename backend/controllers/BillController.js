@@ -15,12 +15,13 @@ export const createBill = async (req, res) => {
       amount: req.body.amount,
       billDate: req.body.billDate,
 
-      billFile: req.file.path,       // ✅ Cloudinary URL
-      billFileId: req.file.filename, // ✅ Cloudinary public_id
+      billFile: req.file.path,        // ✅ Cloudinary URL
+      billFileId: req.file.filename,  // ✅ Cloudinary public_id
     });
 
     res.status(201).json(bill);
   } catch (error) {
+    console.error("Create bill error:", error);
     res.status(500).json({ message: error.message });
   }
 };
