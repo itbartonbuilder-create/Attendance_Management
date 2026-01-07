@@ -2,9 +2,9 @@ import mongoose from "mongoose";
 
 const billSchema = new mongoose.Schema(
   {
-    workName: { type: String, required: true },
-    billNo: { type: String, required: true },
-    site: { type: String, required: true },
+    workName: String,
+    billNo: String,
+    site: String,
 
     vendor: {
       type: mongoose.Schema.Types.ObjectId,
@@ -14,16 +14,15 @@ const billSchema = new mongoose.Schema(
 
     sentTo: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "User",
+      ref: "Manager",
       required: true,
     },
 
-    amount: { type: Number, required: true },
-    billDate: { type: Date, required: true },
+    amount: Number,
+    billDate: Date,
 
-    // ✅ Cloudinary fields
-    billFile: { type: String, required: true },       // URL
-    billFileId: { type: String, required: true },     // public_id
+    billFile: String,
+    billFileId: String,
   },
   { timestamps: true }
 );
