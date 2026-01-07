@@ -3,7 +3,12 @@ import mongoose from "mongoose";
 const billSchema = new mongoose.Schema(
   {
     workName: String,
-    billNo: String,
+
+    billNo: {
+      type: String,
+      unique: true,
+    },
+
     site: String,
 
     vendor: {
