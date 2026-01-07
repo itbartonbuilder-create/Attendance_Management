@@ -23,7 +23,7 @@ export const createBill = async (req, res) => {
 
     const bill = await Bill.create({
       workName: req.body.workName,
-      billNo,
+      billNo:  String(nextBillNo),
       site: req.body.site,
       vendor: req.body.vendor,
       sentTo: req.body.sentTo,
