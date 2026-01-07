@@ -6,7 +6,6 @@ function BillForm() {
 
   const initialForm = {
     workName: "",
-    billNo: "",
     site: "",
     sentTo: "",
     amount: "",
@@ -19,7 +18,6 @@ function BillForm() {
 
   const [sites] = useState(["Bangalore", "Japuriya", "Vashali", "Faridabad"]);
   const [managers, setManagers] = useState([]);
-
 
   useEffect(() => {
     if (!form.site) return;
@@ -36,9 +34,6 @@ function BillForm() {
     setForm({ ...form, [e.target.name]: e.target.value });
   };
 
-  // ===============================
-  // SUBMIT BILL
-  // ===============================
   const handleSubmit = async (e) => {
     e.preventDefault();
 
@@ -57,7 +52,7 @@ function BillForm() {
       });
 
       data.append("billFile", billFile);
-      data.append("vendor", user?._id); // ✅ VERY IMPORTANT
+      data.append("vendor", user?._id);
 
       await axios.post(
         "https://attendance-management-backend-vh2w.onrender.com/api/bill/create",
@@ -88,14 +83,6 @@ function BillForm() {
             name="workName"
             value={form.workName}
             placeholder="Work / Supply Name"
-            onChange={handleChange}
-            required
-          />
-          <input
-            style={input}
-            name="billNo"
-            value={form.billNo}
-            placeholder="Bill No"
             onChange={handleChange}
             required
           />
@@ -139,7 +126,7 @@ function BillForm() {
             name="amount"
             type="number"
             value={form.amount}
-            placeholder="Total Amount"
+            placeholder="Bill Amount"
             onChange={handleChange}
             required
           />
@@ -169,11 +156,8 @@ function BillForm() {
     </div>
   );
 }
-
-/* ===============================
-   CSS (UNCHANGED)
-================================ */
 const page = { padding: "30px" };
+
 const formBox = {
   padding: "25px",
   borderRadius: "10px",
@@ -181,12 +165,19 @@ const formBox = {
   color: "white",
   background: "#1f1f1f",
 };
+
 const heading = {
   marginBottom: "20px",
   borderBottom: "1px solid #444",
   paddingBottom: "10px",
 };
-const row = { display: "flex", gap: "15px", marginBottom: "15px" };
+
+const row = {
+  display: "flex",
+  gap: "15px",
+  marginBottom: "15px",
+};
+
 const input = {
   flex: 1,
   padding: "10px",
@@ -195,7 +186,9 @@ const input = {
   background: "#2c2c2c",
   color: "white",
 };
+
 const fileInput = { color: "white" };
+
 const btn = {
   background: "#1e88e5",
   color: "white",
