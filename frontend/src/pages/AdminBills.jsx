@@ -61,7 +61,6 @@ const AdminBills = () => {
     </div>
   );
 };
-
 const th = { padding: "10px", border: "1px solid #444" };
 const td = { padding: "10px", border: "1px solid #444", textAlign: "center" };
 
