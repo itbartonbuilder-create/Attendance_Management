@@ -2,35 +2,29 @@ import express from "express";
 import mongoose from "mongoose";
 import Bill from "../models/BillModel.js";
 import { createBill } from "../controllers/BillController.js";
-import { upload } from "../middleware/upload.js"; // ✅ FIXED
+import { uploadBill } from "../middleware/upload.js";
 
 const router = express.Router();
 
-/* ================= CREATE BILL ================= */
-router.post(
-  "/create",
-  upload.single("billFile"), // ✅ name must match frontend
-  createBill
-);
+/* CREATE BILL */
+router.post("/create", uploadBill.single("billFile"), createBill);
 
-/* ================= GET BILLS ================= */
+/* GET BILLS */
 router.get("/", async (req, res) => {
   try {
     const { role, site, manager, vendor } = req.query;
-
     let filter = {};
 
-    /* ========= ADMIN → ALL BILLS ========= */
+    /* ADMIN → ALL BILLS */
     if (role === "admin") {
-      filter = {}; // no filter
+      filter = {};
     }
 
-    /* ========= MANAGER ========= */
-    else if (role === "manager") {
+    /* MANAGER → ONLY OWN SITE */
+    if (role === "manager") {
       if (!site) {
         return res.status(400).json({ message: "Site required" });
       }
-
       filter.site = site;
 
       if (manager && mongoose.Types.ObjectId.isValid(manager)) {
@@ -38,8 +32,8 @@ router.get("/", async (req, res) => {
       }
     }
 
-    /* ========= VENDOR ========= */
-    else if (role === "vendor") {
+    /* VENDOR → ONLY OWN */
+    if (role === "vendor") {
       if (vendor && mongoose.Types.ObjectId.isValid(vendor)) {
         filter.vendor = vendor;
       }
@@ -52,7 +46,7 @@ router.get("/", async (req, res) => {
 
     res.status(200).json(bills);
   } catch (error) {
-    console.error("❌ Bill fetch error:", error);
+    console.error("Bill fetch error:", error);
     res.status(500).json({ message: "Server Error" });
   }
 });
