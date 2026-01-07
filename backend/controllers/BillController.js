@@ -10,11 +10,13 @@ export const createBill = async (req, res) => {
       workName: req.body.workName,
       billNo: req.body.billNo,
       site: req.body.site,
-      vendor: req.body.vendor, // 🔥
+      vendor: req.body.vendor,
       sentTo: req.body.sentTo,
       amount: req.body.amount,
       billDate: req.body.billDate,
-      billFile: req.file.filename,
+
+      // ✅ Cloudinary URL
+      billFile: req.file.path,
     });
 
     res.status(201).json({
