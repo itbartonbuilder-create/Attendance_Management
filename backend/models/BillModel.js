@@ -2,9 +2,23 @@ import mongoose from "mongoose";
 
 const billSchema = new mongoose.Schema(
   {
-    workName: String,
-    billNo: String,
-    site: String,
+    workName: {
+      type: String,
+      required: true,
+      trim: true,
+    },
+
+    billNo: {
+      type: String,
+      required: true,
+      unique: true, 
+      index: true,
+    },
+
+    site: {
+      type: String,
+      required: true,
+    },
 
     vendor: {
       type: mongoose.Schema.Types.ObjectId,
@@ -18,13 +32,31 @@ const billSchema = new mongoose.Schema(
       required: true,
     },
 
-    amount: Number,
-    billDate: Date,
+    amount: {
+      type: Number,
+      required: true,
+    },
 
-    billFile: String,
-    billFileId: String,
+    billDate: {
+      type: Date,
+      required: true,
+    },
+
+   
+    billFile: {
+      type: String,
+      required: true,
+    },
+
+    
+    billFileId: {
+      type: String,
+      required: true,
+    },
   },
-  { timestamps: true }
+  {
+    timestamps: true,
+  }
 );
 
 export default mongoose.model("Bill", billSchema);
