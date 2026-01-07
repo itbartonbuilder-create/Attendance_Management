@@ -86,7 +86,7 @@ const ManagerBills = () => {
 };
 
 // Styling
-const page = { padding: "30px", fontFamily: "Arial, sans-serif" };
+const page = {  padding: "82px 40px", fontFamily: "Arial, sans-serif" };
 const table = {
   width: "100%",
   borderCollapse: "collapse",
