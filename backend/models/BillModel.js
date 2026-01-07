@@ -19,10 +19,11 @@ const billSchema = new mongoose.Schema(
     },
 
     amount: { type: Number, required: true },
-    billDate: { type: String, required: true },
+    billDate: { type: Date, required: true },
 
-    billFile: { type: String, required: true }, // ✅ Cloudinary URL
-    billFileId: { type: String, required: true }, // ✅ public_id
+    // ✅ Cloudinary fields
+    billFile: { type: String, required: true },       // URL
+    billFileId: { type: String, required: true },     // public_id
   },
   { timestamps: true }
 );
