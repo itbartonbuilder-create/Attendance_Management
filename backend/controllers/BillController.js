@@ -26,11 +26,7 @@ export const createBill = async (req, res) => {
       sentTo: req.body.sentTo,
       amount: req.body.amount,
       billDate: req.body.billDate,
-     billFile: {
-        url: req.file.path,
-        public_id: req.file.filename,
-        originalName: req.file.originalname, 
-      },
+      billFile: req.file.path,
       billFileId: req.file.filename,
     });
 
