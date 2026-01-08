@@ -1,25 +1,28 @@
 import express from "express";
 import Bill from "../models/BillModel.js";
 import { createBill } from "../controllers/BillController.js";
-import { upload } from "../middleware/upload.js";
+import { uploadBill } from "../middleware/upload.js"; 
 
 const router = express.Router();
 
-/* CREATE */
-router.post("/create", upload.single("billFile"), createBill);
 
-/* GET */
+router.post(
+  "/create",
+  uploadBill.single("billFile"), 
+  createBill
+);
+
+
 router.get("/", async (req, res) => {
   try {
     const { role, userId, site } = req.query;
     let filter = {};
 
-    /* ADMIN */
+    
     if (role === "admin") {
       filter = {};
     }
 
-    /* MANAGER */
     else if (role === "manager") {
       if (!userId || !site) {
         return res.status(400).json({ message: "Manager id & site required" });
@@ -31,7 +34,6 @@ router.get("/", async (req, res) => {
       };
     }
 
-    /* VENDOR */
     else if (role === "vendor") {
       if (!userId) {
         return res.status(400).json({ message: "Vendor id required" });
