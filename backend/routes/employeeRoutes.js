@@ -1,5 +1,5 @@
 import express from "express";
-import { upload } from "../middleware/upload.js";
+import { uploadManagerDocs } from "../middleware/upload.js";
 import {
   addEmployee,
   getEmployees,
@@ -11,7 +11,7 @@ const router = express.Router();
 
 router.post(
   "/",
-  upload.fields([
+  uploadManagerDocs.fields([
     { name: "aadhaar", maxCount: 1 },
     { name: "pan", maxCount: 1 },
   ]),
@@ -22,7 +22,7 @@ router.get("/", getEmployees);
 
 router.put(
   "/:id",
-  upload.fields([
+  uploadManagerDocs.fields([
     { name: "aadhaar", maxCount: 1 },
     { name: "pan", maxCount: 1 },
   ]),
