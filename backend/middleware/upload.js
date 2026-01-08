@@ -1,94 +1,38 @@
-import multer from "multer";
-import { CloudinaryStorage } from "multer-storage-cloudinary";
-import cloudinary from "../utils/cloudinary.js";
+import Bill from "../models/BillModel.js";
 
+const generateBillNo = async () => {
+  const lastBill = await Bill.findOne().sort({ billNo: -1 });
 
-const employeeStorage = new CloudinaryStorage({
-  cloudinary,
-  params: async (req, file) => {
-    let resourceType = "image";
+  if (!lastBill) {
+    return 1;
+  }
 
-    if (file.mimetype === "application/pdf") {
-      resourceType = "raw";
+  return Number(lastBill.billNo) + 1;
+};
+
+export const createBill = async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ message: "Bill file required" });
     }
 
-    return {
-      folder: "employees",
-      resource_type: resourceType,
-      public_id: file.originalname
-        .replace(/\.[^/.]+$/, "")
-        .replace(/\s+/g, "_"),
-      use_filename: true,
-      unique_filename: false,
-      allowed_formats: ["jpg", "jpeg", "png", "pdf"],
-    };
-  },
-});
+    const billNo = await generateBillNo(); // ✅ 1,2,3,4
 
-export const upload = multer({
-  storage: employeeStorage,
-  limits: { fileSize: 10 * 1024 * 1024 },
-});
+    const bill = await Bill.create({
+      workName: req.body.workName,
+      billNo,
+      site: req.body.site,
+      vendor: req.body.vendor,
+      sentTo: req.body.sentTo,
+      amount: req.body.amount,
+      billDate: req.body.billDate,
+      billFile: req.file.path,
+      billFileId: req.file.filename,
+    });
 
-
-
-const billStorage = new CloudinaryStorage({
-  cloudinary,
-  params: async (req, file) => {
-    let resourceType = "image";
-
-    if (
-      file.mimetype === "application/pdf" ||
-      file.mimetype === "application/msword" ||
-      file.mimetype ===
-        "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-    ) {
-      resourceType = "raw";
-    }
-
-    return {
-      folder: "bills",
-      resource_type: resourceType,
-      public_id: file.originalname
-        .replace(/\.[^/.]+$/, "")
-        .replace(/\s+/g, "_"),
-      use_filename: true,
-      unique_filename: false,
-      allowed_formats: ["jpg", "jpeg", "png", "pdf", "doc", "docx"],
-    };
-  },
-});
-
-export const uploadBill = multer({
-  storage: billStorage,
-  limits: { fileSize: 10 * 1024 * 1024 },
-});
-
-
-
-const managerDocStorage = new CloudinaryStorage({
-  cloudinary,
-  params: async (req, file) => {
-    let resourceType = "image";
-
-    if (file.mimetype === "application/pdf") {
-      resourceType = "raw";
-    }
-
-    return {
-      folder: "manager-docs",
-      resource_type: resourceType,
-      public_id: file.originalname
-        .replace(/\.[^/.]+$/, "")
-        .replace(/\s+/g, "_"),
-      use_filename: true,
-      unique_filename: false,
-      allowed_formats: ["jpg", "jpeg", "png", "pdf"],
-    };
-  },
-});
-
-export const uploadManagerDocs = multer({
-  storage: managerDocStorage,
-  limits: { fileSize: 10 * 1024 * 1024 },
-});
+    res.status(201).json(bill);
+  } catch (err) {
+    console.error("CREATE BILL ERROR ❌", err);
+    res.status(500).json({ message: err.message });
+  }
+};
