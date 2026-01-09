@@ -17,6 +17,7 @@ import AdminBills from "./pages/AdminBills";
 import ManagerBills from "./pages/ManagerBills";
 import AdminVendors from "./pages/AdminVendors";
 import Employees from "./pages/Employees";
+import VendorBills from "./pages/VendorBills";
 
 function App() {
   return (
@@ -38,9 +39,11 @@ function App() {
         <Route path="/task" element={<TaskPage />} />
         <Route path="/vendor-dashboard" element={<VendorDashboard />} />
         <Route path="/admin/bills" element={<AdminBills />} />
-        <Route path="/vendors" element={<AdminVendors />} />
 <Route path="/manager/bills" element={<ManagerBills />} />
-        <Route path="/employees" element={<Employees />} />
+<Route path="/vendors" element={<AdminVendors />} />
+<Route path="/employees" element={<Employees />} />
+<Route path="/vendor/bills" element={<VendorBills />} />
+
       </Routes>
             </div>
         <Footer />
