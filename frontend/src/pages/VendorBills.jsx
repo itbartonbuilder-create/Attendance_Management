@@ -43,7 +43,7 @@ function VendorBills() {
                 <th>Approved By</th>
                 <th>Bill</th>
               </tr>
-            </thead>
+            </thead> 
             <tbody>
               {bills.map((bill) => (
                 <tr key={bill._id}>
