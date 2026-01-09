@@ -179,10 +179,20 @@ function Navbar() {
             <Link to="/profile" style={linkStyle}>Profile</Link>
           </>
         )}
-        {role === "vendor" && (
-  <Link to="/vendor-dashboard" style={linkStyle}>
-    Submit Bill
-  </Link>
+    {role === "vendor" && (
+  <>
+    <Link to="/vendor-dashboard" style={linkStyle}>
+      Submit Bill
+    </Link>
+
+    <Link to="/vendor/bills" style={linkStyle}>
+      My Bills
+    </Link>
+
+    <Link to="/profile" style={linkStyle}>
+      Profile
+    </Link>
+  </>
 )}
 
         <button onClick={handleLogout} style={logoutStyle}>Logout</button>
