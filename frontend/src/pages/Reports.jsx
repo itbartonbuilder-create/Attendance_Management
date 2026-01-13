@@ -8,18 +8,24 @@ import "../App.css";
 function AttendanceReport() {
   const navigate = useNavigate();
   const [user, setUser] = useState(null);
+
+  const [recordType, setRecordType] = useState("");
   const [sites] = useState(["Bangalore", "Japuriya", "Vashali", "Faridabad"]);
   const [selectedSite, setSelectedSite] = useState("");
+
   const [workers, setWorkers] = useState([]);
   const [selectedWorkers, setSelectedWorkers] = useState([]);
+
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
+
   const [workerData, setWorkerData] = useState([]);
   const [showReport, setShowReport] = useState(false);
 
-  const API_URL =
-    "https://attendance-management-backend-vh2w.onrender.com/api/attendance";
+  const API_BASE =
+    "https://attendance-management-backend-vh2w.onrender.com/api";
 
+  // ---------------- AUTH ----------------
   useEffect(() => {
     const savedUser = localStorage.getItem("user");
     if (!savedUser) {
@@ -27,94 +33,98 @@ function AttendanceReport() {
       return;
     }
 
-    const u = JSON.parse(savedUser);
-    setUser(u);
+    const parsedUser = JSON.parse(savedUser);
+    setUser(parsedUser);
 
-    if (u.role === "manager") {
-      setSelectedSite(u.site);
-      fetchWorkersBySite(u.site);
-    } else if (u.role === "admin") {
-      setWorkers([]);
-    } else if (u.role === "worker") {
-      setSelectedSite(u.site);
-      fetchWorkerDetails(u);
+    // ✅ MANAGER → AUTO SELECT HIS SITE
+    if (parsedUser.role === "manager" && parsedUser.site) {
+      setSelectedSite(parsedUser.site);
     }
   }, [navigate]);
 
-  const fetchWorkerDetails = async (u) => {
+  // ---------------- FETCH WORKERS ----------------
+  const fetchPeopleBySite = async (site) => {
     try {
-      const res = await axios.get(`${API_URL}/workers`);
-      const workerInfo = res.data.find((w) => w._id === u._id);
-      setWorkers([workerInfo || u]);
-    } catch (err) {
-      console.error("Error fetching worker details:", err);
-      setWorkers([{ ...u, perDaySalary: u.perDaySalary || 0 }]);
-    }
-  };
+      const url =
+        recordType === "employee"
+          ? `${API_BASE}/employees`
+          : `${API_BASE}/workers`;
 
-  const fetchWorkersBySite = async (site) => {
-    try {
-      const res = await axios.get(`${API_URL}/workers`);
-      const filtered = res.data.filter((w) => w.site === site);
-      setWorkers(filtered);
+      const res = await axios.get(url);
+      setWorkers(res.data.filter((p) => p.site === site));
     } catch (err) {
-      console.error("Error fetching workers:", err);
+      console.error(err);
     }
   };
 
   const handleSiteChange = (e) => {
+    // ✅ MANAGER CAN'T CHANGE SITE
+    if (user?.role === "manager") return;
+
     const site = e.target.value;
     setSelectedSite(site);
     setShowReport(false);
-    if (site) fetchWorkersBySite(site);
+    setSelectedWorkers([]);
+    if (site && recordType) fetchPeopleBySite(site);
   };
 
-  // ✅ Fetch attendance data (with leave + overtime)
-  const fetchAllWorkerHistory = async () => {
-    if (!selectedSite || !startDate || !endDate) {
-      alert("⚠️ Please select site, start date, and end date.");
+  // ---------------- GET REPORT ----------------
+  const fetchAllHistory = async () => {
+    if (!recordType || !selectedSite || !startDate || !endDate) {
+      alert("Please select all filters");
       return;
     }
 
     const allData = [];
-    for (let w of workers) {
+
+    for (let p of workers) {
       try {
         const res = await axios.get(
-          `${API_URL}/worker-history/${w._id}?start=${startDate}&end=${endDate}`
+          `${API_BASE}/attendance/worker-history/${p._id}?start=${startDate}&end=${endDate}`
         );
 
         if (res.data.success) {
-          const { history } = res.data;
           let summary = {
-            Present: 0,
-            Absent: 0,
-            Leave: 0,
-            totalHours: 0,
-            overtimeHours: 0,
+            present: 0,
+            absent: 0,
+            leave: 0,
             paidLeave: 0,
             unpaidLeave: 0,
-            perDaySalary: w.perDaySalary || 0,
+            totalHours: 0,
+            overtimeHours: 0,
+            overtimePay: 0,
+            totalPayment: 0,
           };
 
-          history.forEach((h) => {
+          const perDaySalary = p.perDaySalary || p.salary || 0;
+          const overtimeRate = perDaySalary / 8;
+
+          res.data.history.forEach((h) => {
             if (h.status === "Present") {
-              summary.Present++;
+              summary.present++;
               summary.totalHours += h.hoursWorked || 0;
               summary.overtimeHours += h.overtimeHours || 0;
-            } else if (h.status === "Absent") summary.Absent++;
-            else if (h.status === "Leave") {
-              summary.Leave++;
+            } else if (h.status === "Absent") {
+              summary.absent++;
+            } else if (h.status === "Leave") {
+              summary.leave++;
               if (h.leaveType?.holiday || h.leaveType?.accepted) {
                 summary.paidLeave++;
-                summary.totalHours += 8;
-              } else summary.unpaidLeave++;
+                summary.totalPayment += perDaySalary;
+              } else {
+                summary.unpaidLeave++;
+              }
             }
           });
 
-          allData.push({ worker: w, history, summary });
+          summary.overtimePay = summary.overtimeHours * overtimeRate;
+          summary.totalPayment +=
+            summary.present * perDaySalary + summary.overtimePay;
+
+          allData.push({ worker: p, history: res.data.history, summary });
         }
       } catch (err) {
-        console.error("Error fetching worker history:", err);
+        console.error(err);
       }
     }
 
@@ -122,212 +132,137 @@ function AttendanceReport() {
     setShowReport(true);
   };
 
-  const handleCheckboxChange = (workerId) => {
-    setSelectedWorkers((prev) =>
-      prev.includes(workerId)
-        ? prev.filter((id) => id !== workerId)
-        : [...prev, workerId]
-    );
-  };
-
-  // ✅ Generate PDF
+  // ---------------- PDF ----------------
   const downloadPDF = () => {
-    if (user?.role !== "worker" && selectedWorkers.length === 0) {
-      alert("⚠️ Please select at least one worker to download PDF.");
+    if (selectedWorkers.length === 0 && user?.role !== "worker") {
+      alert("Select at least one record");
       return;
     }
 
-    const doc = new jsPDF({ unit: "mm", format: "a4" });
-    let yPos = 15;
+    const doc = new jsPDF();
+    let y = 15;
 
     doc.setFontSize(16);
-    doc.text("Attendance Report", 14, yPos);
-    doc.setFontSize(11);
-    doc.text(`Site: ${selectedSite}`, 14, (yPos += 10));
-    doc.text(`Date Range: ${startDate} to ${endDate}`, 14, (yPos += 6));
-    yPos += 6;
+    doc.text("Attendance Report", 14, y);
+    y += 10;
 
-    const dataToPrint =
-      user?.role === "worker"
-        ? workerData
-        : workerData.filter((wd) => selectedWorkers.includes(wd.worker._id));
+    workerData
+      .filter(
+        (wd) =>
+          user?.role === "worker" ||
+          selectedWorkers.includes(wd.worker._id)
+      )
+      .forEach((wd, index) => {
+        const perDaySalary =
+          wd.worker.perDaySalary || wd.worker.salary || 0;
 
-    dataToPrint.forEach((wd, idx) => {
-      if (yPos > 250) {
-        doc.addPage();
-        yPos = 20;
-      }
+        doc.setFontSize(12);
+        doc.text(`Name: ${wd.worker.name}`, 14, y);
+        y += 6;
+        doc.text(`Per Day Salary: ₹${perDaySalary}`, 14, y);
+        y += 6;
 
-      doc.setFontSize(13);
-      doc.text(`${idx + 1}. ${wd.worker.name}`, 14, yPos);
-      yPos += 5;
-
-      if (wd.history.length > 0) {
         autoTable(doc, {
-          startY: yPos,
-          head: [["Date", "Status", "Hours Worked", "Overtime", "Leave Type"]],
+          startY: y,
+          head: [["Date", "Status", "Hours", "Overtime"]],
           body: wd.history.map((h) => [
             h.date,
             h.status,
             h.hoursWorked || 0,
             h.overtimeHours || 0,
-            h.leaveType
-              ? h.leaveType.holiday
-                ? "Holiday"
-                : h.leaveType.accepted
-                ? "Accepted Leave"
-                : "-"
-              : "-",
           ]),
-          styles: { fontSize: 10 },
-          margin: { left: 14 },
+          theme: "grid",
         });
-      } else {
-        doc.text("No attendance records found.", 14, yPos + 5);
-      }
 
-      const yAfterTable = doc.lastAutoTable
-        ? doc.lastAutoTable.finalY + 10
-        : yPos + 15;
+        y = doc.lastAutoTable.finalY + 6;
 
-      const baseSalary =
-        (wd.summary.Present + wd.summary.paidLeave) *
-        (wd.summary.perDaySalary || 0);
-      const overtimePay =
-        (wd.summary.overtimeHours || 0) * ((wd.summary.perDaySalary || 0) / 8);
-      const totalPayment = baseSalary + overtimePay;
-
-      autoTable(doc, {
-        startY: yAfterTable,
-        head: [
-          [
-            "Present",
-            "Absent",
-            "Leave",
-            "Paid Leave",
-            "Unpaid Leave",
-            "Total Hours",
-            "Overtime",
+        autoTable(doc, {
+          startY: y,
+          head: [["Summary", "Value"]],
+          body: [
+            ["Present Days", wd.summary.present],
+            ["Absent Days", wd.summary.absent],
+            ["Leave Days", wd.summary.leave],
+            ["Paid Leave", wd.summary.paidLeave],
+            ["Unpaid Leave", wd.summary.unpaidLeave],
+            ["Total Hours", wd.summary.totalHours],
+            ["Overtime Hours", wd.summary.overtimeHours],
+            ["Overtime Pay (₹)", wd.summary.overtimePay.toFixed(2)],
+            ["Total Payment (₹)", wd.summary.totalPayment.toFixed(2)],
           ],
-        ],
-        body: [
-          [
-            wd.summary.Present,
-            wd.summary.Absent,
-            wd.summary.Leave,
-            wd.summary.paidLeave,
-            wd.summary.unpaidLeave,
-            wd.summary.totalHours,
-            wd.summary.overtimeHours,
-          ],
-        ],
-        styles: { fontSize: 10 },
-        margin: { left: 14 },
+          theme: "striped",
+        });
+
+        y = doc.lastAutoTable.finalY + 12;
+
+        if (index !== workerData.length - 1) {
+          doc.addPage();
+          y = 15;
+        }
       });
 
-      const y2 = doc.lastAutoTable.finalY + 8;
-      doc.setFontSize(11);
-      doc.text(`Per Day Salary: ₹${wd.summary.perDaySalary}`, 14, y2);
-      doc.text(`Overtime Payment: ₹${overtimePay.toFixed(2)}`, 14, y2 + 6);
-      doc.text(`Total Payment: ₹${totalPayment.toFixed(2)}`, 14, y2 + 12);
-
-      yPos = y2 + 18;
-    });
-
-    doc.save(`Attendance_Report_${selectedSite}_${startDate}_to_${endDate}.pdf`);
+    doc.save("Attendance_Report.pdf");
   };
 
   return (
     <div className="report-container">
-      <h2 style={{ display: "flex", justifyContent: "space-between", color: "#f39c12" }}>
-        📊 Attendance Report
-        {showReport && (
-          <button
-            onClick={downloadPDF}
-            style={{
-              background: "#27ae60",
-              color: "white",
-              padding: "8px 16px",
-              border: "none",
-              borderRadius: "6px",
-              fontSize: "18px",
-              cursor: "pointer",
+      <h2 style={{ color: "#f39c12" }}>📊 Attendance Report</h2>
+
+      <div className="filter-box">
+        <label>
+          Select Type:
+          <select
+            value={recordType}
+            onChange={(e) => {
+              setRecordType(e.target.value);
+              setShowReport(false);
+              if (user?.role === "manager") {
+                fetchPeopleBySite(selectedSite);
+              }
             }}
           >
-            📥 Download PDF
-          </button>
-        )}
-      </h2>
-
-      <div style={{ marginBottom: "20px" }}>
-        <label>
-          🗓️ Start Date:
-          <input
-            type="date"
-            value={startDate}
-            onChange={(e) => setStartDate(e.target.value)}
-            style={{ marginLeft: "8px", padding: "6px" }}
-          />
+            <option value="">-- Select --</option>
+            <option value="worker">Worker</option>
+            <option value="employee">Employee</option>
+          </select>
         </label>
 
-        <label style={{ marginLeft: "15px" }}>
-          🗓️ End Date:
-          <input
-            type="date"
-            value={endDate}
-            onChange={(e) => setEndDate(e.target.value)}
-            style={{ marginLeft: "8px", padding: "6px" }}
-          />
-        </label>
-
-        {user?.role === "admin" ? (
-          <label style={{ marginLeft: "15px" }}>
-            🏗️ Site:
+        {recordType && (
+          <label>
+            Site:
             <select
               value={selectedSite}
               onChange={handleSiteChange}
-              style={{ padding: "6px", marginLeft: "10px" }}
+              disabled={user?.role === "manager"}
             >
               <option value="">-- Select Site --</option>
               {sites.map((s) => (
-                <option key={s} value={s}>
-                  {s}
-                </option>
+                <option key={s}>{s}</option>
               ))}
             </select>
           </label>
-        ) : (
-          <label style={{ marginLeft: "15px" }}>
-            🏗️ Site: <strong>{selectedSite}</strong>
-          </label>
         )}
 
-        <button
-          onClick={fetchAllWorkerHistory}
-          style={{
-            padding: "8px 20px",
-            backgroundColor: "#2C3E50",
-            color: "white",
-            border: "none",
-            borderRadius: "5px",
-            marginLeft: "10px",
-          }}
-        >
-          🔍 Get Report
-        </button>
+        {selectedSite && (
+          <>
+            Start Date
+            <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} />
+            End Date
+            <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} />
+            <button onClick={fetchAllHistory}>Get Report</button>
+          </>
+        )}
       </div>
 
       {showReport && (
         <>
-          <h3>
-            👷 Attendance Summary ({startDate} to {endDate})
-          </h3>
+          <button onClick={downloadPDF}>Download PDF</button>
 
-          <table border="1" cellPadding="8" style={{ width: "100%", borderCollapse: "collapse" }}>
-            <thead style={{ background: "#2C3E50", color: "white" }}>
+          <table>
+            <thead>
               <tr>
                 {user?.role !== "worker" && <th>Select</th>}
-                <th>Worker Name</th>
+                <th>Name</th>
                 <th>Present</th>
                 <th>Absent</th>
                 <th>Leave</th>
@@ -340,39 +275,35 @@ function AttendanceReport() {
               </tr>
             </thead>
             <tbody>
-              {workerData.map((wd) => {
-                const baseSalary =
-                  (wd.summary.Present + wd.summary.paidLeave) *
-                  (wd.summary.perDaySalary || 0);
-                const overtimePay =
-                  (wd.summary.overtimeHours || 0) *
-                  ((wd.summary.perDaySalary || 0) / 8);
-                const totalPayment = baseSalary + overtimePay;
-
-                return (
-                  <tr key={wd.worker._id}>
-                    {user?.role !== "worker" && (
-                      <td>
-                        <input
-                          type="checkbox"
-                          checked={selectedWorkers.includes(wd.worker._id)}
-                          onChange={() => handleCheckboxChange(wd.worker._id)}
-                        />
-                      </td>
-                    )}
-                    <td>{wd.worker.name}</td>
-                    <td>{wd.summary.Present}</td>
-                    <td>{wd.summary.Absent}</td>
-                    <td>{wd.summary.Leave}</td>
-                    <td>{wd.summary.paidLeave}</td>
-                    <td>{wd.summary.unpaidLeave}</td>
-                    <td>{wd.summary.totalHours}</td>
-                    <td>{wd.summary.overtimeHours}</td>
-                    <td>{overtimePay.toFixed(2)}</td>
-                    <td>{totalPayment.toFixed(2)}</td>
-                  </tr>
-                );
-              })}
+              {workerData.map((wd) => (
+                <tr key={wd.worker._id}>
+                  {user?.role !== "worker" && (
+                    <td>
+                      <input
+                        type="checkbox"
+                        checked={selectedWorkers.includes(wd.worker._id)}
+                        onChange={() =>
+                          setSelectedWorkers((p) =>
+                            p.includes(wd.worker._id)
+                              ? p.filter((i) => i !== wd.worker._id)
+                              : [...p, wd.worker._id]
+                          )
+                        }
+                      />
+                    </td>
+                  )}
+                  <td>{wd.worker.name}</td>
+                  <td>{wd.summary.present}</td>
+                  <td>{wd.summary.absent}</td>
+                  <td>{wd.summary.leave}</td>
+                  <td>{wd.summary.paidLeave}</td>
+                  <td>{wd.summary.unpaidLeave}</td>
+                  <td>{wd.summary.totalHours}</td>
+                  <td>{wd.summary.overtimeHours}</td>
+                  <td>₹{wd.summary.overtimePay.toFixed(2)}</td>
+                  <td>₹{wd.summary.totalPayment.toFixed(2)}</td>
+                </tr>
+              ))}
             </tbody>
           </table>
         </>
