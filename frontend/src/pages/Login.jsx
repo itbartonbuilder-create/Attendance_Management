@@ -97,6 +97,7 @@ const [gst, setGst] = useState("");
 
         userData = {
           ...vendor,
+           role: "vendor", 
           displayName: vendor.name,
         };
 
