@@ -18,6 +18,7 @@ import ManagerBills from "./pages/ManagerBills";
 import AdminVendors from "./pages/AdminVendors";
 import Employees from "./pages/Employees";
 import VendorBills from "./pages/VendorBills";
+import VendorSubmitBill from "./pages/VendorSubmitBill";
 
 function App() {
   return (
@@ -43,6 +44,7 @@ function App() {
 <Route path="/vendors" element={<AdminVendors />} />
 <Route path="/employees" element={<Employees />} />
 <Route path="/vendor/bills" element={<VendorBills />} />
+        <Route path="/vendor/submit-bill" element={<VendorSubmitBill />} />
 
       </Routes>
             </div>
