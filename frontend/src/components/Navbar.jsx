@@ -181,17 +181,10 @@ function Navbar() {
         )}
     {role === "vendor" && (
   <>
-    <Link to="/vendor-dashboard" style={linkStyle}>
-      Submit Bill
-    </Link>
-
-    <Link to="/vendor/bills" style={linkStyle}>
-      My Bills
-    </Link>
-
-    <Link to="/profile" style={linkStyle}>
-      Profile
-    </Link>
+    <Link to="/vendor-dashboard" style={linkStyle}>Dashboard</Link>
+    <Link to="/vendor/submit-bill" style={linkStyle}>  Submit Invoice</Link>
+    <Link to="/vendor/bills" style={linkStyle}> Invoice History</Link>
+    <Link to="/profile" style={linkStyle}>Profile</Link>
   </>
 )}
 
