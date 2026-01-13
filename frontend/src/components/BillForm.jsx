@@ -159,9 +159,9 @@ function BillForm() {
 const page = { padding: "30px" };
 
 const formBox = {
-  padding: "25px",
-  borderRadius: "10px",
-  maxWidth: "1050px",
+ padding: "6px 55px",
+    borderradius: "10px",
+    maxwidth: "1145px",
   color: "white",
   background: "#1f1f1f",
 };
