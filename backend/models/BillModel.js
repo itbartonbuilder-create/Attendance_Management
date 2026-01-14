@@ -5,7 +5,7 @@ const billSchema = new mongoose.Schema(
     workName: String,
 
     billNo: {
-      type: Number, // ✅ NUMBER ONLY
+      type: Number,
       unique: true,
     },
 
@@ -28,6 +28,13 @@ const billSchema = new mongoose.Schema(
 
     billFile: String,
     billFileId: String,
+
+    // ✅ MISSING FIELD (VERY IMPORTANT)
+    status: {
+      type: String,
+      enum: ["pending", "approved", "rejected"],
+      default: "pending",
+    },
   },
   { timestamps: true }
 );
