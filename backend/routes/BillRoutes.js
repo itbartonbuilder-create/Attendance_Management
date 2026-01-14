@@ -47,7 +47,8 @@ router.get("/", async (req, res) => {
 });
 
 // ================= APPROVE / REJECT BILL =================
-router.put("/status/:billId", async (req, res) => {
+// ✅ CORRECT ROUTE (THIS FIXES 404)
+router.put("/:billId/status", async (req, res) => {
   try {
     const { billId } = req.params;
     const { status } = req.body;
