@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import axios from "axios";
 
 function BillForm() {
-  const user = JSON.parse(localStorage.getItem("user")); 
+  const user = JSON.parse(localStorage.getItem("user"));
 
   const initialForm = {
     workName: "",
@@ -16,19 +16,49 @@ function BillForm() {
   const [billFile, setBillFile] = useState(null);
   const [loading, setLoading] = useState(false);
 
-  const [sites] = useState(["Bangalore", "Japuriya", "Vashali", "Faridabad"]);
+  const [allManagers, setAllManagers] = useState([]);
   const [managers, setManagers] = useState([]);
+  const [sites, setSites] = useState([]);
 
+  // 🔹 FETCH ALL MANAGERS ONCE
   useEffect(() => {
-    if (!form.site) return;
+    const fetchManagers = async () => {
+      try {
+        const res = await axios.get(
+          "https://attendance-management-backend-vh2w.onrender.com/api/managers"
+        );
 
-    axios
-      .get(
-        `https://attendance-management-backend-vh2w.onrender.com/api/managers?site=${form.site}`
-      )
-      .then((res) => setManagers(res.data))
-      .catch((err) => console.error("Error fetching managers", err));
-  }, [form.site]);
+        setAllManagers(res.data);
+
+        // ✅ UNIQUE SITES (ONLY THOSE HAVING MANAGERS)
+        const uniqueSites = [
+          ...new Set(res.data.map((m) => m.site)),
+        ];
+
+        setSites(uniqueSites);
+      } catch (err) {
+        console.error("Error fetching managers", err);
+      }
+    };
+
+    fetchManagers();
+  }, []);
+
+  // 🔹 FILTER MANAGERS SITE-WISE
+  useEffect(() => {
+    if (!form.site) {
+      setManagers([]);
+      setForm((prev) => ({ ...prev, sentTo: "" }));
+      return;
+    }
+
+    const filtered = allManagers.filter(
+      (m) => m.site === form.site
+    );
+
+    setManagers(filtered);
+    setForm((prev) => ({ ...prev, sentTo: "" }));
+  }, [form.site, allManagers]);
 
   const handleChange = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value });
@@ -46,7 +76,6 @@ function BillForm() {
       setLoading(true);
 
       const data = new FormData();
-
       Object.keys(form).forEach((key) => {
         data.append(key, form[key]);
       });
@@ -60,7 +89,6 @@ function BillForm() {
       );
 
       alert("✅ Bill Submitted Successfully");
-
       setForm(initialForm);
       setBillFile(null);
       e.target.reset();
@@ -110,6 +138,7 @@ function BillForm() {
             value={form.sentTo}
             onChange={handleChange}
             required
+            disabled={!form.site}
           >
             <option value="">Select Manager</option>
             {managers.map((m) => (
@@ -156,14 +185,17 @@ function BillForm() {
     </div>
   );
 }
+
+/* ================= STYLES ================= */
+
 const page = { padding: "30px" };
 
 const formBox = {
- padding: "6px 55px",
-    borderradius: "10px",
-    maxwidth: "1145px",
-  color: "white",
+  padding: "6px 55px",
+  borderRadius: "10px",
+  maxWidth: "1140px",
   background: "#1f1f1f",
+  color: "white",
 };
 
 const heading = {
