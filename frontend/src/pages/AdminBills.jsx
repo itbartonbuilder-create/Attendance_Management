@@ -8,59 +8,152 @@ const AdminBills = () => {
   const [error, setError] = useState("");
 
   if (!user || user.role !== "admin") {
-    return <h2>Access Denied</h2>;
+    return <h2 style={{ color: "white" }}>Access Denied</h2>;
   }
 
-  useEffect(() => {
-    axios
-      .get(
+  // 🔹 Fetch all bills (Admin)
+  const fetchBills = async () => {
+    try {
+      setLoading(true);
+      const res = await axios.get(
         "https://attendance-management-backend-vh2w.onrender.com/api/bill",
-        { params: { role: "admin" } }   // ⭐ VERY IMPORTANT
-      )
-      .then((res) => setBills(res.data))
-      .catch((err) => {
-        console.error(err);
-        setError("Failed to load bills");
-      })
-      .finally(() => setLoading(false));
+        { params: { role: "admin" } }
+      );
+      setBills(res.data);
+    } catch (err) {
+      console.error(err);
+      setError("Failed to load bills");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchBills();
   }, []);
 
+  // 🔹 Approve / Reject handler
+  const changeStatus = async (billId, status) => {
+    const confirmMsg =
+      status === "approved"
+        ? "Approve this bill?"
+        : "Reject this bill?";
+
+    if (!window.confirm(confirmMsg)) return;
+
+    try {
+      await axios.put(
+        `https://attendance-management-backend-vh2w.onrender.com/api/bill/status/${billId}`,
+        { status }
+      );
+
+      // ✅ Update UI instantly
+      setBills((prev) =>
+        prev.map((b) =>
+          b._id === billId ? { ...b, status } : b
+        )
+      );
+    } catch (err) {
+      console.error(err);
+      alert("❌ Failed to update bill status");
+    }
+  };
+
   return (
-    <div className="page">
+    <div style={{ padding: "100px 30px", color: "white" }}>
       <h2>All Vendor Bills (Admin)</h2>
 
       {loading && <p>Loading...</p>}
       {error && <p style={{ color: "red" }}>{error}</p>}
       {!loading && bills.length === 0 && <p>No bills found</p>}
 
-      {bills.length > 0 && (
-        <table style={{ width: "100%", marginTop: "20px" }}>
+      {!loading && bills.length > 0 && (
+        <table
+          style={{
+            width: "100%",
+            marginTop: 20,
+            borderCollapse: "collapse",
+          }}
+        >
           <thead>
-            <tr>
-              <th>Vendor</th>
-              <th>Company</th>
-              <th>Work</th>
-              <th>Bill No</th>
-              <th>Site</th>
-              <th>Amount</th>
-              <th>Date</th>
-              <th>Bill</th>
+            <tr style={{ background: "#2c3e50" }}>
+              <th style={th}>Vendor</th>
+              <th style={th}>Company</th>
+              <th style={th}>Work</th>
+              <th style={th}>Bill No</th>
+              <th style={th}>Site</th>
+              <th style={th}>Amount</th>
+              <th style={th}>Date</th>
+              <th style={th}>Status</th>
+              <th style={th}>Bill</th>
+              <th style={th}>Action</th>
             </tr>
           </thead>
+
           <tbody>
             {bills.map((b) => (
-              <tr key={b._id}>
-                <td>{b.vendor?.name}</td>
-                <td>{b.vendor?.companyName}</td>
-                <td>{b.workName}</td>
-                <td>{b.billNo}</td>
-                <td>{b.site}</td>
-                <td>₹{b.amount}</td>
-                <td>{new Date(b.billDate).toLocaleDateString()}</td>
-                <td>
-                  <a href={b.billFile} target="_blank" rel="noreferrer">
+              <tr key={b._id} style={{ borderBottom: "1px solid #444" }}>
+                <td style={td}>{b.vendor?.name || "-"}</td>
+                <td style={td}>{b.vendor?.companyName || "-"}</td>
+                <td style={td}>{b.workName}</td>
+                <td style={td}>{b.billNo}</td>
+                <td style={td}>{b.site}</td>
+                <td style={td}>₹{b.amount}</td>
+                <td style={td}>
+                  {new Date(b.billDate).toLocaleDateString()}
+                </td>
+
+                <td
+                  style={{
+                    ...td,
+                    fontWeight: 600,
+                    color:
+                      b.status === "approved"
+                        ? "lightgreen"
+                        : b.status === "rejected"
+                        ? "salmon"
+                        : "orange",
+                    textTransform: "capitalize",
+                  }}
+                >
+                  {b.status || "pending"}
+                </td>
+
+                <td style={td}>
+                  <a
+                    href={b.billFile}
+                    target="_blank"
+                    rel="noreferrer"
+                    style={{ color: "#4da6ff" }}
+                  >
                     View
                   </a>
+                </td>
+
+                <td style={td}>
+                  {b.status === "pending" || !b.status ? (
+                    <>
+                      <button
+                        style={approveBtn}
+                        onClick={() =>
+                          changeStatus(b._id, "approved")
+                        }
+                      >
+                        Approve
+                      </button>
+
+                      <button
+                        style={rejectBtn}
+                        onClick={() =>
+                          changeStatus(b._id, "rejected")
+                        }
+                      >
+                        Reject
+                      </button>
+                    </>
+                  ) : (
+                    "-"
+                  )}
                 </td>
               </tr>
             ))}
@@ -69,6 +162,36 @@ const AdminBills = () => {
       )}
     </div>
   );
+};
+
+/* ================= STYLES ================= */
+
+const th = {
+  padding: "10px",
+  textAlign: "left",
+};
+
+const td = {
+  padding: "10px",
+};
+
+const approveBtn = {
+  background: "green",
+  color: "white",
+  border: "none",
+  padding: "6px 10px",
+  marginRight: "6px",
+  borderRadius: "4px",
+  cursor: "pointer",
+};
+
+const rejectBtn = {
+  background: "crimson",
+  color: "white",
+  border: "none",
+  padding: "6px 10px",
+  borderRadius: "4px",
+  cursor: "pointer",
 };
 
 export default AdminBills;
