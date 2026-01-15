@@ -42,10 +42,10 @@ const AdminBills = () => {
     if (!window.confirm(confirmMsg)) return;
 
     try {
-      await axios.put(
-        `https://attendance-management-backend-vh2w.onrender.com/api/bill/status/${billId}`,
-        { status }
-      );
+     await axios.put(
+  `https://attendance-management-backend-vh2w.onrender.com/api/bill/${billId}/status`,
+  { status }
+);
 
       // ✅ Update UI instantly
       setBills((prev) =>
