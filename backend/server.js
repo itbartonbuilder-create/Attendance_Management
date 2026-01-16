@@ -1,6 +1,8 @@
+import dotenv from "dotenv";
+dotenv.config();
 import express from "express";
 import cors from "cors";
-import dotenv from "dotenv";
+
 import connectDB from "./config/db.js";
 import path from "path";
 import { fileURLToPath } from "url";
@@ -13,7 +15,7 @@ import adminRoutes from "./routes/adminRoutes.js";
 import employeeRoutes from "./routes/employeeRoutes.js";
 // import statsRoute from "./routes/Statistics.js";
 
-dotenv.config();
+
 const app = express();
 app.use(cors());
 app.use(express.json());
