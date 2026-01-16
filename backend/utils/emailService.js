@@ -1,48 +1,97 @@
 import dotenv from "dotenv";
-dotenv.config(); 
+dotenv.config();
 
-import nodemailer from "nodemailer";
+import sgMail from "@sendgrid/mail";
 
-console.log("📧 Initializing Email Service...");
-console.log("EMAIL_USER in service:", process.env.EMAIL_USER);
+console.log("📧 Initializing SendGrid Email Service...");
+console.log("EMAIL_USER:", process.env.EMAIL_USER ? "SET" : "MISSING");
+console.log(
+  "SENDGRID_API_KEY:",
+  process.env.SENDGRID_API_KEY ? "SET" : "MISSING"
+);
 
-export const transporter = nodemailer.createTransport({
-  host: "smtp.gmail.com",
-  port: 465,
-  secure: true,
-  auth: {
-    user: process.env.EMAIL_USER,
-    pass: process.env.EMAIL_PASS,
-  },
-  tls: {
-    rejectUnauthorized: false,
-  },
-});
 
-transporter.verify((error) => {
-  if (error) {
-    console.error("❌ Email server error:", error);
-  } else {
-    console.log("✅ Email server is ready");
-  }
-});
+sgMail.setApiKey(process.env.SENDGRID_API_KEY);
 
 export const sendPendingMail = async (toEmail, vendorName) => {
-  return transporter.sendMail({
-    from: `"Attendance System" <${process.env.EMAIL_USER}>`,
+  const msg = {
     to: toEmail,
+    from: {
+      email: process.env.EMAIL_USER, // verified sender email
+      name: "Bartons Builders Attendance System",
+    },
     subject: "⏳ Vendor Approval Pending",
-    html: `<p>Hello ${vendorName},</p>
-           <p>Your account is pending admin approval.</p>`,
-  });
+    html: `
+      <div style="font-family: Arial, sans-serif;">
+        <p>Hello <strong>${vendorName}</strong>,</p>
+
+        <p>
+          Your vendor account has been created successfully and is currently
+          <strong>pending admin approval</strong>.
+        </p>
+
+        <p>
+          You will receive another email once your account is approved.
+        </p>
+
+        <br/>
+        <p>Regards,<br/>
+        <strong>Bartons Builders Attendance System</strong></p>
+      </div>
+    `,
+  };
+
+  try {
+    await sgMail.send(msg);
+    console.log("✅ Pending approval email sent to:", toEmail);
+  } catch (error) {
+    console.error(
+      "❌ SendGrid Pending Mail Error:",
+      error.response?.body || error
+    );
+    throw error;
+  }
 };
 
+// =====================================
+// ✅ Vendor Approved Email
+// =====================================
 export const sendApprovalMail = async (toEmail, vendorName) => {
-  return transporter.sendMail({
-    from: `"Attendance System" <${process.env.EMAIL_USER}>`,
+  const msg = {
     to: toEmail,
-    subject: "✅ Vendor Approved",
-    html: `<p>Hello ${vendorName},</p>
-           <p>Your vendor account has been approved.</p>`,
-  });
+    from: {
+      email: process.env.EMAIL_USER, // verified sender email
+      name: "Bartons Builders Attendance System",
+    },
+    subject: "✅ Vendor Account Approved",
+    html: `
+      <div style="font-family: Arial, sans-serif;">
+        <p>Hello <strong>${vendorName}</strong>,</p>
+
+        <p>
+          🎉 Your vendor account has been
+          <strong>approved successfully</strong>.
+        </p>
+
+        <p>
+          You can now log in and start using the Attendance Management System.
+        </p>
+
+        <br/>
+        <p>Regards,<br/>
+        <strong>Bartons Builders Attendance System</strong></p>
+      </div>
+    `,
+  };
+
+  try {
+    await sgMail.send(msg);
+    console.log("✅ Approval email sent to:", toEmail);
+  } catch (error) {
+    console.error(
+      "❌ SendGrid Approval Mail Error:",
+      error.response?.body || error
+    );
+    throw error;
+  }
 };
