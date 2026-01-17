@@ -5,7 +5,7 @@ import {
   sendApprovalMail,
 } from "../utils/emailService.js";
 
-/* ================= REGISTER VENDOR ================= */
+/* ================= REGISTER ================= */
 export const registerVendor = async (req, res) => {
   try {
     const {
@@ -65,11 +65,12 @@ export const registerVendor = async (req, res) => {
       vendor,
     });
   } catch (err) {
-    console.error(err);
+    console.error("Register error:", err);
     res.status(500).json({ message: "Server error" });
   }
 };
 
+/* ================= LOGIN ================= */
 export const loginVendor = async (req, res) => {
   try {
     const { contactNo, password } = req.body;
@@ -92,7 +93,7 @@ export const loginVendor = async (req, res) => {
   }
 };
 
-
+/* ================= GET ALL ================= */
 export const getAllVendors = async (req, res) => {
   try {
     const vendors = await Vendor.find().sort({ createdAt: -1 });
@@ -102,7 +103,7 @@ export const getAllVendors = async (req, res) => {
   }
 };
 
-
+/* ================= APPROVE ================= */
 export const approveVendor = async (req, res) => {
   try {
     const vendor = await Vendor.findById(req.params.id);
@@ -112,7 +113,6 @@ export const approveVendor = async (req, res) => {
       return res.json({ message: "Vendor already approved" });
     }
 
-    
     const lastVendor = await Vendor.findOne({
       vendorCode: { $ne: null },
     }).sort({ vendorCode: -1 });
@@ -126,7 +126,6 @@ export const approveVendor = async (req, res) => {
     vendor.vendorCode = newCode;
     await vendor.save();
 
-    
     await sendApprovalMail(vendor.email, vendor.name, newCode);
 
     res.json({
@@ -134,7 +133,7 @@ export const approveVendor = async (req, res) => {
       vendorCode: newCode,
     });
   } catch (err) {
-    console.error(err);
+    console.error("Approve error:", err);
     res.status(500).json({ message: "Server error" });
   }
 };
