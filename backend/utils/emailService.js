@@ -10,14 +10,16 @@ console.log(
   process.env.SENDGRID_API_KEY ? "SET" : "MISSING"
 );
 
-
 sgMail.setApiKey(process.env.SENDGRID_API_KEY);
 
+// =====================================
+// ⏳ Vendor Pending Approval Email
+// =====================================
 export const sendPendingMail = async (toEmail, vendorName) => {
   const msg = {
     to: toEmail,
     from: {
-      email: process.env.EMAIL_USER, // verified sender email
+      email: process.env.EMAIL_USER, // VERIFIED SENDGRID SENDER
       name: "Bartons Builders Attendance System",
     },
     subject: "⏳ Vendor Approval Pending",
@@ -35,8 +37,10 @@ export const sendPendingMail = async (toEmail, vendorName) => {
         </p>
 
         <br/>
-        <p>Regards,<br/>
-        <strong>Bartons Builders Attendance System</strong></p>
+        <p>
+          Regards,<br/>
+          <strong>Bartons Builders </strong>
+        </p>
       </div>
     `,
   };
@@ -54,13 +58,17 @@ export const sendPendingMail = async (toEmail, vendorName) => {
 };
 
 // =====================================
-// ✅ Vendor Approved Email
+// ✅ Vendor Approved Email (WITH CODE)
 // =====================================
-export const sendApprovalMail = async (toEmail, vendorName) => {
+export const sendApprovalMail = async (
+  toEmail,
+  vendorName,
+  vendorCode
+) => {
   const msg = {
     to: toEmail,
     from: {
-      email: process.env.EMAIL_USER, // verified sender email
+      email: process.env.EMAIL_USER, // VERIFIED SENDGRID SENDER
       name: "Bartons Builders Attendance System",
     },
     subject: "✅ Vendor Account Approved",
@@ -73,20 +81,38 @@ export const sendApprovalMail = async (toEmail, vendorName) => {
           <strong>approved successfully</strong>.
         </p>
 
+        <p style="margin-top:10px;">
+          <strong>Your Vendor Code:</strong><br/>
+          <span style="
+            font-size:20px;
+            color:#2e7d32;
+            font-weight:bold;
+          ">
+            ${vendorCode}
+          </span>
+        </p>
+
         <p>
-          You can now log in and start using the Attendance Management System.
+          Please use this Vendor Code for all future communication.
         </p>
 
         <br/>
-        <p>Regards,<br/>
-        <strong>Bartons Builders Attendance System</strong></p>
+        <p>
+          Regards,<br/>
+          <strong>Bartons Builders Attendance System</strong>
+        </p>
       </div>
     `,
   };
 
   try {
     await sgMail.send(msg);
-    console.log("✅ Approval email sent to:", toEmail);
+    console.log(
+      "✅ Approval email sent to:",
+      toEmail,
+      "Vendor Code:",
+      vendorCode
+    );
   } catch (error) {
     console.error(
       "❌ SendGrid Approval Mail Error:",
