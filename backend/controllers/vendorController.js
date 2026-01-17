@@ -1,9 +1,6 @@
 import Vendor from "../models/vendorModel.js";
 import bcrypt from "bcryptjs";
-import {
-  sendPendingMail,
-  sendApprovalMail,
-} from "../utils/emailService.js";
+import { sendPendingMail } from "../utils/emailService.js";
 
 /* ================= REGISTER ================= */
 export const registerVendor = async (req, res) => {
@@ -65,7 +62,7 @@ export const registerVendor = async (req, res) => {
       vendor,
     });
   } catch (err) {
-    console.error("Register error:", err);
+    console.error(err);
     res.status(500).json({ message: "Server error" });
   }
 };
@@ -99,41 +96,6 @@ export const getAllVendors = async (req, res) => {
     const vendors = await Vendor.find().sort({ createdAt: -1 });
     res.json(vendors);
   } catch (err) {
-    res.status(500).json({ message: "Server error" });
-  }
-};
-
-/* ================= APPROVE ================= */
-export const approveVendor = async (req, res) => {
-  try {
-    const vendor = await Vendor.findById(req.params.id);
-    if (!vendor) return res.status(404).json({ message: "Vendor not found" });
-
-    if (vendor.status === "approved") {
-      return res.json({ message: "Vendor already approved" });
-    }
-
-    const lastVendor = await Vendor.findOne({
-      vendorCode: { $ne: null },
-    }).sort({ vendorCode: -1 });
-
-    let newCode = "001";
-    if (lastVendor?.vendorCode) {
-      newCode = String(Number(lastVendor.vendorCode) + 1).padStart(3, "0");
-    }
-
-    vendor.status = "approved";
-    vendor.vendorCode = newCode;
-    await vendor.save();
-
-    await sendApprovalMail(vendor.email, vendor.name, newCode);
-
-    res.json({
-      message: "Vendor approved successfully",
-      vendorCode: newCode,
-    });
-  } catch (err) {
-    console.error("Approve error:", err);
     res.status(500).json({ message: "Server error" });
   }
 };
