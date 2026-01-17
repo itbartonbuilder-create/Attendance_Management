@@ -1,8 +1,11 @@
 import Vendor from "../models/vendorModel.js";
 import bcrypt from "bcryptjs";
-import { sendPendingMail, sendApprovalMail } from "../utils/emailService.js";
+import {
+  sendPendingMail,
+  sendApprovalMail,
+} from "../utils/emailService.js";
 
-/* ================= REGISTER ================= */
+/* ================= REGISTER VENDOR ================= */
 export const registerVendor = async (req, res) => {
   try {
     const {
@@ -18,7 +21,7 @@ export const registerVendor = async (req, res) => {
       password,
     } = req.body;
 
-    // ✅ Validation
+    // 🔎 Validation
     if (
       !name ||
       !email ||
@@ -34,6 +37,7 @@ export const registerVendor = async (req, res) => {
       });
     }
 
+    // 🔎 Check existing vendor
     const exists = await Vendor.findOne({
       $or: [{ email }, { contactNo }],
     });
@@ -44,8 +48,10 @@ export const registerVendor = async (req, res) => {
       });
     }
 
+    // 🔐 Hash password
     const hashedPassword = await bcrypt.hash(password, 10);
 
+    // 💾 Save vendor
     const vendor = await Vendor.create({
       name,
       email,
@@ -60,25 +66,21 @@ export const registerVendor = async (req, res) => {
       status: "pending",
     });
 
-    // ✅ response pehle
+    // 📧 SEND MAIL FIRST (IMPORTANT)
+    await sendPendingMail(email, name);
+
+    // ✅ Then respond
     res.status(201).json({
       message: "Registered successfully. Approval pending.",
       vendor,
     });
-
-    // 📧 Email non-blocking
-    sendPendingMail(email, name).catch((err) =>
-      console.error("❌ Pending email failed:", err.message)
-    );
   } catch (err) {
     console.error("Register vendor error:", err);
-    res.status(500).json({
-      message: "Server error",
-    });
+    res.status(500).json({ message: "Server error" });
   }
 };
 
-/* ================= LOGIN ================= */
+/* ================= LOGIN VENDOR ================= */
 export const loginVendor = async (req, res) => {
   try {
     const { contactNo, password } = req.body;
@@ -116,25 +118,22 @@ export const loginVendor = async (req, res) => {
     });
   } catch (err) {
     console.error("Vendor login error:", err);
-    res.status(500).json({
-      message: "Server error",
-    });
+    res.status(500).json({ message: "Server error" });
   }
 };
 
-/* ================= GET ALL ================= */
+/* ================= GET ALL VENDORS ================= */
 export const getAllVendors = async (req, res) => {
   try {
     const vendors = await Vendor.find().sort({ createdAt: -1 });
     res.json(vendors);
   } catch (err) {
-    res.status(500).json({
-      message: "Server error",
-    });
+    console.error(err);
+    res.status(500).json({ message: "Server error" });
   }
 };
 
-/* ================= APPROVE ================= */
+/* ================= APPROVE VENDOR ================= */
 export const approveVendor = async (req, res) => {
   try {
     const vendor = await Vendor.findById(req.params.id);
@@ -143,23 +142,27 @@ export const approveVendor = async (req, res) => {
     }
 
     if (vendor.status === "approved") {
-      return res.json({ message: "Already approved" });
+      return res.json({ message: "Vendor already approved" });
     }
 
+    // 🔢 Generate vendor code
+    const lastVendor = await Vendor.findOne({ vendorCode: { $ne: null } })
+      .sort({ vendorCode: -1 });
+
+    const newCode = lastVendor
+      ? String(Number(lastVendor.vendorCode) + 1).padStart(3, "0")
+      : "001";
+
     vendor.status = "approved";
-    vendor.vendorCode = "VND-" + Math.floor(1000 + Math.random() * 9000);
+    vendor.vendorCode = newCode;
     await vendor.save();
 
-    // 📧 send mail
-    sendApprovalMail(
-      vendor.email,
-      vendor.name,
-      vendor.vendorCode
-    );
+    // 📧 SEND APPROVAL MAIL (await mandatory)
+    await sendApprovalMail(vendor.email, vendor.name, newCode);
 
     res.json({ message: "Vendor approved successfully" });
   } catch (err) {
-    console.error(err);
+    console.error("Approve vendor error:", err);
     res.status(500).json({ message: "Server error" });
   }
 };
