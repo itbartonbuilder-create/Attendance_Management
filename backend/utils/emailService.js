@@ -99,7 +99,7 @@ export const sendApprovalMail = async (
         <br/>
         <p>
           Regards,<br/>
-          <strong>Bartons Builders Attendance System</strong>
+          <strong>Bartons Builders </strong>
         </p>
       </div>
     `,
