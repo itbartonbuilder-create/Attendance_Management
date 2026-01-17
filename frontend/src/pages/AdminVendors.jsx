@@ -28,9 +28,10 @@ const AdminVendors = () => {
     if (!window.confirm("Approve this vendor?")) return;
 
     try {
-      await axios.put(
-        `https://attendance-management-backend-vh2w.onrender.com/api/vendor/approve/${vendorId}`
-      );
+          await axios.put(
+  `https://attendance-management-backend-vh2w.onrender.com/api/admin/approve-vendor/${vendorId}`
+);
+
 
       alert("✅ Vendor approved successfully");
       fetchVendors();
