@@ -2,7 +2,8 @@ import React, { useEffect, useState } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import logo from "../assets/logo.png";
 function Navbar() {
-  const [workerDropdown, setWorkerDropdown] = useState(false);
+  const [workersDropdown, setWorkersDropdown] = useState(false);
+  const [managementDropdown, setManagementDropdown] = useState(false);
 
   const [user, setUser] = useState(null);
   const [menuOpen, setMenuOpen] = useState(false);
@@ -16,14 +17,18 @@ function Navbar() {
 
  useEffect(() => {
   setMenuOpen(false);
-  setWorkerDropdown(false);
+  setWorkersDropdown(false);
+  setManagementDropdown(false);
 }, [location.pathname]);
 
-  useEffect(() => {
-    const closeDropdown = () => setWorkerDropdown(false);
-    document.addEventListener("click", closeDropdown);
-    return () => document.removeEventListener("click", closeDropdown);
-  }, []);
+useEffect(() => {
+  const closeDropdowns = () => {
+    setWorkersDropdown(false);
+    setManagementDropdown(false);
+  };
+  document.addEventListener("click", closeDropdowns);
+  return () => document.removeEventListener("click", closeDropdowns);
+}, []);
 
   if (location.pathname === "/" || location.pathname === "/login") return null;
   if (!user) return null;
@@ -88,18 +93,19 @@ function Navbar() {
     style={{ ...linkStyle, cursor: "pointer" }}
     onClick={(e) => {
       e.stopPropagation(); 
-      setWorkerDropdown(!workerDropdown);
+     setWorkersDropdown(!workersDropdown);
+setManagementDropdown(false);
     }}
   >
     Workers ▾
   </span>
 
-  {workerDropdown && (
+  {workersDropdown && (
     <div style={dropdownStyle}>
       <Link
         to="/employees"
         style={dropdownItemStyle}
-        onClick={() => setWorkerDropdown(false)}
+        onClick={() => setWorkersDropdown(false)}
       >
         Employees
       </Link>
@@ -107,7 +113,7 @@ function Navbar() {
       <Link
         to="/workers"
         style={dropdownItemStyle}
-        onClick={() => setWorkerDropdown(false)}
+        onClick={() => setWorkersDropdown(false)}
       >
         Workers
       </Link>
@@ -137,13 +143,14 @@ function Navbar() {
     style={{ ...linkStyle, cursor: "pointer" }}
     onClick={(e) => {
       e.stopPropagation(); 
-      setWorkerDropdown(!workerDropdown);
+      setWorkersDropdown(!workersDropdown);
+    setManagementDropdown(false); 
     }}
   >
     Workers ▾
   </span>
 
-  {workerDropdown && (
+  {workersDropdown && (
     <div style={dropdownStyle}>
       <Link
         to="/employees"
@@ -167,7 +174,40 @@ function Navbar() {
             <Link to="/attendance" style={linkStyle}>Attendance</Link>
             <Link to="/reports" style={linkStyle}>Reports</Link>
              <Link to="/task" style={linkStyle}>Task</Link>
-              <Link to="/manager/bills" style={linkStyle}>Bills</Link>
+              {/* <Link to="/manager/bills" style={linkStyle}>Bills</Link> */}
+
+                        <div style={{ position: "relative" }}>
+  <span
+    style={{ ...linkStyle, cursor: "pointer" }}
+    onClick={(e) => {
+      e.stopPropagation(); 
+      setManagementDropdown(!managementDropdown);
+    setWorkersDropdown(false);
+    }}
+  >
+    Management ▾
+  </span>
+
+  {managementDropdown && (
+    <div style={dropdownStyle}>
+      <Link
+        to="/manager/bills"
+        style={dropdownItemStyle}
+        onClick={() => setWorkerDropdown(false)}
+      >
+        Bills
+      </Link>
+
+      <Link
+        to="/stock"
+        style={dropdownItemStyle}
+        onClick={() => setWorkerDropdown(false)}
+      >
+       Stockmanagement
+      </Link>
+    </div>
+  )}
+</div>
             <Link to="/profile" style={linkStyle}>Profile</Link>
           </>
         )}
@@ -179,7 +219,7 @@ function Navbar() {
             <Link to="/profile" style={linkStyle}>Profile</Link>
           </>
         )}
-    {role === "vendor" && (
+  {role === "vendor" && (
   <>
     <Link to="/vendor-dashboard" style={linkStyle}>Dashboard</Link>
     <Link to="/vendor/submit-bill" style={linkStyle}>  Bill Invoice</Link>
@@ -187,6 +227,7 @@ function Navbar() {
     <Link to="/profile" style={linkStyle}>Profile</Link>
   </>
 )}
+
 
         <button onClick={handleLogout} style={logoutStyle}>Logout</button>
       </div>
