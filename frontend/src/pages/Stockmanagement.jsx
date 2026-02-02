@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 
-/* ===== MATERIAL MASTER (CONSTRUCTION STANDARD) ===== */
+
 const MATERIALS = {
   Steel: [
     { name: "Reinforcement 8mm", unit: "Bundle" },
@@ -38,26 +38,35 @@ function StockManagement() {
   const [material, setMaterial] = useState("");
   const [unit, setUnit] = useState("");
 
-  const [stock, setStock] = useState({
-    total: "",
-    used: "",
-  });
+  const [stock, setStock] = useState({ total: "", used: "" });
 
   const remaining =
     Number(stock.total || 0) - Number(stock.used || 0);
 
+ 
   const handleMaterialChange = (value) => {
-    const selected = MATERIALS[category].find(
+    if (!category) return;
+
+    const selected = MATERIALS[category]?.find(
       (m) => m.name === value
     );
+
+    if (!selected) return;
+
     setMaterial(value);
     setUnit(selected.unit);
   };
 
-  const handleSubmit = (e) => {
+ 
+  const handleSubmit = async (e) => {
     e.preventDefault();
 
-    const data = {
+    if (remaining < 0) {
+      alert("❌ Used stock cannot be greater than total stock");
+      return;
+    }
+
+    const payload = {
       site,
       category,
       material,
@@ -67,8 +76,30 @@ function StockManagement() {
       remainingStock: remaining,
     };
 
-    console.log("📦 STOCK DATA:", data);
-    alert("Stock Saved Successfully ✅");
+    console.log("📦 STOCK DATA:", payload);
+
+    try {
+      const res = await fetch(
+         "https://attendance-management-backend-vh2w.onrender.com/api/stocks/add",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        }
+      );
+
+      if (!res.ok) throw new Error("Save failed");
+
+      alert("✅ Stock saved successfully");
+
+      
+      setMaterial("");
+      setUnit("");
+      setStock({ total: "", used: "" });
+    } catch (err) {
+      alert("❌ Stock not saved");
+      console.error(err);
+    }
   };
 
   return (
@@ -76,7 +107,7 @@ function StockManagement() {
       <h2>🏗️ Construction Stock Management</h2>
 
       <form onSubmit={handleSubmit}>
-        {/* SITE */}
+      
         <div style={sectionStyle}>
           <label>Site</label>
           <select value={site} onChange={(e) => setSite(e.target.value)} required>
@@ -88,7 +119,7 @@ function StockManagement() {
           </select>
         </div>
 
-        {/* CATEGORY */}
+       
         <div style={sectionStyle}>
           <label>Category</label>
           <select
@@ -96,6 +127,7 @@ function StockManagement() {
             onChange={(e) => {
               setCategory(e.target.value);
               setMaterial("");
+              setUnit("");
               setStock({ total: "", used: "" });
             }}
             required
@@ -107,7 +139,7 @@ function StockManagement() {
           </select>
         </div>
 
-        {/* MATERIAL */}
+      
         {category && (
           <div style={sectionStyle}>
             <label>Material</label>
@@ -124,7 +156,7 @@ function StockManagement() {
           </div>
         )}
 
-        {/* STOCK DETAILS */}
+       
         {material && (
           <div style={cardStyle}>
             <h4>Stock Details ({unit})</h4>
@@ -132,6 +164,7 @@ function StockManagement() {
             <div style={inputRow}>
               <input
                 type="number"
+                min="0"
                 placeholder={`Total Stock (${unit})`}
                 value={stock.total}
                 onChange={(e) =>
@@ -142,6 +175,7 @@ function StockManagement() {
 
               <input
                 type="number"
+                min="0"
                 placeholder={`Used Stock (${unit})`}
                 value={stock.used}
                 onChange={(e) =>
@@ -168,7 +202,7 @@ function StockManagement() {
   );
 }
 
-/* ================= STYLES ================= */
+
 
 const containerStyle = {
   maxWidth: 1180,
