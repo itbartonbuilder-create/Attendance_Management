@@ -14,6 +14,7 @@ import BillRoutes from "./routes/BillRoutes.js"
 import adminRoutes from "./routes/adminRoutes.js";
 import employeeRoutes from "./routes/employeeRoutes.js";
 // import statsRoute from "./routes/Statistics.js";
+import stockRoutes from "./routes/stockRoutes.js";
 
 
 const app = express();
@@ -44,6 +45,7 @@ app.use("/api/vendor", vendorRoutes);
 app.use("/api/bill", BillRoutes);
 app.use("/api/admin", adminRoutes);
 app.use("/api/employees", employeeRoutes);
+app.use("/api/stocks", stockRoutes);
 
 
 
