@@ -1,6 +1,5 @@
 import Stock from "../models/Stock.js";
 
-
 export const createStock = async (req, res) => {
   try {
     const {
@@ -12,8 +11,25 @@ export const createStock = async (req, res) => {
       usedStock,
     } = req.body;
 
-    if (!site || !category || !material || !unit) {
-      return res.status(400).json({ message: "All fields required" });
+    if (
+      !site ||
+      !category ||
+      !material ||
+      !unit ||
+      totalStock === undefined ||
+      usedStock === undefined
+    ) {
+      return res.status(400).json({
+        success: false,
+        message: "All fields are required",
+      });
+    }
+
+    if (usedStock > totalStock) {
+      return res.status(400).json({
+        success: false,
+        message: "Used stock cannot be greater than total",
+      });
     }
 
     const remainingStock = totalStock - usedStock;
@@ -40,11 +56,18 @@ export const createStock = async (req, res) => {
     });
   }
 };
-
-
 export const getAllStocks = async (req, res) => {
   try {
-    const stocks = await Stock.find().sort({ createdAt: -1 });
+    const { site } = req.query;
+
+    let filter = {};
+
+    // 🔐 agar site aayi hai → sirf usi site ka data
+    if (site) {
+      filter.site = site;
+    }
+
+    const stocks = await Stock.find(filter).sort({ createdAt: -1 });
 
     res.json({
       success: true,
@@ -52,6 +75,9 @@ export const getAllStocks = async (req, res) => {
       data: stocks,
     });
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    });
   }
 };
