@@ -62,7 +62,7 @@ export const getAllStocks = async (req, res) => {
 
     let filter = {};
 
-    // 🔐 agar site aayi hai → sirf usi site ka data
+    
     if (site) {
       filter.site = site;
     }
