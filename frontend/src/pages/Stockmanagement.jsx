@@ -1,5 +1,4 @@
-import React, { useState } from "react";
-
+import React, { useEffect, useState } from "react";
 
 const MATERIALS = {
   Steel: [
@@ -33,26 +32,37 @@ const MATERIALS = {
 };
 
 function StockManagement() {
-  const [site, setSite] = useState("");
+  const user = JSON.parse(localStorage.getItem("user"));
+  const managerSite = user?.site || "";
+
+  const [site, setSite] = useState(managerSite);
   const [category, setCategory] = useState("");
   const [material, setMaterial] = useState("");
   const [unit, setUnit] = useState("");
-
   const [stock, setStock] = useState({ total: "", used: "" });
 
-  const remaining =
-    Number(stock.total || 0) - Number(stock.used || 0);
+  const [stocks, setStocks] = useState([]);
+  const [showTable, setShowTable] = useState(false);
+  const [loading, setLoading] = useState(false);
+
+  const remaining = Number(stock.total || 0) - Number(stock.used || 0);
 
  
+  const fetchStocks = async () => {
+    try {
+      const res = await fetch(
+        `https://attendance-management-backend-vh2w.onrender.com/api/stocks?site=${managerSite}`
+      );
+      const data = await res.json();
+      setStocks(data.data || []);
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
   const handleMaterialChange = (value) => {
-    if (!category) return;
-
-    const selected = MATERIALS[category]?.find(
-      (m) => m.name === value
-    );
-
+    const selected = MATERIALS[category]?.find((m) => m.name === value);
     if (!selected) return;
-
     setMaterial(value);
     setUnit(selected.unit);
   };
@@ -62,64 +72,59 @@ function StockManagement() {
     e.preventDefault();
 
     if (remaining < 0) {
-      alert("❌ Used stock cannot be greater than total stock");
+      alert("❌ Used stock cannot be greater than total");
       return;
     }
 
-    const payload = {
-      site,
-      category,
-      material,
-      unit,
-      totalStock: Number(stock.total),
-      usedStock: Number(stock.used),
-      remainingStock: remaining,
-    };
-
-    console.log("📦 STOCK DATA:", payload);
+    setLoading(true);
 
     try {
       const res = await fetch(
-         "https://attendance-management-backend-vh2w.onrender.com/api/stocks/add",
+        "https://attendance-management-backend-vh2w.onrender.com/api/stocks/add",
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(payload),
+          body: JSON.stringify({
+            site: managerSite, 
+            category,
+            material,
+            unit,
+            totalStock: Number(stock.total),
+            usedStock: Number(stock.used),
+          }),
         }
       );
 
-      if (!res.ok) throw new Error("Save failed");
+      if (!res.ok) throw new Error();
 
-      alert("✅ Stock saved successfully");
+      alert("✅ Stock Saved");
+      fetchStocks();
 
-      
       setMaterial("");
-      setUnit("");
       setStock({ total: "", used: "" });
-    } catch (err) {
-      alert("❌ Stock not saved");
-      console.error(err);
+    } catch {
+      alert("❌ Error saving stock");
+    } finally {
+      setLoading(false);
     }
+  };
+
+  const handleViewStock = () => {
+    if (!showTable) fetchStocks();
+    setShowTable(!showTable);
   };
 
   return (
     <div style={containerStyle}>
-      <h2>🏗️ Construction Stock Management</h2>
+      <h2>🏗️ Stock Management ({managerSite})</h2>
 
       <form onSubmit={handleSubmit}>
-      
+        
         <div style={sectionStyle}>
           <label>Site</label>
-          <select value={site} onChange={(e) => setSite(e.target.value)} required>
-            <option value="">Select Site</option>
-            <option>Bangalore</option>
-            <option>Japuriya</option>
-            <option>Vaishali</option>
-            <option>Faridabad</option>
-          </select>
+          <input value={managerSite} disabled style={input} />
         </div>
 
-       
         <div style={sectionStyle}>
           <label>Category</label>
           <select
@@ -127,19 +132,16 @@ function StockManagement() {
             onChange={(e) => {
               setCategory(e.target.value);
               setMaterial("");
-              setUnit("");
-              setStock({ total: "", used: "" });
             }}
             required
           >
-            <option value="">Select Category</option>
-            {Object.keys(MATERIALS).map((cat) => (
-              <option key={cat}>{cat}</option>
+            <option value="">Select</option>
+            {Object.keys(MATERIALS).map((c) => (
+              <option key={c}>{c}</option>
             ))}
           </select>
         </div>
 
-      
         {category && (
           <div style={sectionStyle}>
             <label>Material</label>
@@ -148,7 +150,7 @@ function StockManagement() {
               onChange={(e) => handleMaterialChange(e.target.value)}
               required
             >
-              <option value="">Select Material</option>
+              <option value="">Select</option>
               {MATERIALS[category].map((m) => (
                 <option key={m.name}>{m.name}</option>
               ))}
@@ -156,65 +158,96 @@ function StockManagement() {
           </div>
         )}
 
-       
         {material && (
           <div style={cardStyle}>
-            <h4>Stock Details ({unit})</h4>
-
-            <div style={inputRow}>
-              <input
-                type="number"
-                min="0"
-                placeholder={`Total Stock (${unit})`}
-                value={stock.total}
-                onChange={(e) =>
-                  setStock({ ...stock, total: e.target.value })
-                }
-                required
-              />
-
-              <input
-                type="number"
-                min="0"
-                placeholder={`Used Stock (${unit})`}
-                value={stock.used}
-                onChange={(e) =>
-                  setStock({ ...stock, used: e.target.value })
-                }
-                required
-              />
-            </div>
-
-            <p style={{ marginTop: 10 }}>
-              Remaining Stock:{" "}
-              <b style={{ color: remaining < 0 ? "red" : "#2ecc71" }}>
-                {remaining} {unit}
-              </b>
+            <input
+              type="number"
+              placeholder={`Total (${unit})`}
+              value={stock.total}
+              onChange={(e) =>
+                setStock({ ...stock, total: e.target.value })
+              }
+              required
+            />
+            <input
+              type="number"
+              placeholder={`Used (${unit})`}
+              value={stock.used}
+              onChange={(e) =>
+                setStock({ ...stock, used: e.target.value })
+              }
+              required
+            />
+            <p>
+              Remaining: <b>{remaining}</b> {unit}
             </p>
           </div>
         )}
 
-        <button type="submit" style={btnStyle}>
-          Save Stock
+        <button style={btnStyle} disabled={loading}>
+          {loading ? "Saving..." : "Save Stock"}
         </button>
       </form>
+
+      <button style={viewBtn} onClick={handleViewStock}>
+        {showTable ? "Hide Stock" : "View My Site Stock"}
+      </button>
+
+      {showTable && (
+        <table style={tableStyle}>
+          <thead>
+            <tr>
+              <th>Site</th>
+              <th>Category</th>
+              <th>Material</th>
+              <th>Total</th>
+              <th>Used</th>
+              <th>Remaining</th>
+            </tr>
+          </thead>
+          <tbody>
+            {stocks.map((s) => (
+              <tr key={s._id}>
+                <td>{s.site}</td>
+                <td>{s.category}</td>
+                <td>{s.material}</td>
+                <td>{s.totalStock}</td>
+                <td>{s.usedStock}</td>
+                <td>{s.remainingStock}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
     </div>
   );
 }
 
+export default StockManagement;
+
 
 
 const containerStyle = {
-  maxWidth: 1180,
-  margin: "128px auto",
+  maxWidth: 1200,
+  margin: "80px auto",
   padding: 20,
   background: "#333",
   color: "#fff",
   borderRadius: 8,
 };
 
+const input={
+   padding: "12px 15px",
+    margin: "10px",
+    borderRadius: "8px",
+    border: "1px solid #ddd",
+    outline: "none",
+    fontsize: "14px",
+    transition: "0.3s",
+        marginright: "15px",
+}
 const sectionStyle = {
-  marginBottom: 15,
+  marginBottom: 12,
   display: "flex",
   flexDirection: "column",
 };
@@ -226,20 +259,26 @@ const cardStyle = {
   marginBottom: 15,
 };
 
-const inputRow = {
-  display: "flex",
-  gap: 10,
-  marginTop: 10,
+const btnStyle = {
+  padding: "10px 20px",
+  background: "#2ecc71",
+  border: "none",
+  borderRadius: 6,
+  cursor: "pointer",
 };
 
-const btnStyle = {
-  marginTop: 20,
+const viewBtn = {
+  marginTop: 30,
   padding: "10px 20px",
-  background: "#2C3E50",
+  background: "#3498db",
   color: "#fff",
   border: "none",
   borderRadius: 6,
   cursor: "pointer",
 };
 
-export default StockManagement;
+const tableStyle = {
+  width: "100%",
+  marginTop: 20,
+  borderCollapse: "collapse",
+};
