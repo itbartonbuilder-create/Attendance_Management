@@ -299,7 +299,7 @@ const [gst, setGst] = useState("");
                     <option value="">Select Site</option>
                     <option value="Bangalore">Bangalore</option>
                     <option value="Japuriya">Japuriya</option>
-                    <option value="Vashali">Vashali</option>
+                    <option value="Vaishali">Vaishali</option>
                     <option value="Faridabad">Faridabad</option>
                   </select>
 
