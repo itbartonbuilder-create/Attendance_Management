@@ -121,16 +121,51 @@ setManagementDropdown(false);
   )}
 </div>
 
-
-             {/* <Link to="/employees" style={linkStyle}>Employees</Link> */}
-
-            {/* <Link to="/workers" style={linkStyle}>Workers</Link>  */}
             <Link to="/attendance" style={linkStyle}>Attendance</Link>
             <Link to="/managers" style={linkStyle}>Managers</Link>
             <Link to="/reports" style={linkStyle}>Reports</Link>
              <Link to="/task" style={linkStyle}>Task</Link>
-             <Link to="/admin/bills" style={linkStyle}>Bills</Link>
-                 <Link to="/vendors" style={linkStyle}>Vendors</Link>
+                      <div style={{ position: "relative" }}>
+  <span
+    style={{ ...linkStyle, cursor: "pointer" }}
+    onClick={(e) => {
+      e.stopPropagation(); 
+      setManagementDropdown(!managementDropdown);
+    setWorkersDropdown(false);
+    }}
+  >
+    Management ▾
+  </span>
+
+  {managementDropdown && (
+    <div style={dropdownStyle}>
+      <Link
+        to="/admin/bills"
+        style={dropdownItemStyle}
+        onClick={() => setWorkersDropdown(false)}
+      >
+        Bills
+      </Link>
+
+      <Link
+        to="/admin/stock"
+        style={dropdownItemStyle}
+        onClick={() => setWorkersDropdown(false)}
+      >
+       Stockmanagement
+      </Link>
+       <Link
+        to="/vendors"
+        style={dropdownItemStyle}
+        onClick={() => setWorkersDropdown(false)}
+      >
+      Vendors
+      </Link>
+      
+    </div>
+  )}
+</div>
+                 
             <Link to="/profile" style={linkStyle}>Profile</Link>
           </>
         )}
@@ -155,7 +190,7 @@ setManagementDropdown(false);
       <Link
         to="/employees"
         style={dropdownItemStyle}
-        onClick={() => setWorkerDropdown(false)}
+        onClick={() => setWorkersDropdown(false)}
       >
         Employees
       </Link>
@@ -163,20 +198,19 @@ setManagementDropdown(false);
       <Link
         to="/workers"
         style={dropdownItemStyle}
-        onClick={() => setWorkerDropdown(false)}
+        onClick={() => setWorkersDropdown(false)}
       >
         Workers
       </Link>
     </div>
   )}
 </div>
-            {/* <Link to="/workers" style={linkStyle}>Workers</Link> */}
+           
             <Link to="/attendance" style={linkStyle}>Attendance</Link>
             <Link to="/reports" style={linkStyle}>Reports</Link>
              <Link to="/task" style={linkStyle}>Task</Link>
-              {/* <Link to="/manager/bills" style={linkStyle}>Bills</Link> */}
-
-                        <div style={{ position: "relative" }}>
+              
+                <div style={{ position: "relative" }}>
   <span
     style={{ ...linkStyle, cursor: "pointer" }}
     onClick={(e) => {
@@ -193,7 +227,7 @@ setManagementDropdown(false);
       <Link
         to="/manager/bills"
         style={dropdownItemStyle}
-        onClick={() => setWorkerDropdown(false)}
+        onClick={() => setWorkersDropdown(false)}
       >
         Bills
       </Link>
@@ -201,7 +235,7 @@ setManagementDropdown(false);
       <Link
         to="/stock"
         style={dropdownItemStyle}
-        onClick={() => setWorkerDropdown(false)}
+        onClick={() => setWorkersDropdown(false)}
       >
        Stockmanagement
       </Link>
