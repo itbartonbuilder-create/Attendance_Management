@@ -1,5 +1,7 @@
 import Vendor from "../models/vendorModel.js";
 import bcrypt from "bcryptjs";
+import axios from "axios";
+
 import { sendPendingMail } from "../utils/emailService.js";
 
 /* ================= REGISTER ================= */
@@ -70,7 +72,30 @@ export const registerVendor = async (req, res) => {
 /* ================= LOGIN ================= */
 export const loginVendor = async (req, res) => {
   try {
-    const { contactNo, password } = req.body;
+    const { contactNo, password,captchaToken } = req.body;
+
+    if (!captchaToken) {
+      return res.status(400).json({ message: "Captcha token missing" });
+    }
+
+    // 🔐 Verify Captcha
+    const verifyURL = "https://www.google.com/recaptcha/api/siteverify";
+
+    const captchaRes = await axios.post(
+      verifyURL,
+      null,
+      {
+        params: {
+          secret: process.env.RECAPTCHA_SECRET_KEY,
+          response: captchaToken,
+        },
+      }
+    );
+
+    if (!captchaRes.data.success) {
+      return res.status(400).json({ message: "Captcha verification failed" });
+    }
+
 
     const vendor = await Vendor.findOne({ contactNo });
     if (!vendor) return res.status(404).json({ message: "Vendor not found" });
