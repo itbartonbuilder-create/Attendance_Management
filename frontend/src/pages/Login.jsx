@@ -566,12 +566,12 @@ function Login() {
                 </>
               )}
 
-
-              <div style={{ display: "flex", gap: "10px" }}>
-                <ReCAPTCHA
+           <ReCAPTCHA
   sitekey="6Le4zmcsAAAAAIT4l3JLSicblw3j-KmCu6Lllxdz"
   onChange={(token) => setCaptchaToken(token)}
 />
+              <div style={{ display: "flex", gap: "10px" }}>
+     
                 <button type="submit" style={{ ...buttonStyle, flex: 1 }}>
                   {vendorMode === "login" ? "Login" : "Register"}
                 </button>
