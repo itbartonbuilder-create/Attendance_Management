@@ -3,6 +3,7 @@ import dotenv from "dotenv";
 import jwt from "jsonwebtoken";
 import Worker from "../models/Worker.js";
 import Manager from "../models/Manager.js"; 
+import axios from "axios";
 
 dotenv.config();
 const router = express.Router();
@@ -11,6 +12,27 @@ router.post("/login", async (req, res) => {
   const { email, password, name, site, contactNo } = req.body;
 
   try {
+
+    if (!captchaToken) {
+      return res.status(400).json({ msg: "Captcha required" });
+    }
+
+    const verifyURL = "https://www.google.com/recaptcha/api/siteverify";
+
+    const captchaRes = await axios.post(
+      verifyURL,
+      {},
+      {
+        params: {
+          secret: process.env.RECAPTCHA_SECRET_KEY,
+          response: captchaToken,
+        },
+      }
+    );
+
+    if (!captchaRes.data.success) {
+      return res.status(400).json({ msg: "Captcha verification failed" });
+    }
     
     if (email && password) {
       if (email === process.env.ADMIN_EMAIL && password === process.env.ADMIN_PASSWORD) {
