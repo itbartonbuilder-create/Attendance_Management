@@ -3,6 +3,8 @@ import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import logo from "../assets/logo.png";
 import loginPage from "../assets/loginPage.jpeg";
+import ReCAPTCHA from "react-google-recaptcha";
+
 
 function Login() {
   const [step, setStep] = useState("select");
@@ -12,19 +14,21 @@ function Login() {
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
 
-const [name, setName] = useState("");
-const [contactNo, setContactNo] = useState("");
-const [companyName, setCompanyName] = useState("");
+  const [name, setName] = useState("");
+  const [contactNo, setContactNo] = useState("");
+  const [companyName, setCompanyName] = useState("");
 
-const [vendorType, setVendorType] = useState("");
-const [category, setCategory] = useState("");
+  const [vendorType, setVendorType] = useState("");
+  const [category, setCategory] = useState("");
 
-const [aadhar, setAadhar] = useState("");
-const [pan, setPan] = useState("");
-const [gst, setGst] = useState("");
+  const [aadhar, setAadhar] = useState("");
+  const [pan, setPan] = useState("");
+  const [gst, setGst] = useState("");
+  const [captchaToken, setCaptchaToken] = useState(null);
 
 
-  const [vendorMode, setVendorMode] = useState("login"); 
+
+  const [vendorMode, setVendorMode] = useState("login");
 
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
@@ -41,99 +45,107 @@ const [gst, setGst] = useState("");
     setPassword("");
   };
 
- const handleLogin = async (e) => {
-  e.preventDefault();
-  setIsLoading(true);
+  const handleLogin = async (e) => {
+    e.preventDefault();
+    setIsLoading(true);
 
-  try {
-    let res;
-    let userData;
+    if (!captchaToken) {
+    alert("Please verify captcha");
+    setIsLoading(false);
+    return;
+  }
 
-    /* ================= OFFICE ================= */
-    if (step === "office") {
-      if (role === "admin") {
-        res = await axios.post(
-          "https://attendance-management-backend-vh2w.onrender.com/api/auth/login",
-          { email, password }
-        );
-      } else if (role === "manager") {
-        res = await axios.post(
-          "https://attendance-management-backend-vh2w.onrender.com/api/auth/login",
-          { site: name, contactNo }
-        );
-      } else {
-        res = await axios.post(
-          "https://attendance-management-backend-vh2w.onrender.com/api/auth/login",
-          { name, contactNo }
-        );
-      }
+    try {
+      let res;
+      let userData;
 
-      userData = {
-        ...res.data.user,
-        displayName:
-          res.data.user.name ||
-          res.data.user.site ||
-          "User",
-      };
-
-      localStorage.setItem("user", JSON.stringify(userData));
-      alert(`✅ Login Successful — Welcome ${userData.displayName}`);
-      navigate("/dashboard");
-      return;
-    }
-/* ================= VENDOR ================= */
-    if (step === "vendor") {
-      // 🔐 LOGIN
-      if (vendorMode === "login") {
-        res = await axios.post(
-          "https://attendance-management-backend-vh2w.onrender.com/api/vendor/login",
-          {
-           contactNo, 
-  password
-          }
-        );
-
-        const vendor = res.data.vendor || res.data.user;
+      /* ================= OFFICE ================= */
+      if (step === "office") {
+        if (role === "admin") {
+          res = await axios.post(
+            "https://attendance-management-backend-vh2w.onrender.com/api/auth/login",
+            { email, password, captchaToken }
+          );
+        } else if (role === "manager") {
+          res = await axios.post(
+            "https://attendance-management-backend-vh2w.onrender.com/api/auth/login",
+            { site: name, contactNo, captchaToken }
+          );
+        } else {
+          res = await axios.post(
+            "https://attendance-management-backend-vh2w.onrender.com/api/auth/login",
+            { name, contactNo, captchaToken }
+          );
+        }
 
         userData = {
-          ...vendor,
-           role: "vendor", 
-          displayName: vendor.name,
+          ...res.data.user,
+          displayName:
+            res.data.user.name ||
+            res.data.user.site ||
+            "User",
         };
 
         localStorage.setItem("user", JSON.stringify(userData));
-        alert(`✅ Login Successful — Welcome ${vendor.name}`);
-        navigate("/vendor-dashboard");
+        alert(`✅ Login Successful — Welcome ${userData.displayName}`);
+        navigate("/dashboard");
         return;
       }
+      
+      if (step === "vendor") {
+       
+        if (vendorMode === "login") {
+          res = await axios.post(
+            "https://attendance-management-backend-vh2w.onrender.com/api/vendor/login",
+            {
+              contactNo,
+              password,
+              captchaToken
+            }
+          );
 
-      // 🧾 REGISTER
-      await axios.post(
-        "https://attendance-management-backend-vh2w.onrender.com/api/vendor/register",
-        {
-          name,
-          companyName,
-          contactNo,
-          aadharNumber: aadhar,
-          panNumber: pan,
-          vendorType,
-          category,
-          gstNumber: gst,
-          email,
-          password,
+          const vendor = res.data.vendor || res.data.user;
+
+          userData = {
+            ...vendor,
+              role: "vendor", 
+            displayName: vendor.name,
+          };
+
+          localStorage.setItem("user", JSON.stringify(userData));
+          alert(`✅ Login Successful — Welcome ${vendor.name}`);
+          navigate("/vendor-dashboard");
+          return;
         }
-      );
-       resetVendorForm(); 
 
-      alert("⏳ Vendor registered successfully. Admin approval pending.");
-      return;
+        // 🧾 REGISTER
+        await axios.post(
+          "https://attendance-management-backend-vh2w.onrender.com/api/vendor/register",
+          {
+            name,
+            companyName,
+            contactNo,
+            aadharNumber: aadhar,
+            panNumber: pan,
+            vendorType,
+            category,
+            gstNumber: gst,
+            email,
+            password,
+          }
+        );
+        resetVendorForm();
+
+
+        alert("⏳ Vendor registered successfully. Admin approval pending.");
+        return;
+      }
+    } catch (err) {
+      alert(err.response?.data?.message || "❌ Action failed.");
+    } finally {
+      setIsLoading(false);
     }
-  } catch (err) {
-    alert(err.response?.data?.message || "❌ Action failed.");
-  } finally {
-    setIsLoading(false);
-  }
-};
+  };
   return (
     <div
       style={{
@@ -192,7 +204,7 @@ const [gst, setGst] = useState("");
           </h1>
         </div>
 
-       
+
         {step === "select" && (
           <div style={{ textAlign: "center", color: "white" }}>
             <h2
@@ -217,7 +229,7 @@ const [gst, setGst] = useState("");
           </div>
         )}
 
-      
+
 
         {step === "office" && (
           <>
@@ -301,6 +313,7 @@ const [gst, setGst] = useState("");
                     <option value="Japuriya">Japuriya</option>
                     <option value="Vaishali">Vaishali</option>
                     <option value="Faridabad">Faridabad</option>
+                     {/* <option value="w">w</option> */}
                   </select>
 
                   <div style={{ position: "relative" }}>
@@ -339,7 +352,10 @@ const [gst, setGst] = useState("");
                   </div>
                 </>
               )}
-
+<ReCAPTCHA
+  sitekey="6Le4zmcsAAAAAIT4l3JLSicblw3j-KmCu6Lllxdz"
+  onChange={(token) => setCaptchaToken(token)}
+/>
               <button type="submit" style={buttonStyle}>
                 Login
               </button>
@@ -355,7 +371,7 @@ const [gst, setGst] = useState("");
           </>
         )}
 
-    
+
 
         {step === "vendor" && (
           <>
@@ -386,191 +402,184 @@ const [gst, setGst] = useState("");
 
             <form onSubmit={handleLogin}>
 
-             
+
               {vendorMode === "login" && (
                 <>
-                 <input
-  placeholder="Contact Number"
-  value={contactNo}   style={inputStyle}
-  onChange={(e) => setContactNo(e.target.value)}
-/>
-
-<input 
-  type="password"
-  placeholder="Password"   style={inputStyle}
-  value={password}
-  onChange={(e) => setPassword(e.target.value)}
-/>
+                  <input placeholder="Contact Number" value={contactNo}
+                    style={inputStyle} onChange={(e) => setContactNo(e.target.value)} />
+                  <input
+                    type="password" placeholder="Password" style={inputStyle} value={password}
+                    onChange={(e) => setPassword(e.target.value)} />
 
                 </>
               )}
 
-             
 
-{vendorMode === "register" && (
-  <>
-    {/* Row 1 */}
-    <div style={rowStyle}>
-      <input
-        type="text"
-        placeholder="Full Name"
-        value={name}
-        onChange={(e) => setName(e.target.value)}
-        required
-        style={halfInput}
-      />
 
-      <input
-        type="text"
-        placeholder="Company Name"
-        value={companyName}
-        onChange={(e) => setCompanyName(e.target.value)}
-        style={halfInput}
-      />
-      
-    </div>
-    
+              {vendorMode === "register" && (
+                <>
+                  {/* Row 1 */}
+                  <div style={rowStyle}>
+                    <input
+                      type="text"
+                      placeholder="Full Name"
+                      value={name}
+                      onChange={(e) => setName(e.target.value)}
+                      required
+                      style={halfInput}
+                    />
 
-    {/* Row 2 */}
-    <div style={rowStyle}>
-      <input
-        type="text"
-        placeholder="Contact Number"
-        value={contactNo}
-        onChange={(e) => setContactNo(e.target.value)}
-        required
-        style={halfInput}
-      />
+                    <input
+                      type="text"
+                      placeholder="Company Name"
+                      value={companyName}
+                      onChange={(e) => setCompanyName(e.target.value)}
+                      style={halfInput}
+                    />
 
-      <input
-        type="text"
-        placeholder="Aadhar Number"
-        maxLength="12"
-        required
-        value={aadhar}
-        onChange={(e) => setAadhar(e.target.value)}
-        style={halfInput}
-      />
-    </div>
+                  </div>
 
-    {/* Row 3 */}
-    <div style={rowStyle}>
-      <input
-        type="text"
-        placeholder="PAN Number"
-        value={pan}
-        onChange={(e) => setPan(e.target.value)}
-        required
-        style={halfInput}
-      />
 
-      <input
-        type="text"
-        placeholder="GST Number (Optional)"
-        value={gst}
-        onChange={(e) => setGst(e.target.value)}
-        style={halfInput}
-      />
-    </div>
+                  {/* Row 2 */}
+                  <div style={rowStyle}>
+                    <input
+                      type="text"
+                      placeholder="Contact Number"
+                      value={contactNo}
+                      onChange={(e) => setContactNo(e.target.value)}
+                      required
+                      style={halfInput}
+                    />
 
-    {/* Row 4 */}
-    <div style={rowStyle}>
-      <select
-        required
-        value={vendorType}
-        onChange={(e) => setVendorType(e.target.value)}
-        style={{
-        marginTop: "2px",
-        background: "black",
-        fontSize: "17px",
-        color: "white",
-        marginRight: "0px",
-        width:"100%",
-        }}
-      >
-        <option value="">Vendor Type</option>
-        <option value="supply">Supply</option>
-        <option value="work">Work</option>
-      </select>
+                    <input
+                      type="text"
+                      placeholder="Aadhar Number"
+                      maxLength="12"
+                      required
+                      value={aadhar}
+                      onChange={(e) => setAadhar(e.target.value)}
+                      style={halfInput}
+                    />
+                  </div>
 
-      <select
-        required
-        value={category}
-        onChange={(e) => setCategory(e.target.value)}
-        style={{
-        marginTop: "2px",
-        background: "black",
-        fontSize: "17px",
-        color: "white",
-         marginRight: "0px",
-         width: "100%",
-        }}
-      >
-        <option value="">Category</option>
+                  {/* Row 3 */}
+                  <div style={rowStyle}>
+                    <input
+                      type="text"
+                      placeholder="PAN Number"
+                      value={pan}
+                      onChange={(e) => setPan(e.target.value)}
+                      required
+                      style={halfInput}
+                    />
 
-        {vendorType === "supply" && (
-          <>
-            <option>Aggregate</option>
-            <option>Sand</option>
-            <option>Cement</option>
-            <option>Hardware</option>
-            <option>Tiles</option>
-            <option>Steel</option>
-            <option>Paints</option>
-            <option>Wood</option>
-            <option>Glass</option>
-            <option>Other</option>
-          </>
-        )}
+                    <input
+                      type="text"
+                      placeholder="GST Number (Optional)"
+                      value={gst}
+                      onChange={(e) => setGst(e.target.value)}
+                      style={halfInput}
+                    />
+                  </div>
 
-        {vendorType === "work" && (
-          <>
-            <option>Electrical</option>
-            <option>Civil</option>
-            <option>Plumbing</option>
-            <option>Carpentry</option>
-            <option>Interior Work</option>
-            <option>Painting</option>
-            <option>Fabrication</option>
-            <option>Other</option>
-          </>
-        )}
-      </select>
-    </div>
-<input
-  type="email"
-  placeholder="Email Address"
-  value={email}
-  onChange={(e) => setEmail(e.target.value)}
-  required
-  style={inputStyle}
-/>
-    {/* Row 5 */}
-    <input
-      type="password"
-      placeholder="Create Password"
-      value={password}
-      onChange={(e) => setPassword(e.target.value)}
-      required
-      style={inputStyle}
-    />
-  </>
-)}
+                  {/* Row 4 */}
+                  <div style={rowStyle}>
+                    <select
+                      required
+                      value={vendorType}
+                      onChange={(e) => setVendorType(e.target.value)}
+                      style={{
+                        marginTop: "2px",
+                        background: "black",
+                        fontSize: "17px",
+                        color: "white",
+                        marginRight: "0px",
+                        width: "100%",
+                      }}
+                    >
+                      <option value="">Vendor Type</option>
+                      <option value="supply">Supply</option>
+                      <option value="work">Work</option>
+                    </select>
+
+                    <select
+                      required
+                      value={category}
+                      onChange={(e) => setCategory(e.target.value)}
+                      style={{
+                        marginTop: "2px",
+                        background: "black",
+                        fontSize: "17px",
+                        color: "white",
+                        marginRight: "0px",
+                        width: "100%",
+                      }}
+                    >
+                      <option value="">Category</option>
+
+                      {vendorType === "supply" && (
+                        <>
+                          <option>Aggregate</option>
+                          <option>Sand</option>
+                          <option>Cement</option>
+                          <option>Hardware</option>
+                          <option>Tiles</option>
+                          <option>Steel</option>
+                          <option>Paints</option>
+                          <option>Wood</option>
+                          <option>Glass</option>
+                          <option>Other</option>
+                        </>
+                      )}
+
+                      {vendorType === "work" && (
+                        <>
+                          <option>Electrical</option>
+                          <option>Civil</option>
+                          <option>Plumbing</option>
+                          <option>Carpentry</option>
+                          <option>Interior Work</option>
+                          <option>Painting</option>
+                          <option>Fabrication</option>
+                          <option>Other</option>
+                        </>
+                      )}
+                    </select>
+                  </div>
+                  <input
+                    type="email"
+                    placeholder="Email Address"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    required
+                    style={inputStyle}
+                  />
+                  {/* Row 5 */}
+                  <input
+                    type="password"
+                    placeholder="Create Password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    required
+                    style={inputStyle}
+                  />
+                </>
+              )}
 
 
               <div style={{ display: "flex", gap: "10px" }}>
-  <button type="submit" style={{ ...buttonStyle, flex: 1 }}>
-    {vendorMode === "login" ? "Login" : "Register"}
-  </button>
+                <button type="submit" style={{ ...buttonStyle, flex: 1 }}>
+                  {vendorMode === "login" ? "Login" : "Register"}
+                </button>
 
-  <button
-    type="button"
-    style={{ ...backBtn, flex: 1 }}
-    onClick={() => setStep("select")}
-  >
-    Back
-  </button>
-</div>
+                <button
+                  type="button"
+                  style={{ ...backBtn, flex: 1 }}
+                  onClick={() => setStep("select")}
+                >
+                  Back
+                </button>
+              </div>
 
             </form>
           </>
