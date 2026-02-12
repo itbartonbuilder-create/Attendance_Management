@@ -313,7 +313,8 @@ function Login() {
                     <option value="Japuriya">Japuriya</option>
                     <option value="Vaishali">Vaishali</option>
                     <option value="Faridabad">Faridabad</option>
-                     {/* <option value="w">w</option> */}
+                     <option value="jim corbett">jim corbett</option>
+                     
                   </select>
 
                   <div style={{ position: "relative" }}>
