@@ -11,7 +11,7 @@ function Workers() {
   const defaultSites = ["Bangalore", "Japuriya", "Vaishali", "Faridabad","jim corbett", "Other"];
 
   const roleOptions = {
-    Skilled: ["Electrician", "Plumber", "Carpenter", "Brick Work","Structure Mistri","Welder","Arection"],
+    Skilled: ["Electrician", "Plumber", "Carpenter", "Mason","Structure Mistri","Welder","Arection"],
     "Semi-Skilled": ["Helper", "Assistant", "Operator"],
     Worker: ["Male", "Female", "Labour"],
     Other: [],
