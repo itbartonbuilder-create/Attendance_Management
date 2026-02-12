@@ -3,7 +3,7 @@ import axios from "axios";
 import "../App.css";
 
 function Managers() {
-  const defaultSites = ["Bangalore", "Japuriya", "Vaishali", "Faridabad", "Other"];
+  const defaultSites = ["Bangalore", "Japuriya", "Vaishali", "Faridabad","jim corbett", "Other"];
 
   const [user, setUser] = useState(null);
   const [managers, setManagers] = useState([]);
