@@ -6,15 +6,49 @@ import Worker from "../models/Worker.js";
 const router = express.Router();
 
 
-router.get("/workers", async (req, res) => {
+router.get("/worker-history/:workerId", async (req, res) => {
   try {
-    const workers = await Worker.find({}, "name site perDaySalary roleType role");
-    res.json(workers);
+    const { workerId } = req.params;
+    const { start, end } = req.query;
+
+    const workerObjectId = new mongoose.Types.ObjectId(workerId);
+
+    const query = { "records.workerId": workerObjectId };
+
+    if (start && end) {
+      query.date = {
+        $gte: new Date(start),
+        $lte: new Date(end),
+      };
+    }
+
+    const attendanceDocs = await Attendance.find(query).sort({ date: 1 });
+
+    const history = [];
+
+    attendanceDocs.forEach((doc) => {
+      const record = doc.records.find(
+        (r) => r.workerId.toString() === workerId
+      );
+
+      if (record) {
+        history.push({
+          date: doc.date.toISOString().split("T")[0],
+          status: record.status,
+          hoursWorked: record.hoursWorked || 0,
+          overtimeHours: record.overtimeHours || 0,
+          salary: record.salary || 0,
+        });
+      }
+    });
+
+    res.json({ success: true, history });
   } catch (err) {
-    console.error("🚨 Error fetching workers:", err.message);
-    res.status(500).json({ message: err.message });
+    console.error("🚨 Error fetching worker history:", err);
+    res.status(500).json({ success: false, message: err.message });
   }
 });
+
 
 
 router.post("/", async (req, res) => {
