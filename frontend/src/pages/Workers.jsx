@@ -8,12 +8,12 @@ function Workers() {
   const [workers, setWorkers] = useState([]);
   const [editingId, setEditingId] = useState(null);
 
-  const defaultSites = ["Bangalore", "Japuriya", "Vaishali", "Faridabad", "Other"];
+  const defaultSites = ["Bangalore", "Japuriya", "Vaishali", "Faridabad","jim corbett", "Other"];
 
   const roleOptions = {
-    Skilled: ["Electrician", "Plumber", "Carpenter"],
+    Skilled: ["Electrician", "Plumber", "Carpenter", "Brick Work","Structure Mistri","Welder","Arection"],
     "Semi-Skilled": ["Helper", "Assistant", "Operator"],
-    Worker: ["Male", "Female"],
+    Worker: ["Male", "Female", "Labour"],
     Other: [],
   };
 
