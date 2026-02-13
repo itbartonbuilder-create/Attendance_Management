@@ -16,7 +16,7 @@ const TaskPage = () => {
     deadline: "",
   });
 
-  const SITES = ["Bangalore", "Japuriya", "Vashali", "Faridabad"];
+  const SITES = ["Bangalore", "Japuriya", "Vashali", "Faridabad", "jim corbett"];
   const TYPES = ["Manager", "Worker"];
   const user = JSON.parse(localStorage.getItem("user"));
 
@@ -238,4 +238,5 @@ const TaskPage = () => {
 };
 
 export default TaskPage;
+
 
