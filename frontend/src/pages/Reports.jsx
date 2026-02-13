@@ -10,7 +10,7 @@ function AttendanceReport() {
   const [user, setUser] = useState(null);
 
   const [recordType, setRecordType] = useState("");
-  const [sites] = useState(["Bangalore", "Japuriya", "Vashali", "Faridabad"]);
+  const [sites] = useState(["Bangalore", "Japuriya", "Vashali", "Faridabad", "jim corbett"]);
   const [selectedSite, setSelectedSite] = useState("");
 
   const [workers, setWorkers] = useState([]);
