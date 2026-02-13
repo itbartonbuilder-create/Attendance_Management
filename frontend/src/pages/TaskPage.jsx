@@ -5,7 +5,7 @@ const TaskPage = () => {
   const [tasks, setTasks] = useState([]);
   const [people, setPeople] = useState([]);
   const [editingId, setEditingId] = useState(null);
-  const [tempReason, setTempReason] = useState({}); // local state for smooth typing
+  const [tempReason, setTempReason] = useState({}); 
 
   const [form, setForm] = useState({
     site: "",
@@ -238,5 +238,6 @@ const TaskPage = () => {
 };
 
 export default TaskPage;
+
 
 
