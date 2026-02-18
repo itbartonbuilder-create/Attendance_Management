@@ -6,8 +6,6 @@ const MATERIALS = {
     { name: "Reinforcement 10mm", unit: "Bundle" },
     { name: "Reinforcement 12mm", unit: "Bundle" },
     { name: "Reinforcement 16mm", unit: "Bundle" },
-    { name: "Reinforcement 20mm", unit: "Bundle" },
-    { name: "Reinforcement 25mm", unit: "Bundle" },
     { name: "Binding Wire", unit: "Kg" },
   ],
   Civil: [
@@ -15,6 +13,21 @@ const MATERIALS = {
     { name: "Sand", unit: "CFT" },
     { name: "Aggregate 20mm", unit: "CFT" },
     { name: "Bricks", unit: "Nos" },
+  ],
+  Shuttering: [
+    { name: "Plates", unit: "Nos" },
+    { name: "Props", unit: "Nos" },
+    { name: "Pipes", unit: "Nos" },
+  ],
+  Electrical: [
+    { name: "Wire", unit: "Meter" },
+    { name: "Switch", unit: "Nos" },
+    { name: "MCB", unit: "Nos" },
+  ],
+  Plumbing: [
+    { name: "Pipe", unit: "Feet" },
+    { name: "Elbow", unit: "Nos" },
+    { name: "Tap", unit: "Nos" },
   ],
 };
 
@@ -25,17 +38,16 @@ function StockManagement() {
   const [category, setCategory] = useState("");
   const [material, setMaterial] = useState("");
   const [unit, setUnit] = useState("");
-
-  const [stock, setStock] = useState({
-    add: "",
-    used: "",
-  });
+  const [stock, setStock] = useState({ total: "", used: "" });
 
   const [stocks, setStocks] = useState([]);
   const [showTable, setShowTable] = useState(false);
+  const [loading, setLoading] = useState(false);
 
-  // ================= FETCH STOCK =================
+  const remaining =
+    Number(stock.total || 0) - Number(stock.used || 0);
 
+  // 📥 Fetch stocks
   const fetchStocks = async () => {
     const res = await fetch(
       `https://attendance-management-backend-vh2w.onrender.com/api/stocks?site=${managerSite}`
@@ -44,22 +56,25 @@ function StockManagement() {
     setStocks(data.data || []);
   };
 
-  // ================= MATERIAL SELECT =================
-
+  // 🎯 Material select
   const handleMaterialChange = (value) => {
-    const selected = MATERIALS[category]?.find((m) => m.name === value);
-    if (!selected) return;
+    const selected = MATERIALS[category]?.find(
+      (m) => m.name === value
+    );
     setMaterial(value);
     setUnit(selected.unit);
   };
 
-  // ================= SUBMIT =================
-
+  // 💾 Save stock
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    const addStock = Number(stock.add || 0);
-    const usedStock = Number(stock.used || 0);
+    if (remaining < 0) {
+      alert("Used stock cannot be greater than total");
+      return;
+    }
+
+    setLoading(true);
 
     try {
       const res = await fetch(
@@ -72,22 +87,29 @@ function StockManagement() {
             category,
             material,
             unit,
-            addStock,
-            usedStock,
+            addStock: Number(stock.total),   // ✅ FIXED
+            usedStock: Number(stock.used),
           }),
         }
       );
 
-      if (!res.ok) throw new Error();
+      const data = await res.json();
 
-      alert("✅ Stock Updated");
+      if (!res.ok) throw new Error(data.message);
+
+      alert("Stock Saved Successfully");
 
       fetchStocks();
 
-      setStock({ add: "", used: "" });
+      // 🔄 Reset form
+      setCategory("");
       setMaterial("");
-    } catch {
-      alert("❌ Error saving stock");
+      setUnit("");
+      setStock({ total: "", used: "" });
+    } catch (err) {
+      alert(err.message || "Error saving stock");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -101,7 +123,11 @@ function StockManagement() {
       <h2>🏗️ Stock Management ({managerSite})</h2>
 
       <form onSubmit={handleSubmit}>
-        {/* CATEGORY */}
+        <div style={sectionStyle}>
+          <label>Site</label>
+          <input value={managerSite} disabled style={input} />
+        </div>
+
         <div style={sectionStyle}>
           <label>Category</label>
           <select
@@ -119,13 +145,14 @@ function StockManagement() {
           </select>
         </div>
 
-        {/* MATERIAL */}
         {category && (
           <div style={sectionStyle}>
             <label>Material</label>
             <select
               value={material}
-              onChange={(e) => handleMaterialChange(e.target.value)}
+              onChange={(e) =>
+                handleMaterialChange(e.target.value)
+              }
               required
             >
               <option value="">Select</option>
@@ -136,37 +163,41 @@ function StockManagement() {
           </div>
         )}
 
-        {/* STOCK INPUT */}
         {material && (
           <div style={cardStyle}>
             <input
               type="number"
-              placeholder={`Add Stock (${unit})`}
-              value={stock.add}
+              placeholder={`Total (${unit})`}
+              value={stock.total}
               onChange={(e) =>
-                setStock({ ...stock, add: e.target.value })
+                setStock({ ...stock, total: e.target.value })
               }
+              required
             />
-
             <input
               type="number"
-              placeholder={`Used Stock (${unit})`}
+              placeholder={`Used (${unit})`}
               value={stock.used}
               onChange={(e) =>
                 setStock({ ...stock, used: e.target.value })
               }
+              required
             />
+            <p>
+              Remaining: <b>{remaining}</b> {unit}
+            </p>
           </div>
         )}
 
-        <button style={btnStyle}>Save Stock</button>
+        <button style={btnStyle} disabled={loading}>
+          {loading ? "Saving..." : "Save Stock"}
+        </button>
       </form>
 
       <button style={viewBtn} onClick={handleViewStock}>
         {showTable ? "Hide Stock" : "View My Site Stock"}
       </button>
 
-      {/* TABLE */}
       {showTable && (
         <table style={tableStyle}>
           <thead>
@@ -180,11 +211,12 @@ function StockManagement() {
               <th>Remaining</th>
             </tr>
           </thead>
-
           <tbody>
             {stocks.map((s) => (
               <tr key={s._id}>
-                <td>{new Date(s.date).toLocaleDateString()}</td>
+                <td>
+                  {new Date(s.date).toLocaleDateString()}
+                </td>
                 <td>{s.site}</td>
                 <td>{s.category}</td>
                 <td>{s.material}</td>
@@ -202,9 +234,7 @@ function StockManagement() {
 
 export default StockManagement;
 
-
-
-// ================= STYLES =================
+/* ---------- Styles ---------- */
 
 const containerStyle = {
   maxWidth: 1200,
@@ -213,6 +243,14 @@ const containerStyle = {
   background: "#333",
   color: "#fff",
   borderRadius: 8,
+};
+
+const input = {
+  padding: "12px 15px",
+  margin: "10px",
+  borderRadius: "8px",
+  border: "1px solid #ddd",
+  fontSize: "14px",
 };
 
 const sectionStyle = {
@@ -250,4 +288,5 @@ const tableStyle = {
   width: "100%",
   marginTop: 20,
   borderCollapse: "collapse",
+  background: "#222",
 };
