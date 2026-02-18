@@ -2,19 +2,16 @@ import mongoose from "mongoose";
 
 const stockSchema = new mongoose.Schema(
   {
-    site: { type: String, required: true },
-    category: { type: String, required: true },
-    material: { type: String, required: true },
-    unit: { type: String, required: true },
+    site: String,
+    category: String,
+    material: String,
+    unit: String,
 
-    totalStock: { type: Number, required: true, default: 0 },
-    usedStock: { type: Number, required: true, default: 0 },
-    remainingStock: { type: Number, required: true, default: 0 },
+    totalStock: Number,
+    usedStock: Number,
+    remainingStock: Number,
 
-    date: {
-      type: Date,
-      default: Date.now,   
-    },
+    date: { type: Date, default: Date.now },
   },
   { timestamps: true }
 );
