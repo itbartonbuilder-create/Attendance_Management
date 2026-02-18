@@ -1,69 +1,78 @@
 import Stock from "../models/Stock.js";
 
+
+
 export const createStock = async (req, res) => {
   try {
-    const { site, category, material, unit, totalStock, usedStock } = req.body;
+    const { site, category, material, unit, addStock, usedStock } = req.body;
 
     if (!site || !category || !material || !unit) {
       return res.status(400).json({
         success: false,
-        message: "All fields are required",
+        message: "All fields required",
       });
     }
 
-    if (usedStock > totalStock) {
-      return res.status(400).json({
-        success: false,
-        message: "Used stock cannot be greater than total",
-      });
-    }
+    let stock = await Stock.findOne({ site, material });
 
-    let existingStock = await Stock.findOne({ site, material });
+    if (stock) {
 
-    
-    if (existingStock) {
-      existingStock.totalStock += Number(totalStock);
-      existingStock.usedStock += Number(usedStock);
-
-      if (existingStock.usedStock > existingStock.totalStock) {
-        return res.status(400).json({
-          success: false,
-          message: "Used stock exceeds total stock",
-        });
+     
+      if (addStock) {
+        stock.totalStock += Number(addStock);
       }
 
-      existingStock.remainingStock =
-        existingStock.totalStock - existingStock.usedStock;
+      
+      if (usedStock) {
 
-      existingStock.date = new Date();
+        if (stock.remainingStock < usedStock) {
+          return res.status(400).json({
+            success: false,
+            message: "Not enough stock available",
+          });
+        }
 
-      await existingStock.save();
+        stock.usedStock += Number(usedStock);
+      }
 
-      return res.status(200).json({
+      stock.remainingStock = stock.totalStock - stock.usedStock;
+      stock.date = new Date();
+
+      await stock.save();
+
+      return res.json({
         success: true,
-        message: "Stock Updated Successfully",
-        data: existingStock,
+        message: "Stock Updated",
+        data: stock,
       });
     }
 
-    // 🆕 CREATE new stock
-    const remainingStock = totalStock - usedStock;
 
-    const stock = await Stock.create({
+    const total = Number(addStock || 0);
+    const used = Number(usedStock || 0);
+
+    if (used > total) {
+      return res.status(400).json({
+        success: false,
+        message: "Used cannot exceed total",
+      });
+    }
+
+    const newStock = await Stock.create({
       site,
       category,
       material,
       unit,
-      totalStock,
-      usedStock,
-      remainingStock,
+      totalStock: total,
+      usedStock: used,
+      remainingStock: total - used,
       date: new Date(),
     });
 
     res.status(201).json({
       success: true,
-      message: "Stock Created Successfully",
-      data: stock,
+      message: "Stock Created",
+      data: newStock,
     });
   } catch (error) {
     res.status(500).json({
@@ -81,14 +90,12 @@ export const getAllStocks = async (req, res) => {
   try {
     const { site } = req.query;
 
-    let filter = {};
-    if (site) filter.site = site;
+    const filter = site ? { site } : {};
 
     const stocks = await Stock.find(filter).sort({ updatedAt: -1 });
 
     res.json({
       success: true,
-      count: stocks.length,
       data: stocks,
     });
   } catch (error) {
