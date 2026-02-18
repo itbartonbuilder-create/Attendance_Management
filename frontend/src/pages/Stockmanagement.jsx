@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 
 const MATERIALS = {
   Steel: [
@@ -16,51 +16,35 @@ const MATERIALS = {
     { name: "Aggregate 20mm", unit: "CFT" },
     { name: "Bricks", unit: "Nos" },
   ],
-  Shuttering: [
-    { name: "Plates", unit: "Nos" },
-    { name: "Props", unit: "Nos" },
-    { name: "Pipes", unit: "Nos" },
-  ],
-  Electrical: [
-    { name: "Wire", unit: "Meter" },
-    { name: "Switch", unit: "Nos" },
-    { name: "MCB", unit: "Nos" },
-  ],
-  Plumbing: [
-    { name: "Pipe", unit: "Feet" },
-    { name: "Elbow", unit: "Nos" },
-    { name: "Tap", unit: "Nos" },
-  ],
 };
 
 function StockManagement() {
   const user = JSON.parse(localStorage.getItem("user"));
   const managerSite = user?.site || "";
 
-  const [site, setSite] = useState(managerSite);
   const [category, setCategory] = useState("");
   const [material, setMaterial] = useState("");
   const [unit, setUnit] = useState("");
-  const [stock, setStock] = useState({ total: "", used: "" });
+
+  const [stock, setStock] = useState({
+    add: "",
+    used: "",
+  });
 
   const [stocks, setStocks] = useState([]);
   const [showTable, setShowTable] = useState(false);
-  const [loading, setLoading] = useState(false);
 
-  const remaining = Number(stock.total || 0) - Number(stock.used || 0);
+  // ================= FETCH STOCK =================
 
- 
   const fetchStocks = async () => {
-    try {
-      const res = await fetch(
-        `https://attendance-management-backend-vh2w.onrender.com/api/stocks?site=${managerSite}`
-      );
-      const data = await res.json();
-      setStocks(data.data || []);
-    } catch (err) {
-      console.error(err);
-    }
+    const res = await fetch(
+      `https://attendance-management-backend-vh2w.onrender.com/api/stocks?site=${managerSite}`
+    );
+    const data = await res.json();
+    setStocks(data.data || []);
   };
+
+  // ================= MATERIAL SELECT =================
 
   const handleMaterialChange = (value) => {
     const selected = MATERIALS[category]?.find((m) => m.name === value);
@@ -69,16 +53,13 @@ function StockManagement() {
     setUnit(selected.unit);
   };
 
- 
+  // ================= SUBMIT =================
+
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    if (remaining < 0) {
-      alert("❌ Used stock cannot be greater than total");
-      return;
-    }
-
-    setLoading(true);
+    const addStock = Number(stock.add || 0);
+    const usedStock = Number(stock.used || 0);
 
     try {
       const res = await fetch(
@@ -87,27 +68,26 @@ function StockManagement() {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            site: managerSite, 
+            site: managerSite,
             category,
             material,
             unit,
-            totalStock: Number(stock.total),
-            usedStock: Number(stock.used),
+            addStock,
+            usedStock,
           }),
         }
       );
 
       if (!res.ok) throw new Error();
 
-      alert("✅ Stock Saved");
+      alert("✅ Stock Updated");
+
       fetchStocks();
 
+      setStock({ add: "", used: "" });
       setMaterial("");
-      setStock({ total: "", used: "" });
     } catch {
       alert("❌ Error saving stock");
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -121,12 +101,7 @@ function StockManagement() {
       <h2>🏗️ Stock Management ({managerSite})</h2>
 
       <form onSubmit={handleSubmit}>
-        
-        <div style={sectionStyle}>
-          <label>Site</label>
-          <input value={managerSite} disabled style={input} />
-        </div>
-
+        {/* CATEGORY */}
         <div style={sectionStyle}>
           <label>Category</label>
           <select
@@ -144,6 +119,7 @@ function StockManagement() {
           </select>
         </div>
 
+        {/* MATERIAL */}
         {category && (
           <div style={sectionStyle}>
             <label>Material</label>
@@ -160,41 +136,37 @@ function StockManagement() {
           </div>
         )}
 
+        {/* STOCK INPUT */}
         {material && (
           <div style={cardStyle}>
             <input
               type="number"
-              placeholder={`Total (${unit})`}
-              value={stock.total}
+              placeholder={`Add Stock (${unit})`}
+              value={stock.add}
               onChange={(e) =>
-                setStock({ ...stock, total: e.target.value })
+                setStock({ ...stock, add: e.target.value })
               }
-              required
             />
+
             <input
               type="number"
-              placeholder={`Used (${unit})`}
+              placeholder={`Used Stock (${unit})`}
               value={stock.used}
               onChange={(e) =>
                 setStock({ ...stock, used: e.target.value })
               }
-              required
             />
-            <p>
-              Remaining: <b>{remaining}</b> {unit}
-            </p>
           </div>
         )}
 
-        <button style={btnStyle} disabled={loading}>
-          {loading ? "Saving..." : "Save Stock"}
-        </button>
+        <button style={btnStyle}>Save Stock</button>
       </form>
 
       <button style={viewBtn} onClick={handleViewStock}>
         {showTable ? "Hide Stock" : "View My Site Stock"}
       </button>
 
+      {/* TABLE */}
       {showTable && (
         <table style={tableStyle}>
           <thead>
@@ -208,6 +180,7 @@ function StockManagement() {
               <th>Remaining</th>
             </tr>
           </thead>
+
           <tbody>
             {stocks.map((s) => (
               <tr key={s._id}>
@@ -231,6 +204,8 @@ export default StockManagement;
 
 
 
+// ================= STYLES =================
+
 const containerStyle = {
   maxWidth: 1200,
   margin: "80px auto",
@@ -240,16 +215,6 @@ const containerStyle = {
   borderRadius: 8,
 };
 
-const input={
-   padding: "12px 15px",
-    margin: "10px",
-    borderRadius: "8px",
-    border: "1px solid #ddd",
-    outline: "none",
-    fontsize: "14px",
-    transition: "0.3s",
-        marginright: "15px",
-}
 const sectionStyle = {
   marginBottom: 12,
   display: "flex",
