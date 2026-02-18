@@ -197,6 +197,7 @@ function StockManagement() {
         <table style={tableStyle}>
           <thead>
             <tr>
+              <th>Date</th>
               <th>Site</th>
               <th>Category</th>
               <th>Material</th>
@@ -208,6 +209,7 @@ function StockManagement() {
           <tbody>
             {stocks.map((s) => (
               <tr key={s._id}>
+                <td>{new Date(s.date).toLocaleDateString()}</td>
                 <td>{s.site}</td>
                 <td>{s.category}</td>
                 <td>{s.material}</td>
