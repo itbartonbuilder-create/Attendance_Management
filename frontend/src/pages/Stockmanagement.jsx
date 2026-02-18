@@ -6,6 +6,8 @@ const MATERIALS = {
     { name: "Reinforcement 10mm", unit: "Bundle" },
     { name: "Reinforcement 12mm", unit: "Bundle" },
     { name: "Reinforcement 16mm", unit: "Bundle" },
+    { name: "Reinforcement 20mm", unit: "Bundle" },
+    { name: "Reinforcement 25mm", unit: "Bundle" },
     { name: "Binding Wire", unit: "Kg" },
   ],
   Civil: [
