@@ -2,23 +2,9 @@ import Stock from "../models/Stock.js";
 
 export const createStock = async (req, res) => {
   try {
-    const {
-      site,
-      category,
-      material,
-      unit,
-      totalStock,
-      usedStock,
-    } = req.body;
+    const { site, category, material, unit, totalStock, usedStock } = req.body;
 
-    if (
-      !site ||
-      !category ||
-      !material ||
-      !unit ||
-      totalStock === undefined ||
-      usedStock === undefined
-    ) {
+    if (!site || !category || !material || !unit) {
       return res.status(400).json({
         success: false,
         message: "All fields are required",
@@ -32,6 +18,35 @@ export const createStock = async (req, res) => {
       });
     }
 
+    let existingStock = await Stock.findOne({ site, material });
+
+    
+    if (existingStock) {
+      existingStock.totalStock += Number(totalStock);
+      existingStock.usedStock += Number(usedStock);
+
+      if (existingStock.usedStock > existingStock.totalStock) {
+        return res.status(400).json({
+          success: false,
+          message: "Used stock exceeds total stock",
+        });
+      }
+
+      existingStock.remainingStock =
+        existingStock.totalStock - existingStock.usedStock;
+
+      existingStock.date = new Date();
+
+      await existingStock.save();
+
+      return res.status(200).json({
+        success: true,
+        message: "Stock Updated Successfully",
+        data: existingStock,
+      });
+    }
+
+    // 🆕 CREATE new stock
     const remainingStock = totalStock - usedStock;
 
     const stock = await Stock.create({
@@ -42,11 +57,12 @@ export const createStock = async (req, res) => {
       totalStock,
       usedStock,
       remainingStock,
+      date: new Date(),
     });
 
     res.status(201).json({
       success: true,
-      message: "Stock saved successfully",
+      message: "Stock Created Successfully",
       data: stock,
     });
   } catch (error) {
@@ -56,18 +72,19 @@ export const createStock = async (req, res) => {
     });
   }
 };
+
+
+
+
+
 export const getAllStocks = async (req, res) => {
   try {
     const { site } = req.query;
 
     let filter = {};
+    if (site) filter.site = site;
 
-    
-    if (site) {
-      filter.site = site;
-    }
-
-    const stocks = await Stock.find(filter).sort({ createdAt: -1 });
+    const stocks = await Stock.find(filter).sort({ updatedAt: -1 });
 
     res.json({
       success: true,
