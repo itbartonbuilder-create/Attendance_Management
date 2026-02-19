@@ -1,7 +1,5 @@
 import Stock from "../models/Stock.js";
 
-
-
 export const createStock = async (req, res) => {
   try {
     const { site, category, material, unit, addStock, usedStock } = req.body;
@@ -15,27 +13,31 @@ export const createStock = async (req, res) => {
 
     let stock = await Stock.findOne({ site, material });
 
+    const add = Number(addStock || 0);
+    const used = Number(usedStock || 0);
+
+    
     if (stock) {
 
-     
-      if (addStock) {
-        stock.totalStock += Number(addStock);
+      
+      if (add > 0) {
+        stock.totalStock += add;
+        stock.remainingStock += add;
       }
 
       
-      if (usedStock) {
-
-        if (stock.remainingStock < usedStock) {
+      if (used > 0) {
+        if (stock.remainingStock < used) {
           return res.status(400).json({
             success: false,
             message: "Not enough stock available",
           });
         }
 
-        stock.usedStock += Number(usedStock);
+        stock.usedStock += used;
+        stock.remainingStock -= used;
       }
 
-      stock.remainingStock = stock.totalStock - stock.usedStock;
       stock.date = new Date();
 
       await stock.save();
@@ -47,11 +49,8 @@ export const createStock = async (req, res) => {
       });
     }
 
-
-    const total = Number(addStock || 0);
-    const used = Number(usedStock || 0);
-
-    if (used > total) {
+   
+    if (used > add) {
       return res.status(400).json({
         success: false,
         message: "Used cannot exceed total",
@@ -63,9 +62,9 @@ export const createStock = async (req, res) => {
       category,
       material,
       unit,
-      totalStock: total,
+      totalStock: add,
       usedStock: used,
-      remainingStock: total - used,
+      remainingStock: add - used,
       date: new Date(),
     });
 
@@ -81,11 +80,6 @@ export const createStock = async (req, res) => {
     });
   }
 };
-
-
-
-
-
 export const getAllStocks = async (req, res) => {
   try {
     const { site } = req.query;
