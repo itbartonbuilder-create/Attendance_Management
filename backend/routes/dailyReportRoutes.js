@@ -1,7 +1,7 @@
 import express from "express";
 import DailyReport from "../models/DailyReport.js";
 import { uploadDailyReport } from "../middleware/upload.js";
-import authMiddleware from "../middleware/authMiddleware.js";
+import authMiddleware from "../middleware/auth.js";
 
 const router = express.Router();
 
