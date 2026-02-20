@@ -10,14 +10,18 @@ router.post(
   uploadDailyReport.fields([{ name: "photos", maxCount: 6 }]),
   async (req, res) => {
     try {
-      const { date, type, text, siteId, userRole } = req.body;
+      const { date, type, text } = req.body;
 
+     
+      const user = req.user;
+      if (!user) return res.status(401).json({ message: "Unauthorized" });
+
+ 
+      const siteId = user.role === "manager" ? user.assignedSite : req.body.siteId;
       if (!siteId) return res.status(400).json({ message: "SiteId is required" });
-      if (!["morning", "evening"].includes(type)) return res.status(400).json({ message: "Invalid type" });
 
-      
-      if (userRole === "manager" && siteId !== req.body.assignedSite)
-        return res.status(403).json({ message: "You can only submit for your site" });
+      if (!["morning", "evening"].includes(type))
+        return res.status(400).json({ message: "Invalid type" });
 
       const photos = req.files?.photos?.map((f) => f.path) || [];
 
@@ -29,7 +33,7 @@ router.post(
           return res.status(400).json({ message: "Morning report already submitted" });
         report.morningText = text;
         report.morningPhotos = photos;
-      } else if (type === "evening") {
+      } else {
         if (report.eveningText || report.eveningPhotos.length > 0)
           return res.status(400).json({ message: "Evening report already submitted" });
         report.eveningText = text;
@@ -45,10 +49,15 @@ router.post(
   }
 );
 
+
 router.get("/check-data/:date", async (req, res) => {
   try {
     const { date } = req.params;
-    const siteId = req.query.siteId;
+    const user = req.user;
+    if (!user) return res.status(401).json({ message: "Unauthorized" });
+
+   
+    const siteId = user.role === "manager" ? user.assignedSite : req.query.siteId;
     if (!siteId) return res.status(400).json({ message: "SiteId is required" });
 
     const report = await DailyReport.findOne({ date, siteId });
@@ -67,7 +76,11 @@ router.get("/check-data/:date", async (req, res) => {
 router.get("/report/:date", async (req, res) => {
   try {
     const { date } = req.params;
-    const siteId = req.query.siteId;
+    const user = req.user;
+    if (!user) return res.status(401).json({ message: "Unauthorized" });
+
+
+    const siteId = user.role === "manager" ? user.assignedSite : req.query.siteId;
     if (!siteId) return res.status(400).json({ message: "SiteId is required" });
 
     const report = await DailyReport.findOne({ date, siteId });
