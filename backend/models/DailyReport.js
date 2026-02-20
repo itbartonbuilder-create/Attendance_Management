@@ -2,8 +2,7 @@ import mongoose from "mongoose";
 
 const dailyReportSchema = new mongoose.Schema({
   date: String,
-  userId: String,
-  site: String,
+  type: String, 
 
   morningText: String,
   eveningText: String,
