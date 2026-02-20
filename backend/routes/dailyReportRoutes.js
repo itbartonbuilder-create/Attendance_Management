@@ -5,7 +5,7 @@ import { uploadDailyReport } from "../middleware/upload.js";
 const router = express.Router();
 
 
-// ✅ CHECK REPORT EXISTS
+
 router.get("/check-data/:date", async (req, res) => {
   try {
     const { date } = req.params;
@@ -22,7 +22,7 @@ router.get("/check-data/:date", async (req, res) => {
 });
 
 
-// ✅ SAVE REPORT (Morning / Evening)
+
 router.post(
   "/daily-report",
   uploadDailyReport.fields([
@@ -39,7 +39,7 @@ router.post(
       const eveningPhotos =
         req.files?.eveningPhotos?.map((f) => f.path) || [];
 
-      // 🔥 Update existing OR create new
+    
       const report = await DailyReport.findOneAndUpdate(
         { date },
         {
@@ -66,7 +66,7 @@ router.post(
 );
 
 
-// ✅ GET FULL REPORT
+
 router.get("/report/:date", async (req, res) => {
   try {
     const report = await DailyReport.findOne({
