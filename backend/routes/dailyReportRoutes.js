@@ -1,28 +1,24 @@
 import express from "express";
 import DailyReport from "../models/DailyReport.js";
 import { uploadDailyReport } from "../middleware/upload.js";
-import authMiddleware from "../middleware/auth.js";
 
 const router = express.Router();
 
 
-
 router.post(
   "/daily-report",
-  authMiddleware,
   uploadDailyReport.fields([{ name: "photos", maxCount: 6 }]),
   async (req, res) => {
     try {
       const { date, type, text } = req.body;
 
+     
       const user = req.user;
       if (!user) return res.status(401).json({ message: "Unauthorized" });
 
-      const siteId =
-        user.role === "manager" ? user.assignedSite : req.body.siteId;
-
-      if (!siteId)
-        return res.status(400).json({ message: "SiteId is required" });
+ 
+      const siteId = user.role === "manager" ? user.assignedSite : req.body.siteId;
+      if (!siteId) return res.status(400).json({ message: "SiteId is required" });
 
       if (!["morning", "evening"].includes(type))
         return res.status(400).json({ message: "Invalid type" });
@@ -34,14 +30,12 @@ router.post(
 
       if (type === "morning") {
         if (report.morningText || report.morningPhotos.length > 0)
-          return res.status(400).json({ message: "Morning already submitted" });
-
+          return res.status(400).json({ message: "Morning report already submitted" });
         report.morningText = text;
         report.morningPhotos = photos;
       } else {
         if (report.eveningText || report.eveningPhotos.length > 0)
-          return res.status(400).json({ message: "Evening already submitted" });
-
+          return res.status(400).json({ message: "Evening report already submitted" });
         report.eveningText = text;
         report.eveningPhotos = photos;
       }
@@ -56,14 +50,15 @@ router.post(
 );
 
 
-
-router.get("/check-data/:date", authMiddleware, async (req, res) => {
+router.get("/check-data/:date", async (req, res) => {
   try {
     const { date } = req.params;
     const user = req.user;
+    if (!user) return res.status(401).json({ message: "Unauthorized" });
 
-    const siteId =
-      user.role === "manager" ? user.assignedSite : req.query.siteId;
+   
+    const siteId = user.role === "manager" ? user.assignedSite : req.query.siteId;
+    if (!siteId) return res.status(400).json({ message: "SiteId is required" });
 
     const report = await DailyReport.findOne({ date, siteId });
 
@@ -72,23 +67,26 @@ router.get("/check-data/:date", authMiddleware, async (req, res) => {
       eveningExists: !!report?.eveningText,
     });
   } catch (err) {
+    console.error(err);
     res.status(500).json({ message: "Error checking data" });
   }
 });
 
 
-router.get("/report/:date", authMiddleware, async (req, res) => {
+router.get("/report/:date", async (req, res) => {
   try {
     const { date } = req.params;
     const user = req.user;
+    if (!user) return res.status(401).json({ message: "Unauthorized" });
 
-    const siteId =
-      user.role === "manager" ? user.assignedSite : req.query.siteId;
+
+    const siteId = user.role === "manager" ? user.assignedSite : req.query.siteId;
+    if (!siteId) return res.status(400).json({ message: "SiteId is required" });
 
     const report = await DailyReport.findOne({ date, siteId });
-
     res.json(report || {});
   } catch (err) {
+    console.error(err);
     res.status(500).json({ message: "Error fetching report" });
   }
 });
