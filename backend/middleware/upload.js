@@ -77,3 +77,19 @@ export const uploadManagerDocs = multer({
   storage: managerDocStorage,
   limits: { fileSize: 10 * 1024 * 1024 }, // 10 MB
 });
+
+// ===== DAILY REPORT PHOTOS =====
+
+const dailyReportStorage = new CloudinaryStorage({
+  cloudinary,
+  params: {
+    folder: "daily-reports",
+    resource_type: "image",
+    allowed_formats: ["jpg", "jpeg", "png"],
+  },
+});
+
+export const uploadDailyReport = multer({
+  storage: dailyReportStorage,
+  limits: { fileSize: 10 * 1024 * 1024 }, // 10 MB
+});
