@@ -4,6 +4,25 @@ import { uploadDailyReport } from "../middleware/upload.js";
 
 const router = express.Router();
 
+
+// ✅ CHECK REPORT EXISTS
+router.get("/check-data/:date", async (req, res) => {
+  try {
+    const { date } = req.params;
+
+    const report = await DailyReport.findOne({ date });
+
+    res.json({
+      morningExists: !!report?.morningText,
+      eveningExists: !!report?.eveningText,
+    });
+  } catch (err) {
+    res.status(500).json({ error: "Check failed" });
+  }
+});
+
+
+// ✅ SAVE REPORT (Morning / Evening)
 router.post(
   "/daily-report",
   uploadDailyReport.fields([
@@ -20,16 +39,19 @@ router.post(
       const eveningPhotos =
         req.files?.eveningPhotos?.map((f) => f.path) || [];
 
-      // ✅ MongoDB Save
-      const report = new DailyReport({
-        date,
-        morningText,
-        eveningText,
-        morningPhotos,
-        eveningPhotos,
-      });
-
-      await report.save();
+      // 🔥 Update existing OR create new
+      const report = await DailyReport.findOneAndUpdate(
+        { date },
+        {
+          $set: {
+            ...(morningText && { morningText }),
+            ...(eveningText && { eveningText }),
+            ...(morningPhotos.length && { morningPhotos }),
+            ...(eveningPhotos.length && { eveningPhotos }),
+          },
+        },
+        { new: true, upsert: true }
+      );
 
       res.json({
         message: "✅ Report saved successfully",
@@ -42,5 +64,22 @@ router.post(
     }
   }
 );
+
+
+// ✅ GET FULL REPORT
+router.get("/report/:date", async (req, res) => {
+  try {
+    const report = await DailyReport.findOne({
+      date: req.params.date,
+    });
+
+    if (!report) return res.json({});
+
+    res.json(report);
+
+  } catch (err) {
+    res.status(500).json({ error: "Fetch failed" });
+  }
+});
 
 export default router;
