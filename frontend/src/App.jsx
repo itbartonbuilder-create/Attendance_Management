@@ -21,6 +21,7 @@ import VendorBills from "./pages/VendorBills";
 import VendorSubmitBill from "./pages/VendorSubmitBill";
 import Stockmanagement from "./pages/Stockmanagement";
 import AdminStockPage from "./pages/AdminStockPage";
+import DailyReport from "./pages/DailyReport";
 
 function App() {
   return (
@@ -49,6 +50,7 @@ function App() {
 <Route path="/vendor/bills" element={<VendorBills />} />
         <Route path="/vendor/submit-bill" element={<VendorSubmitBill />} />
         <Route path="/admin/stock" element={<AdminStockPage />} />
+        <Route path="/daily-report/:date" element={<DailyReport />} />
 
       </Routes>
             </div>
