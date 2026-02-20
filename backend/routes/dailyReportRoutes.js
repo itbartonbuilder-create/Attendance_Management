@@ -51,7 +51,7 @@ router.get("/check-data/:date", async (req, res) => {
     const report = await DailyReport.findOne({ date });
 
     res.json({
-      attendanceExists: false, // add actual attendance logic if needed
+      attendanceExists: false, 
       morningExists: report?.morningText ? true : false,
       eveningExists: report?.eveningText ? true : false,
     });
