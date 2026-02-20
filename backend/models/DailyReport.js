@@ -2,18 +2,14 @@ import mongoose from "mongoose";
 
 const dailyReportSchema = new mongoose.Schema({
   date: String,
-  type: String, 
 
-  morningText: String,
-  eveningText: String,
+  morningText: { type: String, default: "" },
+  eveningText: { type: String, default: "" },
 
-  morningPhotos: [String],
-  eveningPhotos: [String],
+  morningPhotos: { type: [String], default: [] },
+  eveningPhotos: { type: [String], default: [] },
 
-  createdAt: {
-    type: Date,
-    default: Date.now,
-  },
+  createdAt: { type: Date, default: Date.now },
 });
 
 export default mongoose.model("DailyReport", dailyReportSchema);
