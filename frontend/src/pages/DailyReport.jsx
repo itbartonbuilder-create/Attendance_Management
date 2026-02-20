@@ -28,7 +28,7 @@ function DailyReport() {
     }
 
     const recognition = new SpeechRecognition();
-    recognition.lang = "en-IN"; // 🇬🇧 English India
+    recognition.lang = "en-IN"; 
     recognition.start();
 
     setListening(true);
@@ -89,7 +89,7 @@ function DailyReport() {
 
       <hr />
 
-      {/* 🌅 MORNING */}
+    
       <h2>Morning Update</h2>
 
       <input type="file" multiple accept="image/*" onChange={handleMorningPhotos} />
@@ -101,7 +101,6 @@ function DailyReport() {
         style={{ width: "100%", height: 100, marginTop: 10 }}
       />
 
-      {/* 🎤 ROUND MIC */}
       <div>
         <button
           style={micStyle}
@@ -144,7 +143,6 @@ function DailyReport() {
 
       <hr />
 
-      {/* 🌇 EVENING */}
       <h2>Evening Update</h2>
 
       <input type="file" multiple accept="image/*" onChange={handleEveningPhotos} />
@@ -156,7 +154,7 @@ function DailyReport() {
         style={{ width: "100%", height: 100, marginTop: 10 }}
       />
 
-      {/* 🎤 ROUND MIC */}
+    
       <div>
         <button
           style={micStyle}
