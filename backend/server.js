@@ -1,7 +1,9 @@
 import dotenv from "dotenv";
-dotenv.config();
+dotenv.config(); 
+
 import express from "express";
 import cors from "cors";
+
 
 import connectDB from "./config/db.js";
 import path from "path";
@@ -16,12 +18,13 @@ import employeeRoutes from "./routes/employeeRoutes.js";
 // import statsRoute from "./routes/Statistics.js";
 import stockRoutes from "./routes/stockRoutes.js";
 import dailyReportRoutes from "./routes/dailyReportRoutes.js";
-
-
 const app = express();
 app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+console.log("EMAIL_USER:", process.env.EMAIL_USER);
+console.log("EMAIL_PASS:", process.env.EMAIL_PASS ? "LOADED" : "MISSING");
+
 
 // 🔥 REQUIRED FOR ES MODULES
 const __filename = fileURLToPath(import.meta.url);
