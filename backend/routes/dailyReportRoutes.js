@@ -2,7 +2,6 @@ import express from "express";
 import DailyReport from "../models/DailyReport.js";
 import { uploadDailyReport } from "../middleware/upload.js";
 
-
 const router = express.Router();
 
 router.post(
@@ -21,22 +20,27 @@ router.post(
       const eveningPhotos =
         req.files?.eveningPhotos?.map((f) => f.path) || [];
 
-      res.json({
-        message: "Report saved",
-        data: {
-          date,
-          morningText,
-          eveningText,
-          morningPhotos,
-          eveningPhotos,
-        },
+    
+      const report = new DailyReport({
+        date,
+        morningText,
+        eveningText,
+        morningPhotos,
+        eveningPhotos,
       });
+
+      await report.save();
+
+      res.json({
+        message: "✅ Report saved successfully",
+        data: report,
+      });
+
     } catch (err) {
       console.error(err);
       res.status(500).json({ error: "Upload failed" });
     }
   }
 );
-
 
 export default router;
