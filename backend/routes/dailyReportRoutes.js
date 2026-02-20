@@ -4,91 +4,43 @@ import { uploadDailyReport } from "../middleware/upload.js";
 
 const router = express.Router();
 
-
 router.post(
   "/daily-report",
-  uploadDailyReport.fields([{ name: "photos", maxCount: 6 }]),
+  uploadDailyReport.fields([
+    { name: "morningPhotos", maxCount: 4 },
+    { name: "eveningPhotos", maxCount: 4 },
+  ]),
   async (req, res) => {
     try {
-      const { date, type, text } = req.body;
+      const { date, morningText, eveningText } = req.body;
 
-     
-      const user = req.user;
-      if (!user) return res.status(401).json({ message: "Unauthorized" });
+      const morningPhotos =
+        req.files?.morningPhotos?.map((f) => f.path) || [];
 
- 
-      const siteId = user.role === "manager" ? user.assignedSite : req.body.siteId;
-      if (!siteId) return res.status(400).json({ message: "SiteId is required" });
+      const eveningPhotos =
+        req.files?.eveningPhotos?.map((f) => f.path) || [];
 
-      if (!["morning", "evening"].includes(type))
-        return res.status(400).json({ message: "Invalid type" });
-
-      const photos = req.files?.photos?.map((f) => f.path) || [];
-
-      let report = await DailyReport.findOne({ date, siteId });
-      if (!report) report = new DailyReport({ date, siteId });
-
-      if (type === "morning") {
-        if (report.morningText || report.morningPhotos.length > 0)
-          return res.status(400).json({ message: "Morning report already submitted" });
-        report.morningText = text;
-        report.morningPhotos = photos;
-      } else {
-        if (report.eveningText || report.eveningPhotos.length > 0)
-          return res.status(400).json({ message: "Evening report already submitted" });
-        report.eveningText = text;
-        report.eveningPhotos = photos;
-      }
+      // ✅ MongoDB Save
+      const report = new DailyReport({
+        date,
+        morningText,
+        eveningText,
+        morningPhotos,
+        eveningPhotos,
+      });
 
       await report.save();
-      res.json({ message: "Report saved", report });
+
+      res.json({
+        message: "✅ Report saved successfully",
+        data: report,
+      });
+
     } catch (err) {
       console.error(err);
-      res.status(500).json({ message: "Failed to save report" });
+      res.status(500).json({ error: "Upload failed" });
     }
   }
 );
-
-
-router.get("/check-data/:date", async (req, res) => {
-  try {
-    const { date } = req.params;
-    const user = req.user;
-    if (!user) return res.status(401).json({ message: "Unauthorized" });
-
-   
-    const siteId = user.role === "manager" ? user.assignedSite : req.query.siteId;
-    if (!siteId) return res.status(400).json({ message: "SiteId is required" });
-
-    const report = await DailyReport.findOne({ date, siteId });
-
-    res.json({
-      morningExists: !!report?.morningText,
-      eveningExists: !!report?.eveningText,
-    });
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ message: "Error checking data" });
-  }
-});
-
-
-router.get("/report/:date", async (req, res) => {
-  try {
-    const { date } = req.params;
-    const user = req.user;
-    if (!user) return res.status(401).json({ message: "Unauthorized" });
-
-
-    const siteId = user.role === "manager" ? user.assignedSite : req.query.siteId;
-    if (!siteId) return res.status(400).json({ message: "SiteId is required" });
-
-    const report = await DailyReport.findOne({ date, siteId });
-    res.json(report || {});
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ message: "Error fetching report" });
-  }
-});
 
 export default router;
