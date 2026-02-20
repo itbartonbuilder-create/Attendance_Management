@@ -1,7 +1,7 @@
 import mongoose from "mongoose";
 
 const dailyReportSchema = new mongoose.Schema({
-  date: String,
+  date: { type: String, required: true, unique: true },
 
   morningText: { type: String, default: "" },
   eveningText: { type: String, default: "" },
