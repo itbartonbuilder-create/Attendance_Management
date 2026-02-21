@@ -5,7 +5,6 @@ import { uploadDailyReport } from "../middleware/upload.js";
 const router = express.Router();
 
 
-
 router.get("/check-data/:date", async (req, res) => {
   try {
     const { date } = req.params;
@@ -20,11 +19,9 @@ router.get("/check-data/:date", async (req, res) => {
       eveningExists: !!report?.eveningText,
     });
   } catch (err) {
-    console.error("Check error:", err);
     res.status(500).json({ error: "Check failed" });
   }
 });
-
 
 
 router.post(
@@ -54,12 +51,11 @@ router.post(
       const report = await DailyReport.findOneAndUpdate(
         { date, siteId },
         { $set: updateObj },
-        { new: true, upsert: true, runValidators: true }
+        { new: true, upsert: true }
       );
 
-      res.json({ message: "Report saved successfully", data: report });
+      res.json({ message: "Report saved", data: report });
     } catch (err) {
-      console.error("SAVE ERROR:", err);
       res.status(500).json({ error: err.message });
     }
   }
@@ -72,16 +68,32 @@ router.get("/report/:date", async (req, res) => {
     const { date } = req.params;
     const { siteId } = req.query;
 
-    if (!siteId) {
-      return res.status(400).json({ error: "siteId is required" });
-    }
+    if (!siteId)
+      return res.status(400).json({ error: "siteId required" });
 
     const reports = await DailyReport.find({ date, siteId });
 
     res.json(reports);
   } catch (err) {
-    console.error("FETCH ERROR:", err);
     res.status(500).json({ error: "Fetch failed" });
+  }
+});
+
+
+
+router.get("/sites", async (req, res) => {
+  try {
+    const siteIds = await DailyReport.distinct("siteId");
+
+    const sites = siteIds.map((id, index) => ({
+      _id: index,
+      siteId: id,
+      name: `Site ${id}`,
+    }));
+
+    res.json(sites);
+  } catch (err) {
+    res.status(500).json({ error: "Failed to fetch sites" });
   }
 });
 
