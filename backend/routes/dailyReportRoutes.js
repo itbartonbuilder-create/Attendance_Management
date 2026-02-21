@@ -4,15 +4,19 @@ import { uploadDailyReport } from "../middleware/upload.js";
 
 const router = express.Router();
 
-
 router.get("/check-data/:date", async (req, res) => {
   try {
     const { date } = req.params;
     const { siteId } = req.query;
 
+    if (!siteId) {
+      return res.status(400).json({ error: "Missing siteId" });
+    }
+
     const report = await DailyReport.findOne({ date, siteId });
 
     res.json({
+      attendanceExists: false, // future use
       morningExists: !!report?.morningText,
       eveningExists: !!report?.eveningText,
     });
@@ -21,7 +25,6 @@ router.get("/check-data/:date", async (req, res) => {
     res.status(500).json({ error: "Check failed" });
   }
 });
-
 
 
 router.post(
@@ -34,8 +37,11 @@ router.post(
     try {
       const { date, siteId, morningText, eveningText } = req.body;
 
-      if (!date || !siteId)
-        return res.status(400).json({ error: "Missing date or siteId" });
+      if (!date || !siteId) {
+        return res.status(400).json({
+          error: "Missing date or siteId",
+        });
+      }
 
       const morningPhotos =
         req.files?.morningPhotos?.map((f) => f.path) || [];
@@ -53,37 +59,39 @@ router.post(
             ...(eveningPhotos.length && { eveningPhotos }),
           },
         },
-        { new: true, upsert: true }
+        {
+          new: true,
+          upsert: true,
+          runValidators: true,
+        }
       );
 
       res.json({
-        message: "✅ Report saved successfully",
+        message: "Report saved",
         data: report,
       });
 
     } catch (err) {
-      console.error(err);
-      res.status(500).json({ error: "Upload failed" });
+      res.status(500).json({
+        error: err.message,
+      });
     }
   }
 );
-
-
 
 router.get("/report/:date", async (req, res) => {
   try {
     const { date } = req.params;
     const { siteId, role } = req.query;
 
-    let reports;
-
-    if (role === "admin") {
-     
-      reports = await DailyReport.find({ date });
-    } else {
-      
-      reports = await DailyReport.find({ date, siteId });
+    if (!siteId && role !== "admin") {
+      return res.status(400).json({ error: "Missing siteId" });
     }
+
+    const reports =
+      role === "admin"
+        ? await DailyReport.find({ date })
+        : await DailyReport.find({ date, siteId });
 
     res.json(reports);
 
