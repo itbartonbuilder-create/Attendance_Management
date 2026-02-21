@@ -4,20 +4,17 @@ import { uploadDailyReport } from "../middleware/upload.js";
 
 const router = express.Router();
 
-
+// Check report exists
 router.get("/check-data/:date", async (req, res) => {
   try {
     const { date } = req.params;
     const { siteId } = req.query;
 
-    if (!siteId) {
-      return res.status(400).json({ error: "Missing siteId" });
-    }
+    if (!siteId) return res.status(400).json({ error: "Missing siteId" });
 
     const report = await DailyReport.findOne({ date, siteId });
 
     res.json({
-      attendanceExists: false, // future use
       morningExists: !!report?.morningText,
       eveningExists: !!report?.eveningText,
     });
@@ -27,7 +24,7 @@ router.get("/check-data/:date", async (req, res) => {
   }
 });
 
-
+// Save daily report
 router.post(
   "/daily-report",
   uploadDailyReport.fields([
@@ -38,30 +35,29 @@ router.post(
     try {
       const { date, siteId, morningText, eveningText } = req.body;
 
-      if (!date || !siteId) {
+      if (!date || !siteId)
         return res.status(400).json({ error: "Missing date or siteId" });
-      }
 
-      const morningPhotos = req.files?.morningPhotos?.map((f) => f.path) || [];
-      const eveningPhotos = req.files?.eveningPhotos?.map((f) => f.path) || [];
+      const morningPhotos =
+        req.files?.morningPhotos?.map((f) => f.path) || [];
+      const eveningPhotos =
+        req.files?.eveningPhotos?.map((f) => f.path) || [];
 
-      // Construct update object safely
+      // Update object
       const updateObj = {};
       if (morningText !== undefined) updateObj.morningText = morningText;
       if (eveningText !== undefined) updateObj.eveningText = eveningText;
       if (morningPhotos.length > 0) updateObj.morningPhotos = morningPhotos;
       if (eveningPhotos.length > 0) updateObj.eveningPhotos = eveningPhotos;
 
+      // Upsert per siteId + date
       const report = await DailyReport.findOneAndUpdate(
         { date, siteId },
         { $set: updateObj },
         { new: true, upsert: true, runValidators: true }
       );
 
-      res.json({
-        message: "Report saved successfully",
-        data: report,
-      });
+      res.json({ message: "Report saved successfully", data: report });
     } catch (err) {
       console.error("SAVE ERROR:", err);
       res.status(500).json({ error: err.message });
@@ -69,15 +65,14 @@ router.post(
   }
 );
 
-
+// Fetch reports
 router.get("/report/:date", async (req, res) => {
   try {
     const { date } = req.params;
     const { siteId, role } = req.query;
 
-    if (!siteId && role !== "admin") {
+    if (!siteId && role !== "admin")
       return res.status(400).json({ error: "Missing siteId" });
-    }
 
     const reports =
       role === "admin"
