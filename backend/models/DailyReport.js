@@ -1,7 +1,9 @@
 import mongoose from "mongoose";
 
 const dailyReportSchema = new mongoose.Schema({
-  date: { type: String, required: true, unique: true },
+  date: { type: String, required: true },
+
+  siteId: { type: String, required: true },   
 
   morningText: { type: String, default: "" },
   eveningText: { type: String, default: "" },
@@ -11,5 +13,8 @@ const dailyReportSchema = new mongoose.Schema({
 
   createdAt: { type: Date, default: Date.now },
 });
+
+
+dailyReportSchema.index({ date: 1, siteId: 1 }, { unique: true });
 
 export default mongoose.model("DailyReport", dailyReportSchema);
