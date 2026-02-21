@@ -4,6 +4,7 @@ import { uploadDailyReport } from "../middleware/upload.js";
 
 const router = express.Router();
 
+
 router.get("/check-data/:date", async (req, res) => {
   try {
     const { date } = req.params;
@@ -20,8 +21,8 @@ router.get("/check-data/:date", async (req, res) => {
       morningExists: !!report?.morningText,
       eveningExists: !!report?.eveningText,
     });
-
   } catch (err) {
+    console.error("Check error:", err);
     res.status(500).json({ error: "Check failed" });
   }
 });
@@ -38,46 +39,36 @@ router.post(
       const { date, siteId, morningText, eveningText } = req.body;
 
       if (!date || !siteId) {
-        return res.status(400).json({
-          error: "Missing date or siteId",
-        });
+        return res.status(400).json({ error: "Missing date or siteId" });
       }
 
-      const morningPhotos =
-        req.files?.morningPhotos?.map((f) => f.path) || [];
+      const morningPhotos = req.files?.morningPhotos?.map((f) => f.path) || [];
+      const eveningPhotos = req.files?.eveningPhotos?.map((f) => f.path) || [];
 
-      const eveningPhotos =
-        req.files?.eveningPhotos?.map((f) => f.path) || [];
+      // Construct update object safely
+      const updateObj = {};
+      if (morningText !== undefined) updateObj.morningText = morningText;
+      if (eveningText !== undefined) updateObj.eveningText = eveningText;
+      if (morningPhotos.length > 0) updateObj.morningPhotos = morningPhotos;
+      if (eveningPhotos.length > 0) updateObj.eveningPhotos = eveningPhotos;
 
       const report = await DailyReport.findOneAndUpdate(
         { date, siteId },
-        {
-          $set: {
-            ...(morningText && { morningText }),
-            ...(eveningText && { eveningText }),
-            ...(morningPhotos.length && { morningPhotos }),
-            ...(eveningPhotos.length && { eveningPhotos }),
-          },
-        },
-        {
-          new: true,
-          upsert: true,
-          runValidators: true,
-        }
+        { $set: updateObj },
+        { new: true, upsert: true, runValidators: true }
       );
 
       res.json({
-        message: "Report saved",
+        message: "Report saved successfully",
         data: report,
       });
-
     } catch (err) {
-      res.status(500).json({
-        error: err.message,
-      });
+      console.error("SAVE ERROR:", err);
+      res.status(500).json({ error: err.message });
     }
   }
 );
+
 
 router.get("/report/:date", async (req, res) => {
   try {
@@ -94,8 +85,8 @@ router.get("/report/:date", async (req, res) => {
         : await DailyReport.find({ date, siteId });
 
     res.json(reports);
-
   } catch (err) {
+    console.error("FETCH ERROR:", err);
     res.status(500).json({ error: "Fetch failed" });
   }
 });
