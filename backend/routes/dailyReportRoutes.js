@@ -27,8 +27,8 @@ router.get("/check-data/:date", async (req, res) => {
 router.post(
   "/daily-report",
   uploadDailyReport.fields([
-    { name: "morningPhotos", maxCount: 4 },
-    { name: "eveningPhotos", maxCount: 4 },
+    { name: "morningPhotos", maxCount: 10 },
+    { name: "eveningPhotos", maxCount: 10 },
   ]),
   async (req, res) => {
     try {
