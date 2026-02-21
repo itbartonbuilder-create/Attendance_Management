@@ -4,7 +4,7 @@ import { uploadDailyReport } from "../middleware/upload.js";
 
 const router = express.Router();
 
-// Check report exists
+// --- CHECK IF REPORT EXISTS ---
 router.get("/check-data/:date", async (req, res) => {
   try {
     const { date } = req.params;
@@ -24,7 +24,7 @@ router.get("/check-data/:date", async (req, res) => {
   }
 });
 
-// Save daily report
+// --- SAVE DAILY REPORT ---
 router.post(
   "/daily-report",
   uploadDailyReport.fields([
@@ -35,15 +35,14 @@ router.post(
     try {
       const { date, siteId, morningText, eveningText } = req.body;
 
-      if (!date || !siteId)
+      if (!date || !siteId) {
         return res.status(400).json({ error: "Missing date or siteId" });
+      }
 
-      const morningPhotos =
-        req.files?.morningPhotos?.map((f) => f.path) || [];
-      const eveningPhotos =
-        req.files?.eveningPhotos?.map((f) => f.path) || [];
+      const morningPhotos = req.files?.morningPhotos?.map((f) => f.path) || [];
+      const eveningPhotos = req.files?.eveningPhotos?.map((f) => f.path) || [];
 
-      // Update object
+      // Construct update object
       const updateObj = {};
       if (morningText !== undefined) updateObj.morningText = morningText;
       if (eveningText !== undefined) updateObj.eveningText = eveningText;
@@ -52,8 +51,8 @@ router.post(
 
       // Upsert per siteId + date
       const report = await DailyReport.findOneAndUpdate(
-        { date, siteId },
-        { $set: updateObj },
+        { date, siteId },       // Filter by siteId + date
+        { $set: updateObj },    // Update
         { new: true, upsert: true, runValidators: true }
       );
 
@@ -65,7 +64,7 @@ router.post(
   }
 );
 
-// Fetch reports
+// --- FETCH REPORTS ---
 router.get("/report/:date", async (req, res) => {
   try {
     const { date } = req.params;
