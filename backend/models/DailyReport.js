@@ -11,6 +11,6 @@ const dailyReportSchema = new mongoose.Schema({
 });
 
 // Optional: Keep unique per siteId + date
-// dailyReportSchema.index({ date: 1, siteId: 1 }, { unique: true });
+dailyReportSchema.index({ date: 1, siteId: 1 }, { unique: true });
 
 export default mongoose.model("DailyReport", dailyReportSchema);
