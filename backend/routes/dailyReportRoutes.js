@@ -5,6 +5,7 @@ import { uploadDailyReport } from "../middleware/upload.js";
 const router = express.Router();
 
 
+
 router.get("/check-data/:date", async (req, res) => {
   try {
     const { date } = req.params;
@@ -25,6 +26,7 @@ router.get("/check-data/:date", async (req, res) => {
 });
 
 
+
 router.post(
   "/daily-report",
   uploadDailyReport.fields([
@@ -39,19 +41,19 @@ router.post(
         return res.status(400).json({ error: "Missing date or siteId" });
       }
 
-      const morningPhotos = req.files?.morningPhotos?.map((f) => f.path) || [];
-      const eveningPhotos = req.files?.eveningPhotos?.map((f) => f.path) || [];
+      const morningPhotos = req.files?.morningPhotos?.map(f => f.path) || [];
+      const eveningPhotos = req.files?.eveningPhotos?.map(f => f.path) || [];
 
       const updateObj = {};
+
       if (morningText !== undefined) updateObj.morningText = morningText;
       if (eveningText !== undefined) updateObj.eveningText = eveningText;
       if (morningPhotos.length > 0) updateObj.morningPhotos = morningPhotos;
       if (eveningPhotos.length > 0) updateObj.eveningPhotos = eveningPhotos;
 
-    
       const report = await DailyReport.findOneAndUpdate(
-        { date, siteId },       
-        { $set: updateObj },    
+        { date, siteId },
+        { $set: updateObj },
         { new: true, upsert: true, runValidators: true }
       );
 
@@ -64,18 +66,17 @@ router.post(
 );
 
 
+
 router.get("/report/:date", async (req, res) => {
   try {
     const { date } = req.params;
-    const { siteId, role } = req.query;
+    const { siteId } = req.query;
 
-    if (!siteId && role !== "admin")
-      return res.status(400).json({ error: "Missing siteId" });
+    if (!siteId) {
+      return res.status(400).json({ error: "siteId is required" });
+    }
 
-    const reports =
-      role === "admin"
-        ? await DailyReport.find({ date })
-        : await DailyReport.find({ date, siteId });
+    const reports = await DailyReport.find({ date, siteId });
 
     res.json(reports);
   } catch (err) {
@@ -85,21 +86,4 @@ router.get("/report/:date", async (req, res) => {
 });
 
 
-router.get("/sites", async (req, res) => {
-  try {
- 
-    const siteIds = await DailyReport.distinct("siteId");
-
-    const sites = siteIds.map((id, index) => ({
-      _id: index,
-      siteId: id,
-      name: `Site ${id}`,
-    }));
-
-    res.json(sites);
-  } catch (err) {
-    console.error("Fetch sites error:", err);
-    res.status(500).json({ error: "Failed to fetch sites" });
-  }
-});
 export default router;
