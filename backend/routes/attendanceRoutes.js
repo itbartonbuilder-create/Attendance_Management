@@ -4,6 +4,7 @@ import Worker from "../models/Worker.js";
 
 const router = express.Router();
 
+
 router.post("/", async (req, res) => {
   try {
     const { date, site, type, records } = req.body;
@@ -11,10 +12,19 @@ router.post("/", async (req, res) => {
     if (!date || !site || !records)
       return res.status(400).json({ message: "Missing data" });
 
-    const d = new Date(date);
-    d.setHours(0, 0, 0, 0);
 
-    let attendance = await Attendance.findOne({ date: d, site });
+    const selected = new Date(date);
+
+    const start = new Date(selected);
+    start.setHours(0, 0, 0, 0);
+
+    const end = new Date(selected);
+    end.setHours(23, 59, 59, 999);
+
+    let attendance = await Attendance.findOne({
+      site,
+      date: { $gte: start, $lte: end }
+    });
 
     const updatedRecords = await Promise.all(
       records.map(async (r) => {
@@ -28,6 +38,7 @@ router.post("/", async (req, res) => {
         let hoursWorked = r.hoursWorked || 0;
         let overtimeHours = r.overtimeHours || 0;
         let salary = r.salary || 0;
+
 
         if (r.status === "Present") {
           salary = Math.round((perDay / 8) * hoursWorked);
@@ -54,23 +65,26 @@ router.post("/", async (req, res) => {
           name: r.name,
           roleType: r.roleType,
           role: r.role,
+          type,
           status: r.status,
           leaveType: r.leaveType,
           hoursWorked,
           overtimeHours,
           salary,
-          type,
         };
       })
     );
 
+ 
+
     if (!attendance) {
       attendance = new Attendance({
-        date: d,
+        date: start, 
         site,
         records: updatedRecords,
       });
     } else {
+     
       const others = attendance.records.filter(r => r.type !== type);
       attendance.records = [...others, ...updatedRecords];
     }
@@ -86,24 +100,39 @@ router.post("/", async (req, res) => {
 });
 
 
+
 router.get("/get", async (req, res) => {
   try {
     const { date, site, type } = req.query;
 
-    const d = new Date(date);
-    d.setHours(0, 0, 0, 0);
+    if (!date || !site)
+      return res.status(400).json({ message: "Missing params" });
 
-    const attendance = await Attendance.findOne({ date: d, site });
+   
+    const selected = new Date(date);
 
-    if (!attendance) return res.json({ records: [] });
+    const start = new Date(selected);
+    start.setHours(0, 0, 0, 0);
 
-    const rec = type
+    const end = new Date(selected);
+    end.setHours(23, 59, 59, 999);
+
+    const attendance = await Attendance.findOne({
+      site,
+      date: { $gte: start, $lte: end }
+    });
+
+    if (!attendance)
+      return res.json({ records: [] });
+
+    const filtered = type
       ? attendance.records.filter(r => r.type === type)
       : attendance.records;
 
-    res.json({ records: rec });
+    res.json({ records: filtered });
 
   } catch (err) {
+    console.error(err);
     res.status(500).json({ message: "Error fetching" });
   }
 });
