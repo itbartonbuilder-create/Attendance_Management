@@ -18,11 +18,18 @@ const taskSchema = new mongoose.Schema(
 
     title: { type: String, required: true },
     description: String,
+
+    assignedDate: {
+      type: String,
+      default: () =>
+        new Date().toISOString().split("T")[0],
+    },
+
     deadline: { type: String, required: true },
 
     status: {
       type: String,
-      enum: ["Pending", "Completed", "Overdue", "Reassigned"],
+      enum: ["Pending", "Completed", "Reassigned"],
       default: "Pending",
     },
 
