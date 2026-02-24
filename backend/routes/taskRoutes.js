@@ -37,8 +37,12 @@ router.post("/create", async (req, res) => {
 
 router.get("/", async (req, res) => {
   try {
-    const { assignedTo } = req.query;
-    const filter = assignedTo ? { assignedTo } : {};
+    const { assignedTo, site } = req.query;
+
+    const filter = {};
+
+    if (assignedTo) filter.assignedTo = assignedTo;
+    if (site) filter.site = site;
 
     const tasks = await Task.find(filter)
       .populate("assignedTo", "name site contactNo")
