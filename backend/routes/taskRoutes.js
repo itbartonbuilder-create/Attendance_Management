@@ -62,7 +62,26 @@ router.put("/complete/:id", async (req, res) => {
   res.json(updated);
 });
 
+// ===== GET TASKS BY DATE =====
+router.get("/by-date/:date", async (req, res) => {
+  try {
+    const { date } = req.params;
+    const { site, assignedTo } = req.query;
 
+    const filter = { deadline: date };
+
+    if (site) filter.site = site;
+    if (assignedTo) filter.assignedTo = assignedTo;
+
+    const tasks = await Task.find(filter)
+      .populate("assignedTo", "name")
+      .sort({ createdAt: -1 });
+
+    res.json(tasks);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
 router.put("/reassign/:id", async (req, res) => {
   const { newUserId, type, newDeadline } = req.body;
 
