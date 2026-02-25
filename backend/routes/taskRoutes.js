@@ -204,5 +204,30 @@ router.delete("/:id", async (req, res) => {
     res.status(500).json({ message: err.message });
   }
 });
+router.put("/status/:id", async (req, res) => {
+  try {
+    const { status } = req.body;
 
+    const task = await Task.findById(req.params.id);
+
+    if (!task)
+      return res.status(404).json({ message: "Task not found" });
+
+    task.status = status;
+
+    if (status === "Completed") {
+      task.isCompleted = true;
+      task.completedAt = new Date();
+    } else {
+      task.isCompleted = false;
+      task.completedAt = null;
+    }
+
+    await task.save();
+
+    res.json({ success: true, task });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
 export default router;
