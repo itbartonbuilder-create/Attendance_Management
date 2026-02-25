@@ -213,7 +213,14 @@ router.put("/status/:id", async (req, res) => {
     if (!task)
       return res.status(404).json({ message: "Task not found" });
 
+    if (task.status !== "Pending") {
+      return res.status(400).json({
+        message: "Status already updated once",
+      });
+    }
+
     task.status = status;
+    task.statusUpdatedAt = new Date();
 
     if (status === "Completed") {
       task.isCompleted = true;
