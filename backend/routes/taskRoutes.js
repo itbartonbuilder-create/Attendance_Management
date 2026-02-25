@@ -71,7 +71,17 @@ router.get("/by-date/:date", async (req, res) => {
     const { date } = req.params;
     const { site } = req.query;
 
-    const filter = { deadline: date };
+   
+    const start = new Date(date);
+    start.setHours(0, 0, 0, 0);
+
+    const end = new Date(date);
+    end.setHours(23, 59, 59, 999);
+
+    const filter = {
+      assignedDate: { $gte: start, $lte: end },
+    };
+
     if (site) filter.site = site;
 
     const tasks = await Task.find(filter)
