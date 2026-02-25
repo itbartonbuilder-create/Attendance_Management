@@ -9,15 +9,20 @@ router.post("/create", async (req, res) => {
   try {
     const { site, type, assignedTo, title, description, deadline } = req.body;
 
+    if (!site || !type || !assignedTo || !title || !deadline) {
+      return res.status(400).json({ message: "Missing required fields" });
+    }
+
     const user =
       type === "Manager"
         ? await Manager.findOne({ _id: assignedTo, site })
         : await Worker.findOne({ _id: assignedTo, site });
 
-    if (!user)
+    if (!user) {
       return res
         .status(400)
-        .json({ message: "User not found for site" });
+        .json({ message: "User not found for this site" });
+    }
 
     const task = new Task({
       site,
@@ -26,27 +31,32 @@ router.post("/create", async (req, res) => {
       title,
       description,
       deadline,
+      assignedDate: new Date(),
+      isCompleted: false,
+      completedAt: null,
+      status: "Pending",
     });
 
     await task.save();
+
     res.json({ success: true, task });
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
 });
 
+
 router.get("/", async (req, res) => {
   try {
     const { assignedTo, site } = req.query;
 
     const filter = {};
-
     if (assignedTo) filter.assignedTo = assignedTo;
     if (site) filter.site = site;
 
     const tasks = await Task.find(filter)
       .populate("assignedTo", "name site contactNo")
-      .populate("remarkBy", "name")
+      .populate("reassignHistory.assignedTo", "name")
       .sort({ createdAt: -1 });
 
     res.json(tasks);
@@ -54,6 +64,7 @@ router.get("/", async (req, res) => {
     res.status(500).json({ message: err.message });
   }
 });
+
 
 router.get("/by-date/:date", async (req, res) => {
   try {
@@ -61,12 +72,11 @@ router.get("/by-date/:date", async (req, res) => {
     const { site } = req.query;
 
     const filter = { deadline: date };
-
     if (site) filter.site = site;
 
     const tasks = await Task.find(filter)
       .populate("assignedTo", "name site contactNo")
-      .populate("remarkBy", "name")
+      .populate("reassignHistory.assignedTo", "name")
       .sort({ createdAt: -1 });
 
     res.json(tasks);
@@ -75,84 +85,93 @@ router.get("/by-date/:date", async (req, res) => {
   }
 });
 
-router.put("/remark/:id", async (req, res) => {
+router.put("/complete/:id", async (req, res) => {
   try {
     const task = await Task.findById(req.params.id);
+
     if (!task)
       return res.status(404).json({ message: "Task not found" });
 
-    if (task.remarkStatus !== "Pending") {
-      return res
-        .status(400)
-        .json({
-          message:
-            "Remark cannot be updated after admin action",
-        });
-    }
+    if (task.isCompleted)
+      return res.status(400).json({ message: "Task already completed" });
 
-    const { remark, reason, userId } = req.body;
-
-    task.remark = remark;
-    task.reason = reason;
-    task.remarkBy = userId;
-    task.remarkStatus = "Pending";
-    task.status =
-      remark === "Completed" ? "Completed" : "Pending";
+    task.isCompleted = true;
+    task.completedAt = new Date();
+    task.status = "Completed";
 
     await task.save();
 
-    res.json({ success: true, updated: task });
+    res.json({ success: true, task });
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
 });
 
-router.put("/remark/accept/:id", async (req, res) => {
+router.put("/reassign/:id", async (req, res) => {
   try {
-    const { adminReason } = req.body;
+    const { newAssignedTo, type, deadline, adminId } = req.body;
 
-    const updated =
-      await Task.findByIdAndUpdate(
-        req.params.id,
-        {
-          remarkStatus: "Accepted",
-          adminRejectReason: adminReason || "",
-        },
-        { new: true }
-      );
+    if (!newAssignedTo || !type || !deadline) {
+      return res
+        .status(400)
+        .json({ message: "Missing reassignment fields" });
+    }
 
-    res.json({ success: true, updated });
+    const task = await Task.findById(req.params.id);
+
+    if (!task)
+      return res.status(404).json({ message: "Task not found" });
+
+    if (task.isCompleted) {
+      return res.status(400).json({
+        message: "Completed task cannot be reassigned",
+      });
+    }
+
+    const user =
+      type === "Manager"
+        ? await Manager.findOne({ _id: newAssignedTo, site: task.site })
+        : await Worker.findOne({ _id: newAssignedTo, site: task.site });
+
+    if (!user) {
+      return res
+        .status(400)
+        .json({ message: "User not found for this site" });
+    }
+
+    task.reassignHistory.push({
+      assignedTo: newAssignedTo,
+      type,
+      reassignedBy: adminId || null,
+      deadline,
+      reassignedAt: new Date(),
+    });
+    task.assignedTo = newAssignedTo;
+    task.type = type;
+    task.deadline = deadline;
+    task.assignedDate = new Date();
+    task.isCompleted = false;
+    task.completedAt = null;
+    task.status = "Pending";
+
+    await task.save();
+
+    res.json({ success: true, task });
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
 });
-router.put("/remark/reject/:id", async (req, res) => {
-  try {
-    const { adminReason } = req.body;
 
-    const updated =
-      await Task.findByIdAndUpdate(
-        req.params.id,
-        {
-          remarkStatus: "Rejected",
-          adminRejectReason: adminReason,
-        },
-        { new: true }
-      );
-
-    res.json({ success: true, updated });
-  } catch (err) {
-    res.status(500).json({ message: err.message });
-  }
-});
 router.put("/:id", async (req, res) => {
   try {
-    const updated =
-      await Task.findByIdAndUpdate(
-        req.params.id,
-        req.body,
-        { new: true }
-      );
+    const updated = await Task.findByIdAndUpdate(
+      req.params.id,
+      req.body,
+      { new: true }
+    );
+
+    if (!updated)
+      return res.status(404).json({ message: "Task not found" });
 
     res.json({ success: true, updated });
   } catch (err) {
@@ -162,11 +181,14 @@ router.put("/:id", async (req, res) => {
 
 router.delete("/:id", async (req, res) => {
   try {
-    await Task.findByIdAndDelete(req.params.id);
+    const deleted = await Task.findByIdAndDelete(req.params.id);
+
+    if (!deleted)
+      return res.status(404).json({ message: "Task not found" });
 
     res.json({
       success: true,
-      message: "Task Deleted",
+      message: "Task deleted successfully",
     });
   } catch (err) {
     res.status(500).json({ message: err.message });
