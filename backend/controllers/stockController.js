@@ -4,32 +4,39 @@ export const createStock = async (req, res) => {
   try {
     const { site, category, material, unit, addStock, usedStock } = req.body;
 
-    if (!site || !category || !material || !unit) {
-      return res.status(400).json({
-        success: false,
-        message: "All fields required",
-      });
-    }
-
     const add = Number(addStock || 0);
     const used = Number(usedStock || 0);
 
-    if (used > add && add === 0) {
+
+    const previousStocks = await Stock.find({ site, material })
+      .sort({ createdAt: -1 });
+
+    let previousRemaining = 0;
+
+    if (previousStocks.length > 0) {
+      previousRemaining = previousStocks[0].remainingStock;
+    }
+
+
+    const newTotal = previousRemaining + add;
+
+    if (used > newTotal) {
       return res.status(400).json({
         success: false,
         message: "Used cannot exceed available stock",
       });
     }
 
-    // 🟢 Always create NEW entry (no overwrite)
+    const newRemaining = newTotal - used;
+
     const newStock = await Stock.create({
       site,
       category,
       material,
       unit,
-      totalStock: add,
+      totalStock: newTotal,
       usedStock: used,
-      remainingStock: add - used,
+      remainingStock: newRemaining,
       date: new Date(),
     });
 
