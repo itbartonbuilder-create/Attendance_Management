@@ -6,8 +6,6 @@ export const createStock = async (req, res) => {
 
     const add = Number(addStock || 0);
     const used = Number(usedStock || 0);
-
-
 const previousStock = await Stock.findOne({ site, material })
   .sort({ createdAt: -1 });
 
