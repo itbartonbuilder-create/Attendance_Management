@@ -8,14 +8,12 @@ export const createStock = async (req, res) => {
     const used = Number(usedStock || 0);
 
 
-    const previousStocks = await Stock.find({ site, material })
-      .sort({ createdAt: -1 });
+const previousStock = await Stock.findOne({ site, material })
+  .sort({ createdAt: -1 });
 
-    let previousRemaining = 0;
-
-    if (previousStocks.length > 0) {
-      previousRemaining = previousStocks[0].remainingStock;
-    }
+const previousRemaining = previousStock
+  ? previousStock.remainingStock
+  : 0;
 
 
     const newTotal = previousRemaining + add;
