@@ -5,32 +5,47 @@ import { uploadBill } from "../middleware/upload.js";
 
 const router = express.Router();
 
-// ================= CREATE BILL =================
 router.post(
   "/create",
   uploadBill.single("billFile"),
   createBill
 );
 
-// ================= GET BILLS =================
 router.get("/", async (req, res) => {
   try {
     const { role, userId, site } = req.query;
     let filter = {};
 
+    // ✅ ADMIN
     if (role === "admin") {
-      filter = {};
-    } 
+      if (!site) {
+        return res.status(400).json({
+          message: "Site is required for admin",
+        });
+      }
+
+      filter = { site }; // 🔥 IMPORTANT FIX
+    }
+
+    // ✅ MANAGER
     else if (role === "manager") {
       if (!userId || !site) {
-        return res.status(400).json({ message: "Manager id & site required" });
+        return res.status(400).json({
+          message: "Manager id & site required",
+        });
       }
+
       filter = { sentTo: userId, site };
-    } 
+    }
+
+    // ✅ VENDOR
     else if (role === "vendor") {
       if (!userId) {
-        return res.status(400).json({ message: "Vendor id required" });
+        return res.status(400).json({
+          message: "Vendor id required",
+        });
       }
+
       filter = { vendor: userId };
     }
 
@@ -46,8 +61,6 @@ router.get("/", async (req, res) => {
   }
 });
 
-// ================= APPROVE / REJECT BILL =================
-// ✅ CORRECT ROUTE (THIS FIXES 404)
 router.put("/:billId/status", async (req, res) => {
   try {
     const { billId } = req.params;
