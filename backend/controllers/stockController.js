@@ -57,7 +57,7 @@ export const getAllStocks = async (req, res) => {
 
     const filter = site ? { site } : {};
 
-    const stocks = await Stock.find(filter).sort({ updatedAt: -1 });
+    const stocks = await Stock.find(filter).sort({ createdAt: -1 });
 
     res.json({
       success: true,
