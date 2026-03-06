@@ -16,6 +16,7 @@ import employeeRoutes from "./routes/employeeRoutes.js";
 // import statsRoute from "./routes/Statistics.js";
 import stockRoutes from "./routes/stockRoutes.js";
 import dailyReportRoutes from "./routes/dailyReportRoutes.js";
+import siteExpenseRoutes from "./routes/siteExpenseRoutes.js";
 const app = express();
 app.use(cors());
 app.use(express.json());
@@ -49,6 +50,7 @@ app.use("/api/admin", adminRoutes);
 app.use("/api/employees", employeeRoutes);
 app.use("/api/stocks", stockRoutes);
 app.use("/api", dailyReportRoutes);
+app.use("/api/site-expense", siteExpenseRoutes);
 
 
 
