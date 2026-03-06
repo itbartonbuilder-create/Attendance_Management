@@ -15,7 +15,7 @@ const employeeStorage = new CloudinaryStorage({
 
 export const uploadEmployee = multer({
   storage: employeeStorage,
-  limits: { fileSize: 5 * 1024 * 1024 }, // 5 MB
+  limits: { fileSize: 5 * 1024 * 1024 },
 });
 
 
@@ -51,7 +51,7 @@ const billStorage = new CloudinaryStorage({
 
 export const uploadBill = multer({
   storage: billStorage,
-  limits: { fileSize: 10 * 1024 * 1024 }, // 10 MB
+  limits: { fileSize: 10 * 1024 * 1024 },
 });
 
 
@@ -75,10 +75,9 @@ const managerDocStorage = new CloudinaryStorage({
 
 export const uploadManagerDocs = multer({
   storage: managerDocStorage,
-  limits: { fileSize: 10 * 1024 * 1024 }, // 10 MB
+  limits: { fileSize: 10 * 1024 * 1024 }, 
 });
 
-// ===== DAILY REPORT PHOTOS =====
 
 const dailyReportStorage = new CloudinaryStorage({
   cloudinary,
@@ -91,5 +90,41 @@ const dailyReportStorage = new CloudinaryStorage({
 
 export const uploadDailyReport = multer({
   storage: dailyReportStorage,
-  limits: { fileSize: 10 * 1024 * 1024 }, // 10 MB
+  limits: { fileSize: 10 * 1024 * 1024 }, 
+});
+
+const siteExpenseStorage = new CloudinaryStorage({
+  cloudinary,
+  params: async (req, file) => {
+
+    let resourceType = "image";
+
+    if (
+      file.mimetype === "application/pdf" ||
+      file.mimetype === "application/msword" ||
+      file.mimetype ===
+        "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+    ) {
+      resourceType = "raw";
+    }
+
+    return {
+      folder: "site-expenses",
+      resource_type: resourceType,
+      allowed_formats: [
+        "jpg",
+        "jpeg",
+        "png",
+        "pdf",
+        "doc",
+        "docx"
+      ]
+    };
+
+  }
+});
+
+export const uploadSiteExpense = multer({
+  storage: siteExpenseStorage,
+  limits: { fileSize: 10 * 1024 * 1024 }
 });
