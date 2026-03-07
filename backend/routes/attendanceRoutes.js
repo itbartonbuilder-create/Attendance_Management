@@ -167,9 +167,15 @@ router.get("/payment/:workerId", async (req, res) => {
     }
 
     if (start && end) {
+
+      const startDate = new Date(start);
+      const endDate = new Date(end);
+
+      endDate.setHours(23, 59, 59, 999);
+
       query.date = {
-        $gte: new Date(start),
-        $lte: new Date(end)
+        $gte: startDate,
+        $lte: endDate
       };
     }
 
@@ -187,6 +193,7 @@ router.get("/payment/:workerId", async (req, res) => {
     });
 
   } catch (err) {
+    console.error(err);
     res.status(500).json({ success: false });
   }
 });
