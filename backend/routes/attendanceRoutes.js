@@ -158,9 +158,13 @@ router.get("/payment/:workerId", async (req, res) => {
   try {
 
     const { workerId } = req.params;
-    const { start, end } = req.query;
+    const { start, end, site } = req.query;
 
     const query = { workerId };
+
+    if (site) {
+      query.site = site;
+    }
 
     if (start && end) {
       query.date = {
@@ -172,7 +176,7 @@ router.get("/payment/:workerId", async (req, res) => {
     const payments = await WorkerPayment.find(query);
 
     const totalPaid = payments.reduce(
-      (sum, p) => sum + p.amount,
+      (sum, p) => sum + Number(p.amount),
       0
     );
 
