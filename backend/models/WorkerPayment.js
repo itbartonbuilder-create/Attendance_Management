@@ -1,6 +1,6 @@
 import mongoose from "mongoose";
 
-const AdvanceSchema = new mongoose.Schema({
+const WorkerPaymentSchema = new mongoose.Schema({
   workerId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: "Worker",
@@ -19,7 +19,6 @@ const AdvanceSchema = new mongoose.Schema({
     required: true
   },
   note: String
-
 }, { timestamps: true });
 
-export default mongoose.model("AdvancePayment", AdvanceSchema);
+export default mongoose.model("WorkerPayment", WorkerPaymentSchema);
