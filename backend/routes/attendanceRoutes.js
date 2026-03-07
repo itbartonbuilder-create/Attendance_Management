@@ -2,6 +2,7 @@ import express from "express";
 import Attendance from "../models/Attendance.js";
 import Worker from "../models/Worker.js";
 import Employee from "../models/employeeModel.js";
+import WorkerPayment from "../models/WorkerPayment.js";
 
 const router = express.Router();
 
@@ -125,6 +126,62 @@ router.get("/get", async (req, res) => {
       success: true,
       records: filtered,
     });
+  } catch (err) {
+    res.status(500).json({ success: false });
+  }
+});
+router.post("/payment", async (req, res) => {
+  try {
+    const { workerId, site, amount, date, note } = req.body;
+
+    const payment = new WorkerPayment({
+      workerId,
+      site,
+      amount,
+      date,
+      note
+    });
+
+    await payment.save();
+
+    res.json({
+      success: true,
+      payment
+    });
+
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ success: false });
+  }
+});
+router.get("/payment/:workerId", async (req, res) => {
+  try {
+
+    const { workerId } = req.params;
+    const { start, end } = req.query;
+
+    const query = { workerId };
+
+    if (start && end) {
+      query.date = {
+        $gte: new Date(start),
+        $lte: new Date(end)
+      };
+    }
+
+    const payments = await WorkerPayment.find(query);
+
+    const totalPaid = payments.reduce(
+      (sum, p) => sum + p.amount,
+      0
+    );
+
+    res.json({
+      success: true,
+      payments,
+      totalPaid
+    });
+
   } catch (err) {
     res.status(500).json({ success: false });
   }
