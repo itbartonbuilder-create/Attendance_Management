@@ -1,6 +1,9 @@
 import express from "express";
 import DailyReport from "../models/DailyReport.js";
 import { uploadDailyReport } from "../middleware/upload.js";
+import Attendance from "../models/Attendance.js";
+import Bill from "../models/BillModel.js";
+import Stock from "../models/Stock.js";
 
 const router = express.Router();
 
@@ -83,19 +86,33 @@ router.get("/report/:date", async (req, res) => {
 
 router.get("/sites", async (req, res) => {
   try {
-    const siteIds = await DailyReport.distinct("siteId");
 
-    const sites = siteIds.map((id, index) => ({
+    const attendanceSites = await Attendance.distinct("site");
+    const reportSites = await DailyReport.distinct("siteId");
+    const billSites = await Bill.distinct("site");
+    const stockSites = await Stock.distinct("site");
+
+    const allSites = [
+      ...attendanceSites,
+      ...reportSites,
+      ...billSites,
+      ...stockSites
+    ];
+
+    const uniqueSites = [...new Set(allSites)].filter(Boolean);
+
+    const sites = uniqueSites.map((id, index) => ({
       _id: index,
       siteId: id,
-      name: `Site ${id}`,
+      name: `Site ${id}`
     }));
 
     res.json(sites);
+
   } catch (err) {
+    console.error("SITE FETCH ERROR:", err);
     res.status(500).json({ error: "Failed to fetch sites" });
   }
 });
-
 
 export default router;
