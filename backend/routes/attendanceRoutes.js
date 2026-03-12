@@ -20,13 +20,21 @@ router.post("/", async (req, res) => {
 
     const updatedRecords = await Promise.all(
       records.map(async (r) => {
-       
+
         const person =
           type === "worker"
             ? await Worker.findById(r.workerId)
             : await Employee.findById(r.workerId);
 
-        const perDay = person?.perDaySalary || 0;
+        if (!person) {
+          console.log("Person not found:", r.workerId);
+          return null;
+        }
+
+        const perDay =
+          type === "worker"
+            ? person.perDaySalary || 0
+            : person.salary || 0;
 
         const leaveType = r.leaveType || {};
         const isPaidLeave =
@@ -36,18 +44,19 @@ router.post("/", async (req, res) => {
         let overtimeHours = 0;
         let salary = 0;
 
-       
         if (r.status === "Present") {
+
           const total = Math.min(12, Number(r.hoursWorked) || 0);
 
           hoursWorked = total;
           overtimeHours = total > 8 ? total - 8 : 0;
 
+          // per day salary calculation
           salary = Math.round((perDay / 8) * total);
         }
 
-      
         else if (r.status === "Leave") {
+
           if (isPaidLeave) {
             hoursWorked = 8;
             overtimeHours = 0;
@@ -62,10 +71,10 @@ router.post("/", async (req, res) => {
         }
 
         return {
-          workerId: r.workerId,
-          name: r.name,
+          workerId: person._id,
+          name: person.name,
           roleType: r.roleType,
-          role: r.role,
+          role: person.role,
           type,
           status: r.status,
           hoursWorked,
@@ -76,25 +85,30 @@ router.post("/", async (req, res) => {
       })
     );
 
+    const filteredRecords = updatedRecords.filter(r => r !== null);
+
     if (!attendance) {
       attendance = new Attendance({
         date: localDate,
         site,
-        records: updatedRecords,
+        records: filteredRecords,
       });
     } else {
+
       const other = attendance.records.filter(
         (r) => r.type !== type
       );
-      attendance.records = [...other, ...updatedRecords];
+
+      attendance.records = [...other, ...filteredRecords];
     }
 
     await attendance.save();
 
     res.json({
       success: true,
-      records: updatedRecords,
+      records: filteredRecords,
     });
+
   } catch (err) {
     console.error(err);
     res.status(500).json({ success: false });
@@ -102,9 +116,9 @@ router.post("/", async (req, res) => {
 });
 
 
-
 router.get("/get", async (req, res) => {
   try {
+
     const { date, site, type } = req.query;
 
     const queryDate = new Date(date);
@@ -126,12 +140,16 @@ router.get("/get", async (req, res) => {
       success: true,
       records: filtered,
     });
+
   } catch (err) {
     res.status(500).json({ success: false });
   }
 });
+
+
 router.post("/payment", async (req, res) => {
   try {
+
     const { workerId, site, amount, date, note } = req.body;
 
     const payment = new WorkerPayment({
@@ -154,6 +172,8 @@ router.post("/payment", async (req, res) => {
     res.status(500).json({ success: false });
   }
 });
+
+
 router.get("/payment/:workerId", async (req, res) => {
   try {
 
@@ -162,9 +182,7 @@ router.get("/payment/:workerId", async (req, res) => {
 
     const query = { workerId };
 
-    if (site) {
-      query.site = site;
-    }
+    if (site) query.site = site;
 
     if (start && end) {
 
