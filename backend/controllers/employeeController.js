@@ -1,7 +1,7 @@
 import Employee from "../models/employeeModel.js";
 import cloudinary from "../utils/cloudinary.js";
 
-/* ================= ADD EMPLOYEE ================= */
+
 export const addEmployee = async (req, res) => {
   try {
     const { name, role, site, contactNo, salary } = req.body;
@@ -14,7 +14,7 @@ export const addEmployee = async (req, res) => {
       role,
       site,
       contactNo,
-      salary,
+      salary: Number(salary),
       aadhaarDoc: aadhaarFile
         ? { url: aadhaarFile.path, public_id: aadhaarFile.filename }
         : null,
@@ -53,12 +53,11 @@ export const updateEmployee = async (req, res) => {
     employee.role = role;
     employee.site = site;
     employee.contactNo = contactNo;
-    employee.salary = salary;
+    employee.salary = Number(salary);
 
     const aadhaarFile = req.files?.aadhaar?.[0];
     const panFile = req.files?.pan?.[0];
 
-    // 🔥 Delete old Aadhaar if new uploaded
     if (aadhaarFile && employee.aadhaarDoc?.public_id) {
       await cloudinary.uploader.destroy(employee.aadhaarDoc.public_id);
       employee.aadhaarDoc = {
@@ -67,7 +66,7 @@ export const updateEmployee = async (req, res) => {
       };
     }
 
-    // 🔥 Delete old PAN if new uploaded
+ 
     if (panFile && employee.panDoc?.public_id) {
       await cloudinary.uploader.destroy(employee.panDoc.public_id);
       employee.panDoc = {
