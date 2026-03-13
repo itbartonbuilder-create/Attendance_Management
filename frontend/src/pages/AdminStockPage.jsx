@@ -10,38 +10,44 @@ function AdminStockPage() {
   const [sites, setSites] = useState([]);
   const [loading, setLoading] = useState(false);
 
-  const fetchStocks = async () => {
-    setLoading(true);
-    try {
-      let url = "https://attendance-management-backend-vh2w.onrender.com/api/stocks";
+const fetchStocks = async () => {
+  setLoading(true);
+  try {
+    let url = "https://attendance-management-backend-vh2w.onrender.com/api/stocks";
 
-     
-      if (role === "manager") {
-        url += `?site=${managerSite}`;
-      }
+    const params = new URLSearchParams();
 
-      if (role === "admin" && site) {
-        url += `?site=${site}`;
-      }
-
-      const res = await fetch(url);
-      const data = await res.json();
-
-      const stockData = data.data || [];
-      setStocks(stockData);
-
-      
-      if (role === "admin") {
-        const uniqueSites = [...new Set(stockData.map((s) => s.site))];
-        setSites(uniqueSites);
-      }
-    } catch (err) {
-      console.error(err);
-      alert("❌ Failed to load stock");
-    } finally {
-      setLoading(false);
+    if (role === "manager") {
+      params.append("site", managerSite);
     }
-  };
+
+    if (role === "admin" && site) {
+      params.append("site", site);
+    }
+
+    if (params.toString()) {
+      url += `?${params.toString()}`;
+    }
+
+    const res = await fetch(url);
+    const data = await res.json();
+
+    const stockData = data.data || [];
+    setStocks(stockData);
+
+
+    if (role === "admin") {
+      const uniqueSites = [...new Set(stockData.map((s) => s.site))];
+      setSites(uniqueSites);
+    }
+
+  } catch (err) {
+    console.error(err);
+    alert("❌ Failed to load stock");
+  } finally {
+    setLoading(false);
+  }
+};
 
   useEffect(() => {
     fetchStocks();
@@ -78,6 +84,7 @@ function AdminStockPage() {
         <table style={tableStyle}>
           <thead>
             <tr>
+              <th>Date</th>
               <th>Site</th>
               <th>Category</th>
               <th>Material</th>
@@ -97,7 +104,10 @@ function AdminStockPage() {
             ) : (
               stocks.map((s) => (
                 <tr key={s._id}>
-                  <td>{s.site}</td>
+  <td>
+    {s.date ? new Date(s.date).toLocaleDateString() : "-"}
+  </td>
+  <td>{s.site}</td>
                   <td>{s.category}</td>
                   <td>{s.material}</td>
                   <td>{s.totalStock}</td>
