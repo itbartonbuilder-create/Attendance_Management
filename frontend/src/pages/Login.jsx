@@ -78,14 +78,14 @@ function Login() {
           );
         }
 
-        userData = {
-          ...res.data.user,
-          displayName:
-            res.data.user.name ||
-            res.data.user.site ||
-            "User",
-        };
-
+       userData = {
+  ...res.data.user,
+  siteId: res.data.user.site || name,   
+  displayName:
+    res.data.user.name ||
+    res.data.user.site ||
+    "User",
+};
         localStorage.setItem("user", JSON.stringify(userData));
         alert(`✅ Login Successful — Welcome ${userData.displayName}`);
         navigate("/dashboard");
@@ -256,7 +256,7 @@ function Login() {
                 Manager
               </label>
 
-              <label style={{ fontSize: "19px" }}>
+              {/* <label style={{ fontSize: "19px" }}>
                 <input
                   type="radio"
                   name="role"
@@ -265,7 +265,7 @@ function Login() {
                   onChange={(e) => setRole(e.target.value)}
                 />{" "}
                 Worker
-              </label>
+              </label> */}
             </div>
 
             <form onSubmit={handleLogin}>
@@ -309,11 +309,12 @@ function Login() {
                     }}
                   >
                     <option value="">Select Site</option>
-                    <option value="Bangalore">Bangalore</option>
+                    <option value="Kashipur">Kashipur</option>
                     <option value="Japuriya">Japuriya</option>
-                    <option value="Vaishali">Vaishali</option>
-                    <option value="Faridabad">Faridabad</option>
+                    <option value="Gwailor">Gwailor</option>
+                    <option value="Gaya">Gaya</option>
                      <option value="jim corbett">jim corbett</option>
+                     <option value="Gunna">Gunna</option>
                      
                   </select>
 
@@ -330,7 +331,7 @@ function Login() {
                 </>
               )}
 
-              {role === "worker" && (
+              {/* {role === "worker" && (
                 <>
                   <input
                     type="text"
@@ -352,7 +353,7 @@ function Login() {
                     />
                   </div>
                 </>
-              )}
+              )} */}
 <ReCAPTCHA
   sitekey="6Le4zmcsAAAAAIT4l3JLSicblw3j-KmCu6Lllxdz"
   onChange={(token) => setCaptchaToken(token)}
