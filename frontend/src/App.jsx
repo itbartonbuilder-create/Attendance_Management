@@ -1,6 +1,7 @@
 import React from "react";
 import { HashRouter as Router, Routes, Route } from "react-router-dom";
 import "./App.css";
+
 import Navbar from "./components/Navbar";
 import Dashboard from "./pages/Dashboard";
 import Workers from "./pages/Workers";
@@ -22,6 +23,8 @@ import Stockmanagement from "./pages/Stockmanagement";
 import AdminStockPage from "./pages/AdminStockPage";
 import DailyReport from "./pages/DailyReport";
 import ReportView from "./pages/ReportView";
+import SiteExpense from "./pages/SiteExpense";
+
 
 function App() {
   return (
@@ -35,12 +38,13 @@ function App() {
      
         <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/workers" element={<Workers />} />
-        <Route path="/attendance" element={<Attendance />} />
+        {/* <Route path="/attendance" element={<Attendance />} /> */}
         <Route path="/reports" element={<Reports />} />
         <Route path="/profile" element={<Profile />} />
         <Route path="/login" element={<Login />} />
         <Route path="/managers" element={<Managers />} />
         <Route path="/task" element={<TaskPage />} />
+        <Route path="/task/:date" element={<TaskPage />} />
         <Route path="/stock" element={<Stockmanagement />} />
         <Route path="/vendor-dashboard" element={<VendorDashboard />} />
         <Route path="/admin/bills" element={<AdminBills />} />
@@ -48,10 +52,12 @@ function App() {
 <Route path="/vendors" element={<AdminVendors />} />
 <Route path="/employees" element={<Employees />} />
 <Route path="/vendor/bills" element={<VendorBills />} />
-        <Route path="/vendor/submit-bill" element={<VendorSubmitBill />} />
-        <Route path="/admin/stock" element={<AdminStockPage />} />
-        <Route path="/daily-report/:date" element={<DailyReport />} />
-        <Route path="/report-view/:date" element={<ReportView />} />
+<Route path="/vendor/submit-bill" element={<VendorSubmitBill />} />
+<Route path="/admin/stock" element={<AdminStockPage />} />
+<Route path="/daily-report/:date/:type" element={<DailyReport />} />
+<Route path="/attendance/:date" element={<Attendance/>} />
+<Route path="/report-view/:date" element={<ReportView />} />
+<Route path="/site-expense" element={<SiteExpense />} />
 
       </Routes>
             </div>
