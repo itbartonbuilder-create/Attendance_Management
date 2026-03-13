@@ -3,7 +3,7 @@ import { Link, useNavigate, useLocation } from "react-router-dom";
 import logo from "../assets/logo.png";
 function Navbar() {
   const [workersDropdown, setWorkersDropdown] = useState(false);
-  const [managementDropdown, setManagementDropdown] = useState(false);
+  // const [managementDropdown, setManagementDropdown] = useState(false);
 
   const [user, setUser] = useState(null);
   const [menuOpen, setMenuOpen] = useState(false);
@@ -18,13 +18,13 @@ function Navbar() {
  useEffect(() => {
   setMenuOpen(false);
   setWorkersDropdown(false);
-  setManagementDropdown(false);
+  // setManagementDropdown(false);
 }, [location.pathname]);
 
 useEffect(() => {
   const closeDropdowns = () => {
     setWorkersDropdown(false);
-    setManagementDropdown(false);
+    // setManagementDropdown(false);
   };
   document.addEventListener("click", closeDropdowns);
   return () => document.removeEventListener("click", closeDropdowns);
@@ -94,7 +94,7 @@ useEffect(() => {
     onClick={(e) => {
       e.stopPropagation(); 
      setWorkersDropdown(!workersDropdown);
-setManagementDropdown(false);
+// setManagementDropdown(false);
     }}
   >
     Workers ▾
@@ -121,11 +121,11 @@ setManagementDropdown(false);
   )}
 </div>
 
-            <Link to="/attendance" style={linkStyle}>Attendance</Link>
+            {/* <Link to="/attendance" style={linkStyle}>Attendance</Link> */}
             <Link to="/managers" style={linkStyle}>Managers</Link>
             <Link to="/reports" style={linkStyle}>Reports</Link>
-             <Link to="/task" style={linkStyle}>Task</Link>
-                      <div style={{ position: "relative" }}>
+             {/* <Link to="/task" style={linkStyle}>Task</Link> */}
+                      {/* <div style={{ position: "relative" }}>
   <span
     style={{ ...linkStyle, cursor: "pointer" }}
     onClick={(e) => {
@@ -164,7 +164,7 @@ setManagementDropdown(false);
       
     </div>
   )}
-</div>
+</div> */}
                  
             <Link to="/profile" style={linkStyle}>Profile</Link>
           </>
@@ -179,7 +179,7 @@ setManagementDropdown(false);
     onClick={(e) => {
       e.stopPropagation(); 
       setWorkersDropdown(!workersDropdown);
-    setManagementDropdown(false); 
+    // setManagementDropdown(false); 
     }}
   >
     Workers ▾
@@ -206,11 +206,11 @@ setManagementDropdown(false);
   )}
 </div>
            
-            <Link to="/attendance" style={linkStyle}>Attendance</Link>
+            {/* <Link to="/attendance" style={linkStyle}>Attendance</Link> */}
             <Link to="/reports" style={linkStyle}>Reports</Link>
-             <Link to="/task" style={linkStyle}>Task</Link>
+             {/* <Link to="/task" style={linkStyle}>Task</Link> */}
               
-                <div style={{ position: "relative" }}>
+                {/* <div style={{ position: "relative" }}>
   <span
     style={{ ...linkStyle, cursor: "pointer" }}
     onClick={(e) => {
@@ -241,14 +241,14 @@ setManagementDropdown(false);
       </Link>
     </div>
   )}
-</div>
+</div> */}
             <Link to="/profile" style={linkStyle}>Profile</Link>
           </>
         )}
 
         {role === "worker" && (
           <>
-            <Link to="/reports" style={linkStyle}>Reports</Link>
+            {/* <Link to="/reports" style={linkStyle}>Reports</Link> */}
              <Link to="/task" style={linkStyle}>Task</Link>
             <Link to="/profile" style={linkStyle}>Profile</Link>
           </>
