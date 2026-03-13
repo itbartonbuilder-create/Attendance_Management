@@ -13,23 +13,62 @@ const MATERIALS = {
   Civil: [
     { name: "Cement", unit: "Bag" },
     { name: "Sand", unit: "CFT" },
-    { name: "Aggregate 20mm", unit: "CFT" },
     { name: "Bricks", unit: "Nos" },
+  ],
+  Aggregate:[
+    { name: "Aggregate 10mm", unit: "CFT"},
+    { name: "Aggregate 20mm", unit: "CFT"},
+    { name: "Aggregate 40mm", unit: "CFT"},
   ],
   Shuttering: [
     { name: "Plates", unit: "Nos" },
     { name: "Props", unit: "Nos" },
     { name: "Pipes", unit: "Nos" },
   ],
-  Electrical: [
-    { name: "Wire", unit: "Meter" },
-    { name: "Switch", unit: "Nos" },
-    { name: "MCB", unit: "Nos" },
+  Wire: [
+  { name: "Copper Wire 0.75mm", unit: "mm" },
+  { name: "Copper Wire 1mm", unit: "mm" },
+  { name: "Copper Wire 1.5mm", unit: "mm" },
+  { name: "Copper Wire 2.5mm", unit: "mm" },
+  { name: "Copper Wire 4mm", unit: "mm" },
+  { name: "Copper Wire 6mm", unit: "mm" },
+  { name: "Copper Wire 8mm", unit: "mm" },
+  { name: "Copper Wire 10mm", unit: "mm" },
+
+  { name: "Aluminium Wire 0.75mm", unit: "mm" },
+  { name: "Aluminium Wire 1mm", unit: "mm" },
+  { name: "Aluminium Wire 1.5mm", unit: "mm" },
+  { name: "Aluminium Wire 2.5mm", unit: "mm" },
+  { name: "Aluminium Wire 4mm", unit: "mm" },
+  { name: "Aluminium Wire 6mm", unit: "mm" },
+  { name: "Aluminium Wire 8mm", unit: "mm" },
+  { name: "Aluminium Wire 10mm", unit: "mm" },
+],
+  Switch: [
+    { name: "Switch 6A", unit: "Ampere" },
+    { name: "Switch 10A", unit: "Ampere" },
+    { name: "Switch 16A", unit: "Ampere" },
+    { name: "Switch 20A", unit: "Ampere" },
+    { name: "Switch 32A", unit: "Ampere" },
+    { name: "Switch 64A", unit: "Ampere" },
+  ],
+    MCB: [
+    { name: "MCB 6A", unit: "Ampere" },
+    { name: "MCB 16A", unit: "Ampere" },
+    { name: "MCB 32A", unit: "Ampere" },
+  ],
+     Socket: [
+    { name: "Socket 6A", unit: "Ampere" },
+    { name: "Socket 10A", unit: "Ampere" },
+    { name: "Socket 16A", unit: "Ampere" },
+    { name: "Socket 20A", unit: "Ampere" },
+    { name: "Socket 32A", unit: "Ampere" },
+    { name: "Socket 64A", unit: "Ampere" },
   ],
   Plumbing: [
     { name: "Pipe", unit: "Feet" },
-    { name: "Elbow", unit: "Nos" },
-    { name: "Tap", unit: "Nos" },
+    { name: "Elbow", unit: "" },
+    { name: "Tap", unit: "" },
   ],
 };
 
@@ -60,44 +99,59 @@ function StockManagement() {
   const remaining = Math.max(0, realRemaining);
 
 
-  const fetchStocks = async () => {
-    const res = await fetch(
-      `https://attendance-management-backend-vh2w.onrender.com/api/stocks?site=${managerSite}`
-    );
-    const data = await res.json();
-    setStocks(data.data || []);
-  };
+const fetchStocks = async () => {
+  const res = await fetch(
+    `https://attendance-management-backend-vh2w.onrender.com/api/stocks?site=${managerSite}`
+  );
 
+  const data = await res.json();
 
-  const handleMaterialChange = async (value) => {
-    const selected = MATERIALS[category]?.find(
-      (m) => m.name === value
-    );
+  const allStocks = data.data || [];
 
-    setMaterial(value);
-    setUnit(selected?.unit || "");
+  setStocks(allStocks);
 
-    
-    const res = await fetch(
-      `https://attendance-management-backend-vh2w.onrender.com/api/stocks?site=${managerSite}`
+  if (material) {
+    const materialStocks = allStocks.filter(
+      (s) => s.material === material
     );
 
-    const data = await res.json();
+if (materialStocks.length > 0) {
+  setAvailableStock(materialStocks[0].remainingStock);
+} else {
+  setAvailableStock(0);
+}
+  }
+};
 
-    const materialStock = data.data?.find(
-      (s) => s.material === value
-    );
 
-    if (materialStock) {
-      setAvailableStock(materialStock.remainingStock || 0);
-    } else {
-      setAvailableStock(0);
-    }
+const handleMaterialChange = async (value) => {
+  const selected = MATERIALS[category]?.find(
+    (m) => m.name === value
+  );
 
-    setStock({ add: "", used: "" });
-  };
+  setMaterial(value);
+  setUnit(selected?.unit || "");
 
-  // 💾 Save stock
+  const res = await fetch(
+    `https://attendance-management-backend-vh2w.onrender.com/api/stocks?site=${managerSite}`
+  );
+
+  const data = await res.json();
+  const allStocks = data.data || [];
+
+  const materialStocks = allStocks.filter(
+    (s) => s.material === value
+  );
+
+if (materialStocks.length > 0) {
+  setAvailableStock(materialStocks[0].remainingStock);
+} else {
+  setAvailableStock(0);
+}
+  setStock({ add: "", used: "" });
+};
+
+
   const handleSubmit = async (e) => {
     e.preventDefault();
 
@@ -133,7 +187,7 @@ function StockManagement() {
 
       fetchStocks();
 
-      // Reset form
+  
       setCategory("");
       setMaterial("");
       setUnit("");
@@ -283,7 +337,7 @@ export default StockManagement;
 
 const containerStyle = {
   maxWidth: 1200,
-  margin: "80px auto",
+  margin: "105px auto",
   padding: 20,
   background: "#333",
   color: "#fff",
