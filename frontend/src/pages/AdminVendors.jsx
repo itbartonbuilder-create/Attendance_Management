@@ -23,15 +23,13 @@ const AdminVendors = () => {
     }
   };
 
-  /* ================= APPROVE VENDOR ================= */
   const approveVendor = async (vendorId) => {
     if (!window.confirm("Approve this vendor?")) return;
 
     try {
-          await axios.put(
+      await axios.put(
   `https://attendance-management-backend-vh2w.onrender.com/api/admin/approve-vendor/${vendorId}`
 );
-
 
       alert("✅ Vendor approved successfully");
       fetchVendors();
@@ -157,7 +155,7 @@ const AdminVendors = () => {
   );
 };
 
-/* ================= STYLES ================= */
+
 
 const table = {
   width: "100%",
