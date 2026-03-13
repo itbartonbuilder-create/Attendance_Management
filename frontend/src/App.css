@@ -57,7 +57,8 @@ footer {
 .attendance-container, 
 .profile-container,
 .report-container, .task-container, .task-page,
-.vendor-container, .page{
+.vendor-container, .page, 
+.view-container {
    padding: 82px 40px;
 
 
@@ -357,9 +358,9 @@ select{
 
 }
 
-.report{
+/* .report{
   margin: 50px 27px;
-}
+} */
 .attendance-container label{
   font-size: 22px;
   margin-right: 28px;
@@ -623,7 +624,6 @@ td {
     flex-direction: column;
     align-items: center;
   }
-
  
 
   .dashboard-header {
@@ -901,7 +901,9 @@ display: block;
 overflow-x: auto;
   }
   .attendance-container h2{
-    font-size: 25px;
+           margin-top: 40px;
+        font-size: 17px;
+    
   }
   .attendance-container input {
     margin-right: 50px;
@@ -912,10 +914,9 @@ overflow-x: auto;
 .report-container input {
     margin-right: 59px;
 }
-select{
+/* select{
       margin-right: 59px;
-
-}
+} */
 .profile-container {
     min-height: 50vh;
 }
@@ -1012,6 +1013,12 @@ select{
   opacity: 0.8;
 }
 
+
+/* employee page  */
+
+
+
+/* ================= EMPLOYEES PAGE ================= */
 
 .page {
   min-height: 100vh;
@@ -1134,10 +1141,246 @@ select{
 }
 
 
+/* ===== Dashboard Background ===== */
+
+.calendar-dashboard {
+  min-height: 85vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+
+  /* background: linear-gradient(
+    135deg,
+    #0f2027,
+    #203a43,
+    #2c5364
+  ); */
+}
+
+/* ===== Admin Dashboard ===== */
+
+.admin-dashboard {
+  padding: 40px;
+  text-align: center;
+}
+
+.dashboard-title {
+  margin-bottom: 30px;
+  font-size: 32px;
+  color: #2c3e50;
+}
+
+/* ===== Stats Cards ===== */
+
+.stats-grid {
+  display: flex;
+  justify-content: center;
+  gap: 25px;
+  flex-wrap: wrap;
+}
+
+.stat-card {
+  width: 220px;
+  padding: 25px;
+  border-radius: 12px;
+  color: white;
+  font-size: 20px;
+  font-weight: bold;
+  box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+}
+
+.stat-card.blue {
+  background: linear-gradient(135deg, #007bff, #0056b3);
+}
+
+.stat-card.green {
+  background: linear-gradient(135deg, #28a745, #1e7e34);
+}
+
+/* ===== Calendar Card ===== */
+
+.calendar-card {
+  background: white;
+  padding: 35px;
+  border-radius: 16px;
+  box-shadow: 0 20px 45px rgba(0, 0, 0, 0.25);
+  width: 358px;
+  text-align: center;
+  transition: transform 0.3s ease;
+      margin-top: 89px;
+}
+
+.calendar-card:hover {
+  transform: translateY(-5px);
+}
+
+/* ===== Title ===== */
+
+.calendar-title {
+  margin-bottom: 20px;
+  font-size: 26px;
+  font-weight: bold;
+  color: #2c3e50;
+}
+
+/* ===== React Calendar Custom ===== */
+
+.react-calendar {
+  width: 100%;
+  border: none;
+  font-family: "Segoe UI", sans-serif;
+}
+
+.react-calendar__navigation button {
+  color: #2c3e50;
+  font-weight: bold;
+  font-size: 16px;
+}
+
+.react-calendar__tile {
+  padding: 12px 0;
+  font-weight: 500;
+}
+
+.react-calendar__tile--active {
+  background: #007bff !important;
+  color: white !important;
+  border-radius: 8px;
+}
+
+.react-calendar__tile:hover {
+  background: #e6f0ff;
+  border-radius: 8px;
+}
+/* ===== Fix Calendar Text Color ===== */
+
+.react-calendar {
+  color: black !important;
+}
+
+.react-calendar__month-view__days__day {
+  color: black !important;
+}
+
+.react-calendar__month-view__days__day--weekend {
+  color: red !important;
+}
+
+.react-calendar__month-view__days__day--neighboringMonth {
+  color: #999 !important;
+}
+
+.react-calendar__navigation button {
+  color: black !important;
+  font-weight: bold;
+}
+
+.react-calendar__month-view__weekdays {
+  font-weight: bold;
+  color: black;
+}
+.react-calendar__tile {
+  font-size: 16px;
+  font-weight: 600;
+}
 
 
 
+/* ===== Background ===== */
+
+.calendar-dashboard {
+  min-height: 85vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background: linear-gradient(135deg,#0f2027,#203a43,#2c5364);
+}
+
+.calendar-title {
+  font-size: 26px;
+  margin-bottom: 20px;
+}
+
+/* ===== Modal ===== */
+
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0,0,0,0.6);
+
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.modal-box {
+  background: white;
+  padding: 30px;
+  border-radius: 14px;
+  text-align: center;
+  width: 300px;
+}
+
+.modal-btn {
+  width: 100%;
+  padding: 12px;
+  margin-top: 10px;
+  border: none;
+  border-radius: 8px;
+  font-size: 16px;
+  cursor: pointer;
+  color: white;
+}
+
+.attendance {
+  background: #27ae60;
+}
+
+.report {
+  background: #2980b9;
+}
+
+.modal-close {
+  margin-top: 15px;
+  background: #e74c3c;
+  color: white;
+  border: none;
+  padding: 8px 14px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.rreasign {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0,0,0,0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+}
+
+.reassignn {
+  background: #1e272e;
+  padding: 25px;
+  border-radius: 12px;
+  width: 320px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
 
 
 
-
+@media(max-width:768px){
+  .calendar-card {
+      width: 309px;
+      margin-top: 107px;
+}
+}
