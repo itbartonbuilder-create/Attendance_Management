@@ -20,7 +20,7 @@ function BillForm() {
   const [managers, setManagers] = useState([]);
   const [sites, setSites] = useState([]);
 
-  // 🔹 FETCH ALL MANAGERS ONCE
+
   useEffect(() => {
     const fetchManagers = async () => {
       try {
@@ -30,7 +30,7 @@ function BillForm() {
 
         setAllManagers(res.data);
 
-        // ✅ UNIQUE SITES (ONLY THOSE HAVING MANAGERS)
+
         const uniqueSites = [
           ...new Set(res.data.map((m) => m.site)),
         ];
@@ -44,7 +44,7 @@ function BillForm() {
     fetchManagers();
   }, []);
 
-  // 🔹 FILTER MANAGERS SITE-WISE
+
   useEffect(() => {
     if (!form.site) {
       setManagers([]);
@@ -186,7 +186,6 @@ function BillForm() {
   );
 }
 
-/* ================= STYLES ================= */
 
 const page = { padding: "30px" };
 
