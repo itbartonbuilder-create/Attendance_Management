@@ -22,6 +22,7 @@ import VendorSubmitBill from "./pages/VendorSubmitBill";
 import Stockmanagement from "./pages/Stockmanagement";
 import AdminStockPage from "./pages/AdminStockPage";
 import DailyReport from "./pages/DailyReport";
+import ReportView from "./pages/ReportView";
 
 function App() {
   return (
@@ -51,6 +52,7 @@ function App() {
         <Route path="/vendor/submit-bill" element={<VendorSubmitBill />} />
         <Route path="/admin/stock" element={<AdminStockPage />} />
         <Route path="/daily-report/:date" element={<DailyReport />} />
+        <Route path="/report-view/:date" element={<ReportView />} />
 
       </Routes>
             </div>
