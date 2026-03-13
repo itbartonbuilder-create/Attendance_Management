@@ -1,215 +1,128 @@
-import React, { useState } from "react";
-import { useParams } from "react-router-dom";
+import React, { useState, useEffect } from "react";
+import { useParams, useNavigate, useLocation } from "react-router-dom";
+// import { useParams, useNavigate } from "react-router-dom";
+import axios from "axios";
 
 function DailyReport() {
-  const { date } = useParams();
+  const { date, type } = useParams();
+  const navigate = useNavigate();
 
-  const today = new Date().toISOString().split("T")[0];
-  const isPastDate = date < today;
+  const [text, setText] = useState("");
+  const [photos, setPhotos] = useState([]);
+  const [exists, setExists] = useState(false);
+  const [adminSite, setAdminSite] = useState("");
+  const location = useLocation();
+const params = new URLSearchParams(location.search);
+const siteFromDashboard = params.get("siteId");
 
-  const [morningText, setMorningText] = useState("");
-  const [eveningText, setEveningText] = useState("");
+  const user = JSON.parse(localStorage.getItem("user"));
+const siteId =
+  siteFromDashboard ||
+  (user?.role === "admin"
+    ? adminSite
+    : user?.siteId || user?.site || "");
 
-  const [morningPhotos, setMorningPhotos] = useState([]);
-  const [eveningPhotos, setEveningPhotos] = useState([]);
 
-  const [showMorningPreview, setShowMorningPreview] = useState(false);
-  const [showEveningPreview, setShowEveningPreview] = useState(false);
+  useEffect(() => {
+    if (!siteId) return;
 
-  const [listening, setListening] = useState(false);
+    const check = async () => {
+      try {
+        const res = await axios.get(
+          `https://attendance-management-backend-vh2w.onrender.com/api/check-data/${date}`,
+          { params: { siteId } }
+        );
 
-  const SpeechRecognition =
-    window.SpeechRecognition || window.webkitSpeechRecognition;
+        setExists(type === "morning" ? res.data.morningExists : res.data.eveningExists);
+      } catch (err) {
+        console.error("Check error:", err);
+      }
+    };
 
-  const startListening = (setText) => {
-    if (!SpeechRecognition) {
-      alert("Speech Recognition not supported");
-      return;
+    check();
+  }, [date, type, siteId]);
+
+  const handlePhotos = (e) => setPhotos(Array.from(e.target.files));
+
+  const handleSubmit = async () => {
+    if (!siteId) return alert("Site not assigned");
+
+    try {
+      const formData = new FormData();
+      formData.append("date", date);
+      formData.append("siteId", siteId);
+
+      if (type === "morning") {
+        formData.append("morningText", text || "");
+        photos.forEach((file) => formData.append("morningPhotos", file));
+      } else {
+        formData.append("eveningText", text || "");
+        photos.forEach((file) => formData.append("eveningPhotos", file));
+      }
+
+      const res = await axios.post(
+        "https://attendance-management-backend-vh2w.onrender.com/api/daily-report",
+        formData
+      );
+
+      console.log(res.data);
+      alert("✅ Report Saved");
+      navigate("/dashboard");
+    } catch (err) {
+      console.error("SAVE ERROR:", err.response?.data || err.message);
+      alert("❌ Failed to save report");
     }
-
-    const recognition = new SpeechRecognition();
-    recognition.lang = "en-IN"; 
-    recognition.start();
-
-    setListening(true);
-
-    recognition.onresult = (event) => {
-      const speechText = event.results[0][0].transcript;
-      setText((prev) => prev + " " + speechText);
-    };
-
-    recognition.onend = () => {
-      setListening(false);
-    };
-  };
-
-  const handleMorningPhotos = (e) => {
-    const files = Array.from(e.target.files);
-    if (files.length > 4) return alert("Max 4 photos allowed");
-    setMorningPhotos(files);
-  };
-
-  const handleEveningPhotos = (e) => {
-    const files = Array.from(e.target.files);
-    if (files.length > 4) return alert("Max 4 photos allowed");
-    setEveningPhotos(files);
-  };
-
-  const handleSubmit = () => {
-    alert("Report Saved");
-  };
-
-  if (isPastDate) {
-    return (
-      <div style={{ padding: 40, marginTop: 80, color: "white" }}>
-        <h1>Daily Report — {date}</h1>
-        <h2 style={{ color: "red" }}>
-          Past date report fill nahi kar sakte
-        </h2>
-      </div>
-    );
-  }
-
-  const micStyle = {
-    width: 55,
-    height: 55,
-    borderRadius: "50%",
-    border: "none",
-    fontSize: 24,
-    cursor: "pointer",
-    background: listening ? "red" : "#007bff",
-    color: "white",
-    boxShadow: "0 4px 10px rgba(0,0,0,0.3)",
-    marginTop: 10
   };
 
   return (
-    <div style={{ padding: 20, marginTop: "80px", color: "white" }}>
-      <h1>Daily Report — {date}</h1>
+    <div style={{ padding: 20, marginTop: 80 }}>
+      <h2>{type === "morning" ? "🌅 Morning" : "🌇 Evening"} Report — {date} </h2>
+      <h2 style={{ color: "#555" }}> Site: {siteId || "Not Assigned"}</h2>
 
-      <hr />
-
-    
-      <h2>Morning Update</h2>
-
-      <input type="file" multiple accept="image/*" onChange={handleMorningPhotos} />
-
-      <textarea
-        placeholder="Morning work details..."
-        value={morningText}
-        onChange={(e) => setMorningText(e.target.value)}
-        style={{ width: "100%", height: 100, marginTop: 10 }}
-      />
-
-      <div>
-        <button
-          style={micStyle}
-          onClick={() => startListening(setMorningText)}
-        >
-          🎤
-        </button>
-        {listening && <p>Listening...</p>}
-      </div>
-
-      <p>Selected Photos: {morningPhotos.length}</p>
-
-      {(morningPhotos.length > 0 || morningText) && (
-        <button onClick={() => setShowMorningPreview(!showMorningPreview)}>
-          View Morning Preview
-        </button>
+      {exists ? (
+        <>
+          <h2 style={{ color: "green" }}>✅ Report Submitted</h2>
+          <button
+            onClick={() => navigate(`/report-view/${date}`)}
+            style={{
+              padding: "10px 20px",
+              background: "#007bff",
+              color: "white",
+              border: "none",
+              borderRadius: 6,
+              cursor: "pointer",
+              marginTop: 10,
+            }}
+          >
+            👁 View Report
+          </button>
+        </>
+      ) : (
+        <>
+          <input type="file" multiple onChange={handlePhotos} />
+          <textarea
+            value={text}
+            onChange={(e) => setText(e.target.value)}
+            placeholder="Work details..."
+            style={{ width: "100%", height: 120, marginTop: 10 }}
+          />
+          <br />
+          <br />
+          <button
+            onClick={handleSubmit}
+            style={{
+              padding: "12px 25px",
+              background: "green",
+              color: "white",
+              border: "none",
+              borderRadius: 8,
+              fontSize: 16,
+            }}
+          >
+            💾 Save Report
+          </button>
+        </>
       )}
-
-      {showMorningPreview && (
-        <div>
-          <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-            {morningPhotos.map((file, i) => (
-              <img
-                key={i}
-                src={URL.createObjectURL(file)}
-                alt=""
-                style={{ width: 120, height: 120, objectFit: "cover", borderRadius: 8 }}
-              />
-            ))}
-          </div>
-
-          {morningText && (
-            <div style={{ background: "#222", padding: 10, marginTop: 10 }}>
-              <b>Text Preview:</b>
-              <p>{morningText}</p>
-            </div>
-          )}
-        </div>
-      )}
-
-      <hr />
-
-      <h2>Evening Update</h2>
-
-      <input type="file" multiple accept="image/*" onChange={handleEveningPhotos} />
-
-      <textarea
-        placeholder="Evening work details..."
-        value={eveningText}
-        onChange={(e) => setEveningText(e.target.value)}
-        style={{ width: "100%", height: 100, marginTop: 10 }}
-      />
-
-    
-      <div>
-        <button
-          style={micStyle}
-          onClick={() => startListening(setEveningText)}
-        >
-          🎤
-        </button>
-        {listening && <p>Listening...</p>}
-      </div>
-
-      <p>Selected Photos: {eveningPhotos.length}</p>
-
-      {(eveningPhotos.length > 0 || eveningText) && (
-        <button onClick={() => setShowEveningPreview(!showEveningPreview)}>
-          View Evening Preview
-        </button>
-      )}
-
-      {showEveningPreview && (
-        <div>
-          <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-            {eveningPhotos.map((file, i) => (
-              <img
-                key={i}
-                src={URL.createObjectURL(file)}
-                alt=""
-                style={{ width: 120, height: 120, objectFit: "cover", borderRadius: 8 }}
-              />
-            ))}
-          </div>
-
-          {eveningText && (
-            <div style={{ background: "#222", padding: 10, marginTop: 10 }}>
-              <b>Text Preview:</b>
-              <p>{eveningText}</p>
-            </div>
-          )}
-        </div>
-      )}
-
-      <br /><br />
-
-      <button
-        onClick={handleSubmit}
-        style={{
-          padding: "12px 25px",
-          background: "green",
-          color: "white",
-          border: "none",
-          borderRadius: 8,
-          fontSize: 16
-        }}
-      >
-        Save Report
-      </button>
     </div>
   );
 }
