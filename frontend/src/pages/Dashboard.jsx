@@ -1,209 +1,363 @@
 import React, { useEffect, useState } from "react";
-import axios from "axios";
-import dashboard from "../assets/dashboard.jpg";
+import Calendar from "react-calendar";
+import "react-calendar/dist/Calendar.css";
+import { useNavigate } from "react-router-dom";
 import "../App.css";
+import axios from "axios";
 
 function Dashboard() {
   const [user, setUser] = useState(null);
-  const [allWorkers, setAllWorkers] = useState([]);
-  const [totalSites, setTotalSites] = useState(0);
+  const [userSite, setUserSite] = useState("");
+  const [date, setDate] = useState(new Date());
+
+  const [showModal, setShowModal] = useState(false);
+  const [showReportChoice, setShowReportChoice] = useState(false);
+  const [showManagementChoice, setShowManagementChoice] = useState(false); 
+  const [selectedDate, setSelectedDate] = useState("");
+  const [attendanceExists, setAttendanceExists] = useState(false);
+
+  const [reportExists, setReportExists] = useState({
+    morning: false,
+    evening: false,
+  });
+
+  const [taskExists, setTaskExists] = useState(false);
+
+  const [allSites, setAllSites] = useState([]);
+  const [selectedSite, setSelectedSite] = useState("");
+  const [isAdmin, setIsAdmin] = useState(false);
+
+  const navigate = useNavigate();
+
+  const BASE_API =
+    "https://attendance-management-backend-vh2w.onrender.com/api";
 
   useEffect(() => {
     const savedUser = localStorage.getItem("user");
-    if (savedUser) {
-      const parsedUser = JSON.parse(savedUser);
-      setUser(parsedUser);
+    if (!savedUser) return;
 
-      if (parsedUser.role === "admin" || parsedUser.role === "manager") {
-        fetchWorkers(parsedUser);
-      }
-    }
+    const userObj = JSON.parse(savedUser);
+
+    setUser(userObj);
+    setUserSite(userObj.siteId || "");
+    setSelectedSite(userObj.siteId || "");
+    setIsAdmin(userObj.role === "admin");
+
+    if (userObj.role === "admin") fetchAllSites();
   }, []);
 
-  const fetchWorkers = async (loggedInUser) => {
+  const fetchAllSites = async () => {
     try {
-      const res = await axios.get(
-        "https://attendance-management-backend-vh2w.onrender.com/api/workers"
-      );
-      let workersData = res.data;
-
-      if (loggedInUser.role === "manager") {
-        workersData = workersData.filter(
-          (w) => w.site === loggedInUser.site
-        );
-      }
-
-      setAllWorkers(workersData);
-
-      if (loggedInUser.role === "admin") {
-        const uniqueSites = [...new Set(res.data.map((w) => w.site))];
-        setTotalSites(uniqueSites.length);
-      }
+      const res = await axios.get(`${BASE_API}/sites`);
+      setAllSites(res.data || []);
     } catch (err) {
-      console.error("Error fetching workers:", err);
+      console.error("Fetch sites error:", err);
     }
   };
 
-  if (!user) return <h2>❌ Not Authorized</h2>;
+  const handleDateClick = async (selected) => {
+    const formatted = selected.toLocaleDateString("en-CA");
+    setSelectedDate(formatted);
 
+    const siteToUse = isAdmin ? selectedSite : userSite;
 
-  if (user.role === "admin") {
-    return (
-      <div className="dashboard">
-        <header className="dashboard-header">
-          <h1>Admin Dashboard</h1>
-          <div className="user-info">
-            <span>{user.name}</span>
-            <span className="role">({user.role})</span>
+    if (!siteToUse) {
+      alert("⚠️ Please select a site");
+      return;
+    }
+
+    try {
+      const res = await axios.get(
+        `${BASE_API}/check-data/${formatted}`,
+        { params: { siteId: siteToUse } }
+      );
+
+      setAttendanceExists(res.data.attendanceExists || false);
+
+      setReportExists({
+        morning: res.data.morningExists || false,
+        evening: res.data.eveningExists || false,
+      });
+
+      const taskRes = await axios.get(
+        `${BASE_API}/tasks/by-date/${formatted}`,
+        { params: { site: siteToUse } }
+      );
+
+      setTaskExists(taskRes.data.length > 0);
+
+      setShowModal(true);
+    } catch (err) {
+      console.error("Check data error:", err);
+    }
+  };
+
+  const goToAttendance = () =>
+    navigate(
+      `/attendance/${selectedDate}?site=${
+        isAdmin ? selectedSite : userSite
+      }`
+    );
+
+  const viewAttendance = () =>
+    navigate(
+      `/attendance-view/${selectedDate}?site=${
+        isAdmin ? selectedSite : userSite
+      }`
+    );
+
+  const viewReport = () =>
+    navigate(
+      `/report-view/${selectedDate}?siteId=${
+        isAdmin ? selectedSite : userSite
+      }`
+    );
+
+  const addTask = () =>
+    navigate(
+      `/task/${selectedDate}?site=${
+        isAdmin ? selectedSite : userSite
+      }`
+    );
+
+  const viewTask = () =>
+    navigate(
+      `/task/${selectedDate}?site=${
+        isAdmin ? selectedSite : userSite
+      }`
+    );
+
+  if (!user) return <h2 style={{ padding: 20 }}>Not Authorized</h2>;
+
+  return (
+    <div className="dashboard calendar-dashboard">
+      <div className="calendar-card">
+        <h2 className="calendar-title">📅 Daily Work Calendar</h2>
+
+        {isAdmin && (
+          <div style={{ marginBottom: 15 }}>
+            <label>
+              Select Site:{" "}
+              <select
+                value={selectedSite}
+                onChange={(e) => setSelectedSite(e.target.value)}
+              >
+                <option value="">--Select Site--</option>
+
+                {allSites.map((s) => (
+                  <option key={s._id} value={s.siteId}>
+                    {s.name} ({s.siteId})
+                  </option>
+                ))}
+              </select>
+            </label>
           </div>
-        </header>
+        )}
 
-        <div className="dashboard-hero">
-          <img src={dashboard} alt="dashboard" className="dashboard-image" />
-          <div className="overlay">
-            <h2>Welcome, {user.name} 👋</h2>
-            <p>Manage your entire workforce and site operations efficiently</p>
+        <Calendar
+          onChange={setDate}
+          value={date}
+          onClickDay={handleDateClick}
+        />
+      </div>
+
+      {/* ================= MAIN MODAL ================= */}
+      {showModal && (
+        <div className="modal-overlay">
+          <div className="modal-box">
+            <h3>Select Action ({selectedDate})</h3>
+
+            {attendanceExists ? (
+              <button
+                className="modal-btn view"
+                onClick={viewAttendance}
+              >
+                👁 View Attendance
+              </button>
+            ) : (
+              <button
+                className="modal-btn attendance"
+                onClick={goToAttendance}
+              >
+                ➕ Add Attendance
+              </button>
+            )}
+
+            <button
+              className="modal-btn report"
+              onClick={() => setShowReportChoice(true)}
+            >
+              ➕ Add Daily Report
+            </button>
+
+            {isAdmin && (
+              <button
+                className="modal-btn attendance"
+                onClick={addTask}
+              >
+                ➕ Add Task
+              </button>
+            )}
+
+            {!isAdmin && taskExists && (
+              <button
+                className="modal-btn view"
+                onClick={viewTask}
+              >
+                👁 View Tasks
+              </button>
+            )}
+
+            {(user.role === "admin" || user.role === "manager") && (
+              <button
+                className="modal-btn report"
+                onClick={() => setShowManagementChoice(true)}
+              >
+                🏢 Management
+              </button>
+            )}
+
+            <button
+              className="modal-close"
+              onClick={() => setShowModal(false)}
+            >
+              Cancel
+            </button>
           </div>
         </div>
+      )}
 
-        <section className="stats-section">
-          <div className="stat-card blue">
-            <h3>Total Workers</h3>
-            <p>{allWorkers.length}</p>
-          </div>
-          <div className="stat-card green">
-            <h3>Total Sites</h3>
-            <p>{totalSites}</p>
-          </div>
-          <div className="stat-card red">
-            <h3>Productivity Index</h3>
-            <p>95%</p>
-          </div>
-        </section>
+      {/* ================= REPORT MODAL ================= */}
+      {showReportChoice && (
+        <div className="modal-overlay">
+          <div className="modal-box">
+            <h3>Choose Report Type ({selectedDate})</h3>
 
-        <section className="table-section">
-          <h2>👷 All Workers Overview</h2>
-          <table>
-            <thead>
-              <tr>
-                <th>Name</th>
-                <th>Role Type</th>
-                <th>Sub Role</th>
-                <th>Site</th>
-                <th>Contact</th>
-                <th>Salary/Day</th>
-              </tr>
-            </thead>
-            <tbody>
-              {allWorkers.map((worker, index) => (
-                <tr key={index}>
-                  <td>{worker.name}</td>
-                  <td>{worker.roleType}</td>
-                  <td>{worker.role}</td>
-                  <td>{worker.site}</td>
-                  <td>{worker.contactNo}</td>
-                  <td>₹{worker.perDaySalary}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </section>
-      </div>
-    );
-  }
+            <button
+              className="modal-btn report"
+              disabled={reportExists.morning}
+              onClick={() =>
+                navigate(
+                  `/daily-report/${selectedDate}/morning${
+                    isAdmin ? `?siteId=${selectedSite}` : ""
+                  }`
+                )
+              }
+            >
+              🌅 Morning Report{" "}
+              {reportExists.morning && "(Submitted)"}
+            </button>
 
- 
-  if (user.role === "manager") {
-    return (
-      <div className="dashboard">
-        <header className="dashboard-header">
-          <h1>Manager Dashboard</h1>
-          <div className="user-info">
-            <span>{user.name}</span>
-            <span className="role">({user.role})</span>
-          </div>
-        </header>
+            <button
+              className="modal-btn report"
+              disabled={reportExists.evening}
+              onClick={() =>
+                navigate(
+                  `/daily-report/${selectedDate}/evening${
+                    isAdmin ? `?siteId=${selectedSite}` : ""
+                  }`
+                )
+              }
+            >
+              🌇 Evening Report{" "}
+              {reportExists.evening && "(Submitted)"}
+            </button>
 
-        <div className="dashboard-hero">
-          <img src={dashboard} alt="dashboard" className="dashboard-image" />
-          <div className="overlay">
-            <h2>Welcome back, {user.name} 👋</h2>
-            <p>Here’s an overview of your team at {user.site}</p>
+            {(reportExists.morning || reportExists.evening) && (
+              <button
+                className="modal-btn view"
+                onClick={viewReport}
+              >
+                👁 View Report
+              </button>
+            )}
+
+            <button
+              className="modal-close"
+              onClick={() => setShowReportChoice(false)}
+            >
+              Back
+            </button>
           </div>
         </div>
+      )}
 
-        <section className="stats-section">
-          <div className="stat-card blue">
-            <h3>Total Workers</h3>
-            <p>{allWorkers.length}</p>
-          </div>
-         
-          <div className="stat-card red">
-            <h3>Team Efficiency</h3>
-            <p>95%</p>
-          </div>
-        </section>
+      {/* ================= MANAGEMENT MODAL ================= */}
+      {showManagementChoice && (
+        <div className="modal-overlay">
+          <div className="modal-box">
+            <h3>Management Options</h3>
 
-        <section className="table-section">
-          <h2>👷 Workers at {user.site}</h2>
-          <table>
-            <thead>
-              <tr>
-                <th>Name</th>
-                <th>Role</th>
-                <th>Site</th>
-              </tr>
-            </thead>
-            <tbody>
-              {allWorkers.map((worker, index) => (
-                <tr key={index}>
-                  <td>{worker.name}</td>
-                  <td>{worker.role}</td>
-                  <td>{worker.site}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </section>
-      </div>
-    );
-  }
+            {user.role === "admin" && (
+              <>
+                <button
+                  className="modal-btn"
+                 onClick={() =>
+  navigate(`/admin/bills?siteId=${selectedSite}`)
+}
+                >
+                  Bills
+                </button>
 
- 
-  if (user.role === "worker") {
-    return (
-      <div className="dashboard">
-        <header className="dashboard-header">
-          <h1>Worker Dashboard</h1>
-          <div className="user-info">
-            <span>{user.name}</span>
-            <span className="role">({user.role})</span>
-          </div>
-        </header>
+                <button
+                  className="modal-btn"
+                  onClick={() => navigate("/admin/stock")}
+                >
+                  Stockmanagement
+                </button>
 
-        <div className="dashboard-hero">
-          <img src={dashboard} alt="dashboard" className="dashboard-image" />
-          <div className="overlay">
-            <h2>Hello {user.name} 👋</h2>
-            <p>Welcome to your dashboard — check reports or profile for details.</p>
+                <button
+                  className="modal-btn"
+                  onClick={() => navigate("/vendors")}
+                >
+                  Vendors
+                </button>
+                 {/* <button
+      className="modal-btn"
+      onClick={() =>
+        navigate(`/site-expense?siteId=${selectedSite}`)
+      }
+    >
+      Site Expense
+    </button> */}
+              </>
+            )}
+
+            {user.role === "manager" && (
+              <>
+                <button
+                  className="modal-btn"
+                  onClick={() => navigate("/manager/bills")}
+                >
+                  Bills
+                </button>
+
+                <button
+                  className="modal-btn"
+                  onClick={() => navigate("/stock")}
+                >
+                  Stockmanagement
+                </button>
+                {/* <button
+                   className="modal-btn"
+                   onClick={()=>navigate("/site-expense")}
+                 >
+                  Site Expense
+                </button> */}
+              </>
+            )}
+
+            <button
+              className="modal-close"
+              onClick={() => setShowManagementChoice(false)}
+            >
+              Back
+            </button>
           </div>
         </div>
-
-        <section className="stats-section">
-          <div className="stat-card blue">
-            <h3>Current Site</h3>
-            <p>{user.site || "Not Assigned"}</p>
-          </div>
-          <div className="stat-card green">
-            <h3>Role</h3>
-            <p>{user.role}</p>
-          </div>
-        </section>
-      </div>
-    );
-  }
-
-  return <h2>❌ Invalid Role</h2>;
+      )}
+    </div>
+  );
 }
 
 export default Dashboard;
