@@ -1,6 +1,5 @@
 import mongoose from "mongoose";
 
-
 const AttendanceSchema = new mongoose.Schema({
   date: { type: Date, required: true },
   site: { type: String, required: true },
