@@ -5,6 +5,7 @@ import { uploadBill } from "../middleware/upload.js";
 
 const router = express.Router();
 
+
 router.post(
   "/create",
   uploadBill.single("billFile"),
@@ -16,7 +17,6 @@ router.get("/", async (req, res) => {
     const { role, userId, site } = req.query;
     let filter = {};
 
-    // ✅ ADMIN
     if (role === "admin") {
       if (!site) {
         return res.status(400).json({
@@ -24,21 +24,19 @@ router.get("/", async (req, res) => {
         });
       }
 
-      filter = { site }; // 🔥 IMPORTANT FIX
+      filter = { site };
     }
 
-    // ✅ MANAGER
     else if (role === "manager") {
-      if (!userId || !site) {
+      if (!site) {
         return res.status(400).json({
-          message: "Manager id & site required",
+          message: "Site required",
         });
       }
 
-      filter = { sentTo: userId, site };
+      filter = { site };
     }
 
-    // ✅ VENDOR
     else if (role === "vendor") {
       if (!userId) {
         return res.status(400).json({
