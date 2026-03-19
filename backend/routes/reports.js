@@ -8,14 +8,24 @@ const router = express.Router();
 
 router.get("/workers", async (req, res) => {
   try {
-    const workers = await Worker.find({}, "name site perDaySalary roleType role");
+    const { roleType, site } = req.query;
+
+    let filter = {};
+
+    if (roleType) filter.roleType = roleType;
+    if (site) filter.site = site;
+
+    const workers = await Worker.find(
+      filter,
+      "name site perDaySalary roleType role"
+    );
+
     res.json(workers);
   } catch (err) {
     console.error("🚨 Error fetching workers:", err.message);
     res.status(500).json({ message: err.message });
   }
 });
-
 
 router.post("/", async (req, res) => {
   try {
@@ -38,7 +48,7 @@ router.post("/", async (req, res) => {
         role: r.role,
         status: r.status,
         hoursWorked: hours,
-        overtimeHours: overtime, // ✅ new field
+        overtimeHours: overtime, 
         salary: r.salary || 0,
       };
     });
