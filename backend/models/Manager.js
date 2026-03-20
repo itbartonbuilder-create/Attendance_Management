@@ -1,13 +1,12 @@
 import mongoose from "mongoose";
 
-
 const ManagerSchema = new mongoose.Schema({
   name: { type: String, required: true },
   email: { type: String, required: true },
   contactNo: { type: String, required: true },
   site: { type: String, required: true },
 
-  // Optional documents
+ 
   aadhaarDoc: {
     url: { type: String },
     public_id: { type: String },
@@ -16,6 +15,20 @@ const ManagerSchema = new mongoose.Schema({
     url: { type: String },
     public_id: { type: String },
   },
+
+  // 📍 LOCATION TRACKING
+  latitude: {
+    type: Number,
+    default: null
+  },
+  longitude: {
+    type: Number,
+    default: null
+  },
+  lastLocationUpdate: {
+    type: Date
+  }
+
 }, { timestamps: true }); 
 
 export default mongoose.model("Manager", ManagerSchema);
