@@ -59,12 +59,12 @@ router.post("/login", async (req, res) => {
       if (!manager) return res.status(404).json({ msg: "Manager not found" });
 
       // 📍 SAVE LOCATION
-      if (latitude && longitude) {
-        manager.latitude = latitude;
-        manager.longitude = longitude;
-        manager.lastLocationUpdate = new Date();
-        await manager.save();
-      }
+     if (latitude !== undefined && longitude !== undefined) {
+  manager.latitude = latitude;
+  manager.longitude = longitude;
+  manager.lastLocationUpdate = new Date();
+  await manager.save();
+}
 
       const token = jwt.sign(
         { id: manager._id, role: "manager" },
@@ -92,13 +92,12 @@ router.post("/login", async (req, res) => {
       if (!worker) return res.status(404).json({ msg: "Worker not found" });
 
       // 📍 SAVE LOCATION
-      if (latitude && longitude) {
-        worker.latitude = latitude;
-        worker.longitude = longitude;
-        worker.lastLocationUpdate = new Date();
-        await worker.save();
-      }
-
+     if (latitude !== undefined && longitude !== undefined) {
+  worker.latitude = latitude;
+  worker.longitude = longitude;
+  worker.lastLocationUpdate = new Date();
+  await worker.save();
+}
       const token = jwt.sign(
         { id: worker._id, role: "worker" },
         process.env.JWT_SECRET,
