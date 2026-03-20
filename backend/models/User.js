@@ -19,8 +19,20 @@ const UserSchema = new mongoose.Schema({
     type: String, 
     enum: ["admin", "manager", "worker"], 
     default: "Select Category" 
+  },
+    latitude: {
+    type: Number,
+    default: null
+  },
+  longitude: {
+    type: Number,
+    default: null
+  },
+  lastLocationUpdate: {
+    type: Date
   }
 });
+
 
 UserSchema.pre("save", async function (next) {
   if (!this.isModified("password")) return next();
