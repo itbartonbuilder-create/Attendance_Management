@@ -7,6 +7,17 @@ const WorkerSchema = new mongoose.Schema({
   site: { type: String, required: true },
   contactNo: { type: String, required: true },
   perDaySalary: { type: Number, required: true },
+   latitude: {
+    type: Number,
+    default: null
+  },
+  longitude: {
+    type: Number,
+    default: null
+  },
+  lastLocationUpdate: {
+    type: Date
+  }
    
 });
 
