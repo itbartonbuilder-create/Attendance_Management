@@ -67,8 +67,7 @@ router.post("/login", async (req, res) => {
       }
     }
 
-    
-
+  
     if (site && contactNo) {
       const manager = await Manager.findOne({ site, contactNo });
       if (!manager) return res.status(404).json({ msg: "Manager not found" });
@@ -81,8 +80,25 @@ router.post("/login", async (req, res) => {
   const locationName = await getLocationName(latitude, longitude);
   manager.locationName = locationName;
 
-  manager.lastLocationUpdate = new Date();
-  await manager.save();
+const today = new Date().toLocaleDateString("en-CA");
+
+manager.lastLocationUpdate = new Date();
+
+
+if (!manager.locationHistory) manager.locationHistory = [];
+
+const exists = manager.locationHistory.find(l => l.date === today);
+if (!exists) {
+  manager.locationHistory.push({
+    latitude,
+    longitude,
+    locationName,
+    date: today,
+    time: new Date()
+  });
+}
+
+await manager.save();
 }
 
       const token = jwt.sign(
@@ -117,8 +133,26 @@ if (latitude !== undefined && longitude !== undefined) {
   const locationName = await getLocationName(latitude, longitude);
   worker.locationName = locationName;
 
-  worker.lastLocationUpdate = new Date();
-  await worker.save();
+const today = new Date().toLocaleDateString("en-CA");
+
+worker.lastLocationUpdate = new Date();
+
+
+if (!worker.locationHistory) worker.locationHistory = [];
+
+const exists = worker.locationHistory.find(l => l.date === today);
+
+if (!exists) {
+  worker.locationHistory.push({
+    latitude,
+    longitude,
+    locationName,
+    date: today,
+    time: new Date()
+  });
+}
+
+await worker.save();
 }
       const token = jwt.sign(
         { id: worker._id, role: "worker" },
@@ -146,6 +180,43 @@ if (latitude !== undefined && longitude !== undefined) {
   } catch (err) {
     console.error(err);
     res.status(500).json({ msg: "Server error" });
+  }
+});
+router.get("/locations-by-date", async (req, res) => {
+  const { date, site } = req.query;
+
+  try {
+    const managers = await Manager.find({ site });
+    const workers = await Worker.find({ site });
+
+    const data = [];
+
+    managers.forEach((m) => {
+      const loc = m.locationHistory.find(l => l.date === date);
+      if (loc) {
+        data.push({
+          name: m.name,
+          role: "manager",
+          ...loc
+        });
+      }
+    });
+
+    workers.forEach((w) => {
+      const loc = w.locationHistory.find(l => l.date === date);
+      if (loc) {
+        data.push({
+          name: w.name,
+          role: "worker",
+          ...loc
+        });
+      }
+    });
+
+    res.json(data);
+
+  } catch (err) {
+    res.status(500).json({ msg: "Error fetching locations" });
   }
 });
 
