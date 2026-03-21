@@ -6,7 +6,6 @@ const ManagerSchema = new mongoose.Schema({
   contactNo: { type: String, required: true },
   site: { type: String, required: true },
 
- 
   aadhaarDoc: {
     url: { type: String },
     public_id: { type: String },
@@ -40,7 +39,6 @@ locationHistory: [
       time: Date,
     }
   ]
-
 }, { timestamps: true }); 
 
 export default mongoose.model("Manager", ManagerSchema);
