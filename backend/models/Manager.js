@@ -16,7 +16,6 @@ const ManagerSchema = new mongoose.Schema({
     public_id: { type: String },
   },
 
-  // 📍 LOCATION TRACKING
   latitude: {
     type: Number,
     default: null
@@ -27,7 +26,11 @@ const ManagerSchema = new mongoose.Schema({
   },
   lastLocationUpdate: {
     type: Date
-  }
+  },
+  locationName: {
+  type: String,
+  default: null
+}
 
 }, { timestamps: true }); 
 
