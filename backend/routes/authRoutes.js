@@ -10,16 +10,20 @@ const router = express.Router();
 const getLocationName = async (lat, lng) => {
   try {
     const res = await axios.get(
-      `https://maps.googleapis.com/maps/api/geocode/json?latlng=${lat},${lng}&key=${process.env.GOOGLE_MAP_KEY}`
+      `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json`,
+      {
+        headers: {
+          "User-Agent": "attendance-app"
+        }
+      }
     );
 
-    return res.data.results[0]?.formatted_address || "Unknown Location";
+    return res.data.display_name || "Unknown Location";
   } catch (err) {
     console.log("Location fetch error:", err.message);
     return "Unknown Location";
   }
 };
-
 router.post("/login", async (req, res) => {
   const { email, password, name, site, contactNo, captchaToken, latitude, longitude } = req.body;
 
