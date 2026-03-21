@@ -7,13 +7,24 @@ import axios from "axios";
 
 dotenv.config();
 const router = express.Router();
+const getLocationName = async (lat, lng) => {
+  try {
+    const res = await axios.get(
+      `https://maps.googleapis.com/maps/api/geocode/json?latlng=${lat},${lng}&key=${process.env.GOOGLE_MAP_KEY}`
+    );
+
+    return res.data.results[0]?.formatted_address || "Unknown Location";
+  } catch (err) {
+    console.log("Location fetch error:", err.message);
+    return "Unknown Location";
+  }
+};
 
 router.post("/login", async (req, res) => {
   const { email, password, name, site, contactNo, captchaToken, latitude, longitude } = req.body;
 
   try {
 
-    // ================= CAPTCHA =================
     if (!captchaToken) {
       return res.status(400).json({ msg: "Captcha required" });
     }
@@ -35,7 +46,6 @@ router.post("/login", async (req, res) => {
       return res.status(400).json({ msg: "Captcha verification failed" });
     }
 
-    // ================= ADMIN =================
     if (email && password) {
       if (email === process.env.ADMIN_EMAIL && password === process.env.ADMIN_PASSWORD) {
 
@@ -53,15 +63,20 @@ router.post("/login", async (req, res) => {
       }
     }
 
-    // ================= MANAGER =================
+    
+
     if (site && contactNo) {
       const manager = await Manager.findOne({ site, contactNo });
       if (!manager) return res.status(404).json({ msg: "Manager not found" });
 
-      // 📍 SAVE LOCATION
-     if (latitude !== undefined && longitude !== undefined) {
+
+ if (latitude !== undefined && longitude !== undefined) {
   manager.latitude = latitude;
   manager.longitude = longitude;
+
+  const locationName = await getLocationName(latitude, longitude);
+  manager.locationName = locationName;
+
   manager.lastLocationUpdate = new Date();
   await manager.save();
 }
@@ -81,20 +96,23 @@ router.post("/login", async (req, res) => {
           role: "manager",
           site: manager.site,
           latitude: manager.latitude,
-          longitude: manager.longitude
+          longitude: manager.longitude,
+          locationName: manager.locationName 
         },
       });
     }
 
-    // ================= WORKER =================
     if (name && contactNo) {
       const worker = await Worker.findOne({ name, contactNo });
       if (!worker) return res.status(404).json({ msg: "Worker not found" });
 
-      // 📍 SAVE LOCATION
-     if (latitude !== undefined && longitude !== undefined) {
+if (latitude !== undefined && longitude !== undefined) {
   worker.latitude = latitude;
   worker.longitude = longitude;
+
+  const locationName = await getLocationName(latitude, longitude);
+  worker.locationName = locationName;
+
   worker.lastLocationUpdate = new Date();
   await worker.save();
 }
@@ -113,7 +131,8 @@ router.post("/login", async (req, res) => {
           role: "worker",
           site: worker.site,
           latitude: worker.latitude,
-          longitude: worker.longitude
+          longitude: worker.longitude,
+          locationName: worker.locationName
         },
       });
     }
