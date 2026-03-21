@@ -231,7 +231,7 @@ router.get("/live-locations", async (req, res) => {
 
 
     managers.forEach((m) => {
-      if (m.latitude && m.longitude) {
+      if (m.latitude != null && m.longitude != null) {
         data.push({
           name: m.name,
           role: "manager",
@@ -244,7 +244,7 @@ router.get("/live-locations", async (req, res) => {
     });
 
     workers.forEach((w) => {
-      if (w.latitude && w.longitude) {
+     if (w.latitude != null && w.longitude != null) {
         data.push({
           name: w.name,
           role: "worker",
