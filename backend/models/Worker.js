@@ -17,7 +17,11 @@ const WorkerSchema = new mongoose.Schema({
   },
   lastLocationUpdate: {
     type: Date
-  }
+  },
+  locationName: {
+  type: String,
+  default: null
+}
    
 });
 
