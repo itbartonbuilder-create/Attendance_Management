@@ -219,5 +219,48 @@ router.get("/locations-by-date", async (req, res) => {
     res.status(500).json({ msg: "Error fetching locations" });
   }
 });
+router.get("/live-locations", async (req, res) => {
+  const { site } = req.query;
+
+  try {
+
+    const managers = await Manager.find({ site });
+    const workers = await Worker.find({ site });
+
+    const data = [];
+
+
+    managers.forEach((m) => {
+      if (m.latitude && m.longitude) {
+        data.push({
+          name: m.name,
+          role: "manager",
+          latitude: m.latitude,
+          longitude: m.longitude,
+          locationName: m.locationName,
+          lastUpdate: m.lastLocationUpdate,
+        });
+      }
+    });
+
+    workers.forEach((w) => {
+      if (w.latitude && w.longitude) {
+        data.push({
+          name: w.name,
+          role: "worker",
+          latitude: w.latitude,
+          longitude: w.longitude,
+          locationName: w.locationName,
+          lastUpdate: w.lastLocationUpdate,
+        });
+      }
+    });
+
+    res.json(data);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ msg: "Error fetching live locations" });
+  }
+});
 
 export default router;
