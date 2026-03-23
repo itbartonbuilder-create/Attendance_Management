@@ -3,13 +3,18 @@ import mongoose from "mongoose";
 const AttendanceSchema = new mongoose.Schema({
   date: { type: Date, required: true },
   site: { type: String, required: true },
+   markedByLocation: {
+    lat: Number,
+    lng: Number,
+    address: String
+  },
   records: [
     {
       workerId: { type: mongoose.Schema.Types.ObjectId, ref: "Worker", required: true },
       name: String,
       roleType: String,
       role: String,
-      type: { type: String, enum: ["worker", "employee"], required: true }, // important
+      type: { type: String, enum: ["worker", "employee"], required: true }, 
       status: { type: String, enum: ["Present", "Absent", "Leave"], required: true },
       hoursWorked: { type: Number, default: 0 },
       overtimeHours: { type: Number, default: 0 },
@@ -20,6 +25,7 @@ const AttendanceSchema = new mongoose.Schema({
       },
     }
   ],
+  
 });
 
 AttendanceSchema.index({ date: 1, site: 1 }, { unique: true });
