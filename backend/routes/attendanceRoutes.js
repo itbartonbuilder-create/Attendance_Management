@@ -5,7 +5,6 @@ import Employee from "../models/employeeModel.js";
 import WorkerPayment from "../models/WorkerPayment.js";
 
 const router = express.Router();
-
 router.post("/", async (req, res) => {
   try {
     const { date, site, type, records } = req.body;
