@@ -1,4 +1,5 @@
 import express from "express";
+import authMiddleware from "../middleware/auth.js"; // top me add
 import Attendance from "../models/Attendance.js";
 import Worker from "../models/Worker.js";
 import Employee from "../models/employeeModel.js";
@@ -8,7 +9,7 @@ const router = express.Router();
 
 router.post("/", async (req, res) => {
   try {
-    const { date, site, type, records } = req.body;
+    const { date, site, type, records, location } = req.body;
 
     const localDate = new Date(date);
     localDate.setHours(0, 0, 0, 0);
@@ -85,12 +86,16 @@ const perDay =
         date: localDate,
         site,
         records: updatedRecords,
+        markedByLocation: location 
       });
     } else {
       const other = attendance.records.filter(
         (r) => r.type !== type
       );
       attendance.records = [...other, ...updatedRecords];
+       if (location) {
+    attendance.markedByLocation = location;
+  }
     }
 
     await attendance.save();
@@ -107,7 +112,9 @@ const perDay =
 
 
 
-router.get("/get", async (req, res) => {
+
+
+router.get("/get", authMiddleware, async (req, res) => {
   try {
     const { date, site, type } = req.query;
 
@@ -126,11 +133,20 @@ router.get("/get", async (req, res) => {
       ? attendance.records.filter((r) => r.type === type)
       : attendance.records;
 
-    res.json({
+    let response = {
       success: true,
       records: filtered,
-    });
+    };
+
+    // ✅ sirf admin ko location milegi
+    if (req.user?.role === "admin") {
+      response.location = attendance.markedByLocation;
+    }
+
+    res.json(response);
+
   } catch (err) {
+    console.error(err);
     res.status(500).json({ success: false });
   }
 });
