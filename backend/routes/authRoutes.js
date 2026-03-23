@@ -186,9 +186,13 @@ router.get("/locations-by-date", async (req, res) => {
   const { date, site } = req.query;
 
   try {
-    const managers = await Manager.find({ site });
-    const workers = await Worker.find({ site });
+    const managers = await Manager.find({
+  site: { $regex: `^${site}$`, $options: "i" }
+});
 
+const workers = await Worker.find({
+  site: { $regex: `^${site}$`, $options: "i" }
+});
     const data = [];
 
     managers.forEach((m) => {
@@ -224,8 +228,13 @@ router.get("/live-locations", async (req, res) => {
 
   try {
 
-    const managers = await Manager.find({ site });
-    const workers = await Worker.find({ site });
+   const managers = await Manager.find({
+  site: { $regex: `^${site}$`, $options: "i" }
+});
+
+const workers = await Worker.find({
+  site: { $regex: `^${site}$`, $options: "i" }
+});
 
     const data = [];
 
