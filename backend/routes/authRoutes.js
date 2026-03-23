@@ -233,21 +233,34 @@ const workers = await Worker.find({
 router.get("/live-locations", async (req, res) => {
   const { site } = req.query;
 
+  if (!site) {
+    return res.status(400).json({ msg: "Site is required" });
+  }
+
+  const escapeRegex = (text) => {
+    return text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  };
+
+  const safeSite = escapeRegex(site);
+
   try {
+    console.log("SITE:", site);
 
- const managers = await Manager.find({
-  site: { $regex: `^${site.trim()}$`, $options: "i" }
-});
+    const managers = await Manager.find({
+      site: { $regex: `^${safeSite}$`, $options: "i" }
+    });
 
-const workers = await Worker.find({
-  site: { $regex: `^${site.trim()}$`, $options: "i" }
-});
+    const workers = await Worker.find({
+      site: { $regex: `^${safeSite}$`, $options: "i" }
+    });
+
+    console.log("Managers:", managers.length);
+    console.log("Workers:", workers.length);
 
     const data = [];
 
-
     managers.forEach((m) => {
-      if (m.latitude != null && m.longitude != null) {
+      if (m.latitude && m.longitude) {
         data.push({
           name: m.name,
           role: "manager",
@@ -260,7 +273,7 @@ const workers = await Worker.find({
     });
 
     workers.forEach((w) => {
-     if (w.latitude != null && w.longitude != null) {
+      if (w.latitude && w.longitude) {
         data.push({
           name: w.name,
           role: "worker",
@@ -273,8 +286,9 @@ const workers = await Worker.find({
     });
 
     res.json(data);
+
   } catch (err) {
-    console.error(err);
+    console.error("🔥 LIVE LOCATION ERROR:", err);
     res.status(500).json({ msg: "Error fetching live locations" });
   }
 });
