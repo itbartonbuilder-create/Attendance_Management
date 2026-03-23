@@ -9,7 +9,7 @@ import Manager from "../models/Manager.js";
 
 const router = express.Router();
 
-// ===================== ATTENDANCE SAVE =====================
+// ✅ SAVE ATTENDANCE + LOCATION
 router.post("/", authMiddleware, async (req, res) => {
   try {
     const { date, site, type, records, latitude, longitude } = req.body;
@@ -17,12 +17,8 @@ router.post("/", authMiddleware, async (req, res) => {
     const localDate = new Date(date);
     localDate.setHours(0, 0, 0, 0);
 
-    let attendance = await Attendance.findOne({
-      date: localDate,
-      site,
-    });
+    let attendance = await Attendance.findOne({ date: localDate, site });
 
-    // ===================== PREPARE RECORDS =====================
     const updatedRecords = await Promise.all(
       records.map(async (r) => {
         const person =
@@ -30,10 +26,12 @@ router.post("/", authMiddleware, async (req, res) => {
             ? await Worker.findById(r.workerId)
             : await Employee.findById(r.workerId);
 
+        if (!person) return null;
+
         const perDay =
           type === "worker"
-            ? person?.perDaySalary || 0
-            : person?.salary || 0;
+            ? person.perDaySalary || 0
+            : person.salary || 0;
 
         const leaveType = r.leaveType || {};
         const isPaidLeave = leaveType.holiday || leaveType.accepted;
@@ -44,16 +42,12 @@ router.post("/", authMiddleware, async (req, res) => {
 
         if (r.status === "Present") {
           const total = Math.min(12, Number(r.hoursWorked) || 0);
-
           hoursWorked = total;
           overtimeHours = total > 8 ? total - 8 : 0;
           salary = Math.round((perDay / 8) * total);
-        } 
-        else if (r.status === "Leave") {
-          if (isPaidLeave) {
-            hoursWorked = 8;
-            salary = perDay;
-          }
+        } else if (r.status === "Leave" && isPaidLeave) {
+          hoursWorked = 8;
+          salary = perDay;
         }
 
         return {
@@ -71,21 +65,22 @@ router.post("/", authMiddleware, async (req, res) => {
       })
     );
 
-    // ===================== SAVE ATTENDANCE =====================
+    const cleanRecords = updatedRecords.filter(Boolean);
+
     if (!attendance) {
       attendance = new Attendance({
         date: localDate,
         site,
-        records: updatedRecords,
+        records: cleanRecords,
       });
     } else {
       const other = attendance.records.filter((r) => r.type !== type);
-      attendance.records = [...other, ...updatedRecords];
+      attendance.records = [...other, ...cleanRecords];
     }
 
     await attendance.save();
 
-    // ===================== SAVE LOCATION =====================
+    // ✅ SAVE LOCATION
     if (latitude && longitude) {
       let person;
 
@@ -102,23 +97,17 @@ router.post("/", authMiddleware, async (req, res) => {
         let locationName = "Unknown";
 
         try {
-          const res = await axios.get(
+          const geo = await axios.get(
             "https://nominatim.openstreetmap.org/reverse",
             {
-              params: {
-                lat: latitude,
-                lon: longitude,
-                format: "json",
-              },
-              headers: {
-                "User-Agent": "attendance-app",
-              },
+              params: { lat: latitude, lon: longitude, format: "json" },
+              headers: { "User-Agent": "attendance-app" },
             }
           );
 
-          locationName = res.data.display_name || "Unknown";
+          locationName = geo.data.display_name || "Unknown";
         } catch (err) {
-          console.log("Location fetch error:", err.message);
+          console.log("Location fetch error");
         }
 
         person.locationName = locationName;
@@ -126,7 +115,6 @@ router.post("/", authMiddleware, async (req, res) => {
 
         if (!person.locationHistory) person.locationHistory = [];
 
-        // ✅ ALWAYS SAVE (BEST)
         person.locationHistory.push({
           latitude,
           longitude,
@@ -139,19 +127,14 @@ router.post("/", authMiddleware, async (req, res) => {
       }
     }
 
-    res.json({
-      success: true,
-      records: updatedRecords,
-    });
-
+    res.json({ success: true, records: cleanRecords });
   } catch (err) {
     console.error(err);
     res.status(500).json({ success: false });
   }
 });
 
-
-// ===================== GET ATTENDANCE =====================
+// ✅ GET ATTENDANCE
 router.get("/get", async (req, res) => {
   try {
     const { date, site, type } = req.query;
@@ -164,88 +147,14 @@ router.get("/get", async (req, res) => {
       site,
     });
 
-    if (!attendance) {
-      return res.json({ success: true, records: [] });
-    }
+    if (!attendance) return res.json({ success: true, records: [] });
 
     const filtered = type
       ? attendance.records.filter((r) => r.type === type)
       : attendance.records;
 
-    res.json({
-      success: true,
-      records: filtered,
-    });
-
+    res.json({ success: true, records: filtered });
   } catch (err) {
-    res.status(500).json({ success: false });
-  }
-});
-
-
-// ===================== PAYMENT SAVE =====================
-router.post("/payment", async (req, res) => {
-  try {
-    const { workerId, site, amount, date, note } = req.body;
-
-    const payment = new WorkerPayment({
-      workerId,
-      site,
-      amount,
-      date,
-      note,
-    });
-
-    await payment.save();
-
-    res.json({
-      success: true,
-      payment,
-    });
-
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ success: false });
-  }
-});
-
-
-// ===================== PAYMENT HISTORY =====================
-router.get("/payment/:workerId", async (req, res) => {
-  try {
-    const { workerId } = req.params;
-    const { start, end, site } = req.query;
-
-    const query = { workerId };
-
-    if (site) query.site = site;
-
-    if (start && end) {
-      const startDate = new Date(start);
-      const endDate = new Date(end);
-      endDate.setHours(23, 59, 59, 999);
-
-      query.date = {
-        $gte: startDate,
-        $lte: endDate,
-      };
-    }
-
-    const payments = await WorkerPayment.find(query);
-
-    const totalPaid = payments.reduce(
-      (sum, p) => sum + Number(p.amount),
-      0
-    );
-
-    res.json({
-      success: true,
-      payments,
-      totalPaid,
-    });
-
-  } catch (err) {
-    console.error(err);
     res.status(500).json({ success: false });
   }
 });
