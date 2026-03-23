@@ -69,7 +69,10 @@ router.post("/login", async (req, res) => {
 
   
     if (site && contactNo) {
-      const manager = await Manager.findOne({ site, contactNo });
+      const manager = await Manager.findOne({
+  site: { $regex: `^${site.trim()}$`, $options: "i" },
+  contactNo
+});
       if (!manager) return res.status(404).json({ msg: "Manager not found" });
 
 
@@ -123,7 +126,10 @@ await manager.save();
     }
 
     if (name && contactNo) {
-      const worker = await Worker.findOne({ name, contactNo });
+      const worker = await Worker.findOne({
+  name: { $regex: `^${name.trim()}$`, $options: "i" },
+  contactNo
+});
       if (!worker) return res.status(404).json({ msg: "Worker not found" });
 
 if (latitude !== undefined && longitude !== undefined) {
@@ -187,12 +193,13 @@ router.get("/locations-by-date", async (req, res) => {
 
   try {
     const managers = await Manager.find({
-  site: { $regex: `^${site}$`, $options: "i" }
+  site: { $regex: `^${site.trim()}$`, $options: "i" }
 });
 
 const workers = await Worker.find({
-  site: { $regex: `^${site}$`, $options: "i" }
+  site: { $regex: `^${site.trim()}$`, $options: "i" }
 });
+
     const data = [];
 
     managers.forEach((m) => {
@@ -228,12 +235,12 @@ router.get("/live-locations", async (req, res) => {
 
   try {
 
-   const managers = await Manager.find({
-  site: { $regex: `^${site}$`, $options: "i" }
+ const managers = await Manager.find({
+  site: { $regex: `^${site.trim()}$`, $options: "i" }
 });
 
 const workers = await Worker.find({
-  site: { $regex: `^${site}$`, $options: "i" }
+  site: { $regex: `^${site.trim()}$`, $options: "i" }
 });
 
     const data = [];
