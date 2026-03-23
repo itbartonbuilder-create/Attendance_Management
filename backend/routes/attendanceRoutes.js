@@ -1,13 +1,18 @@
+import axios from "axios";
 import express from "express";
 import Attendance from "../models/Attendance.js";
 import Worker from "../models/Worker.js";
 import Employee from "../models/employeeModel.js";
 import WorkerPayment from "../models/WorkerPayment.js";
+import authMiddleware from "../middleware/auth.js";
+import Manager from "../models/Manager.js";
 
 const router = express.Router();
-router.post("/", async (req, res) => {
+
+// ===================== ATTENDANCE SAVE =====================
+router.post("/", authMiddleware, async (req, res) => {
   try {
-    const { date, site, type, records } = req.body;
+    const { date, site, type, records, latitude, longitude } = req.body;
 
     const localDate = new Date(date);
     localDate.setHours(0, 0, 0, 0);
@@ -17,55 +22,42 @@ router.post("/", async (req, res) => {
       site,
     });
 
+    // ===================== PREPARE RECORDS =====================
     const updatedRecords = await Promise.all(
       records.map(async (r) => {
-       
         const person =
           type === "worker"
             ? await Worker.findById(r.workerId)
             : await Employee.findById(r.workerId);
-            console.log("Employee:", person);
-console.log("Salary:", person?.salary);
-const perDay =
-  type === "worker"
-    ? person?.perDaySalary || 0
-    : person?.salary || 0;
+
+        const perDay =
+          type === "worker"
+            ? person?.perDaySalary || 0
+            : person?.salary || 0;
 
         const leaveType = r.leaveType || {};
-        const isPaidLeave =
-          leaveType.holiday || leaveType.accepted;
+        const isPaidLeave = leaveType.holiday || leaveType.accepted;
 
         let hoursWorked = 0;
         let overtimeHours = 0;
         let salary = 0;
 
-       
         if (r.status === "Present") {
           const total = Math.min(12, Number(r.hoursWorked) || 0);
 
           hoursWorked = total;
           overtimeHours = total > 8 ? total - 8 : 0;
-
           salary = Math.round((perDay / 8) * total);
-        }
-
-      
+        } 
         else if (r.status === "Leave") {
           if (isPaidLeave) {
             hoursWorked = 8;
-            overtimeHours = 0;
             salary = perDay;
           }
         }
 
-        else {
-          hoursWorked = 0;
-          overtimeHours = 0;
-          salary = 0;
-        }
-
         return {
-           workerId: person._id,
+          workerId: person._id,
           name: r.name,
           roleType: r.roleType,
           role: r.role,
@@ -79,6 +71,7 @@ const perDay =
       })
     );
 
+    // ===================== SAVE ATTENDANCE =====================
     if (!attendance) {
       attendance = new Attendance({
         date: localDate,
@@ -86,18 +79,71 @@ const perDay =
         records: updatedRecords,
       });
     } else {
-      const other = attendance.records.filter(
-        (r) => r.type !== type
-      );
+      const other = attendance.records.filter((r) => r.type !== type);
       attendance.records = [...other, ...updatedRecords];
     }
 
     await attendance.save();
 
+    // ===================== SAVE LOCATION =====================
+    if (latitude && longitude) {
+      let person;
+
+      if (req.user.role === "manager") {
+        person = await Manager.findById(req.user.id);
+      } else if (req.user.role === "worker") {
+        person = await Worker.findById(req.user.id);
+      }
+
+      if (person) {
+        person.latitude = latitude;
+        person.longitude = longitude;
+
+        let locationName = "Unknown";
+
+        try {
+          const res = await axios.get(
+            "https://nominatim.openstreetmap.org/reverse",
+            {
+              params: {
+                lat: latitude,
+                lon: longitude,
+                format: "json",
+              },
+              headers: {
+                "User-Agent": "attendance-app",
+              },
+            }
+          );
+
+          locationName = res.data.display_name || "Unknown";
+        } catch (err) {
+          console.log("Location fetch error:", err.message);
+        }
+
+        person.locationName = locationName;
+        person.lastLocationUpdate = new Date();
+
+        if (!person.locationHistory) person.locationHistory = [];
+
+        // ✅ ALWAYS SAVE (BEST)
+        person.locationHistory.push({
+          latitude,
+          longitude,
+          locationName,
+          date: new Date().toLocaleDateString("en-CA"),
+          time: new Date(),
+        });
+
+        await person.save();
+      }
+    }
+
     res.json({
       success: true,
       records: updatedRecords,
     });
+
   } catch (err) {
     console.error(err);
     res.status(500).json({ success: false });
@@ -105,7 +151,7 @@ const perDay =
 });
 
 
-
+// ===================== GET ATTENDANCE =====================
 router.get("/get", async (req, res) => {
   try {
     const { date, site, type } = req.query;
@@ -118,8 +164,9 @@ router.get("/get", async (req, res) => {
       site,
     });
 
-    if (!attendance)
+    if (!attendance) {
       return res.json({ success: true, records: [] });
+    }
 
     const filtered = type
       ? attendance.records.filter((r) => r.type === type)
@@ -129,10 +176,14 @@ router.get("/get", async (req, res) => {
       success: true,
       records: filtered,
     });
+
   } catch (err) {
     res.status(500).json({ success: false });
   }
 });
+
+
+// ===================== PAYMENT SAVE =====================
 router.post("/payment", async (req, res) => {
   try {
     const { workerId, site, amount, date, note } = req.body;
@@ -142,14 +193,14 @@ router.post("/payment", async (req, res) => {
       site,
       amount,
       date,
-      note
+      note,
     });
 
     await payment.save();
 
     res.json({
       success: true,
-      payment
+      payment,
     });
 
   } catch (err) {
@@ -157,28 +208,26 @@ router.post("/payment", async (req, res) => {
     res.status(500).json({ success: false });
   }
 });
+
+
+// ===================== PAYMENT HISTORY =====================
 router.get("/payment/:workerId", async (req, res) => {
   try {
-
     const { workerId } = req.params;
     const { start, end, site } = req.query;
 
     const query = { workerId };
 
-    if (site) {
-      query.site = site;
-    }
+    if (site) query.site = site;
 
     if (start && end) {
-
       const startDate = new Date(start);
       const endDate = new Date(end);
-
       endDate.setHours(23, 59, 59, 999);
 
       query.date = {
         $gte: startDate,
-        $lte: endDate
+        $lte: endDate,
       };
     }
 
@@ -192,7 +241,7 @@ router.get("/payment/:workerId", async (req, res) => {
     res.json({
       success: true,
       payments,
-      totalPaid
+      totalPaid,
     });
 
   } catch (err) {
