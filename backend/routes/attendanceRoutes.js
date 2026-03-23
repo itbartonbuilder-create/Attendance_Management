@@ -118,14 +118,16 @@ router.get("/get", authMiddleware, async (req, res) => {
   try {
     const { date, site, type } = req.query;
 
-    const queryDate = new Date(date);
-    queryDate.setHours(0, 0, 0, 0);
+   const start = new Date(date);
+start.setHours(0, 0, 0, 0);
 
-    const attendance = await Attendance.findOne({
-      date: queryDate,
-      site,
-    });
+const end = new Date(date);
+end.setHours(23, 59, 59, 999);
 
+const attendance = await Attendance.findOne({
+  site,
+  date: { $gte: start, $lte: end },
+});
     if (!attendance)
       return res.json({ success: true, records: [] });
 
