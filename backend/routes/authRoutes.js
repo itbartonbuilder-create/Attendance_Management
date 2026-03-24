@@ -321,4 +321,33 @@ router.get("/live-locations", async (req, res) => {
   }
 });
 
+router.post("/update-location", async (req, res) => {
+  const { userId, role, latitude, longitude } = req.body;
+
+  try {
+    let user;
+
+    if (role === "manager") {
+      user = await Manager.findById(userId);
+    } else {
+      user = await Worker.findById(userId);
+    }
+
+    if (!user) return res.status(404).json({ msg: "User not found" });
+
+    user.latitude = latitude;
+    user.longitude = longitude;
+    user.lastLocationUpdate = new Date(); 
+
+    const locationName = await getLocationName(latitude, longitude);
+    user.locationName = locationName;
+
+    await user.save();
+
+    res.json({ msg: "Location updated" });
+  } catch (err) {
+    res.status(500).json({ msg: "Error updating location" });
+  }
+});
+
 export default router;
