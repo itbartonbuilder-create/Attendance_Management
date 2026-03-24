@@ -231,7 +231,7 @@ const workers = await Worker.find({
   }
 });
 router.get("/live-locations", async (req, res) => {
-  const { site } = req.query;
+  const { site, date } = req.query;
 
   if (!site) {
     return res.status(400).json({ msg: "Site is required" });
@@ -244,8 +244,6 @@ router.get("/live-locations", async (req, res) => {
   const safeSite = escapeRegex(site);
 
   try {
-    console.log("SITE:", site);
-
     const managers = await Manager.find({
       site: { $regex: `^${safeSite}$`, $options: "i" }
     });
@@ -254,42 +252,72 @@ router.get("/live-locations", async (req, res) => {
       site: { $regex: `^${safeSite}$`, $options: "i" }
     });
 
-    console.log("Managers:", managers.length);
-    console.log("Workers:", workers.length);
-
     const data = [];
 
-    managers.forEach((m) => {
-      if (m.latitude && m.longitude) {
-        data.push({
-          name: m.name,
-          role: "manager",
-          latitude: m.latitude,
-          longitude: m.longitude,
-          locationName: m.locationName,
-          lastUpdate: m.lastLocationUpdate,
-        });
-      }
-    });
+    // 🔥 CASE 1: DATE PROVIDED → HISTORY MODE
+    if (date) {
+      managers.forEach((m) => {
+        const loc = m.locationHistory?.find(l => l.date === date);
+        if (loc) {
+          data.push({
+            name: m.name,
+            role: "manager",
+            latitude: loc.latitude,
+            longitude: loc.longitude,
+            locationName: loc.locationName,
+            lastUpdate: loc.time,
+          });
+        }
+      });
 
-    workers.forEach((w) => {
-      if (w.latitude && w.longitude) {
-        data.push({
-          name: w.name,
-          role: "worker",
-          latitude: w.latitude,
-          longitude: w.longitude,
-          locationName: w.locationName,
-          lastUpdate: w.lastLocationUpdate,
-        });
-      }
-    });
+      workers.forEach((w) => {
+        const loc = w.locationHistory?.find(l => l.date === date);
+        if (loc) {
+          data.push({
+            name: w.name,
+            role: "worker",
+            latitude: loc.latitude,
+            longitude: loc.longitude,
+            locationName: loc.locationName,
+            lastUpdate: loc.time,
+          });
+        }
+      });
+
+    } else {
+      // 🔥 CASE 2: NO DATE → LIVE MODE
+      managers.forEach((m) => {
+        if (m.latitude && m.longitude) {
+          data.push({
+            name: m.name,
+            role: "manager",
+            latitude: m.latitude,
+            longitude: m.longitude,
+            locationName: m.locationName,
+            lastUpdate: m.lastLocationUpdate,
+          });
+        }
+      });
+
+      workers.forEach((w) => {
+        if (w.latitude && w.longitude) {
+          data.push({
+            name: w.name,
+            role: "worker",
+            latitude: w.latitude,
+            longitude: w.longitude,
+            locationName: w.locationName,
+            lastUpdate: w.lastLocationUpdate,
+          });
+        }
+      });
+    }
 
     res.json(data);
 
   } catch (err) {
     console.error("🔥 LIVE LOCATION ERROR:", err);
-    res.status(500).json({ msg: "Error fetching live locations" });
+    res.status(500).json({ msg: "Error fetching locations" });
   }
 });
 
