@@ -337,20 +337,14 @@ router.post("/update-location", async (req, res) => {
 
     user.latitude = latitude;
     user.longitude = longitude;
-    user.lastLocationUpdate = new Date();
+    user.lastLocationUpdate = new Date(); 
 
-    await user.save();   
+    const locationName = await getLocationName(latitude, longitude);
+    user.locationName = locationName;
 
-    res.json({ msg: "Location updated" }); 
+    await user.save();
 
-    getLocationName(latitude, longitude)
-      .then(async (locationName) => {
-        user.locationName = locationName;
-        await user.save();
-        console.log("📍 Address updated");
-      })
-      .catch(() => console.log("Address fetch failed"));
-
+    res.json({ msg: "Location updated" });
   } catch (err) {
     res.status(500).json({ msg: "Error updating location" });
   }
