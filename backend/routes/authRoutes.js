@@ -335,16 +335,25 @@ router.post("/update-location", async (req, res) => {
 
     if (!user) return res.status(404).json({ msg: "User not found" });
 
+  
     user.latitude = latitude;
     user.longitude = longitude;
-    user.lastLocationUpdate = new Date(); 
-
-    const locationName = await getLocationName(latitude, longitude);
-    user.locationName = locationName;
+    user.lastLocationUpdate = new Date();
 
     await user.save();
 
-    res.json({ msg: "Location updated" });
+    // ⚡ RESPONSE TURANT BHEJO (NO WAIT)
+    res.json({ msg: "Location updated instantly" });
+
+    // 🐢 STEP 2 — ADDRESS BACKGROUND ME UPDATE (NO AWAIT)
+    getLocationName(latitude, longitude)
+      .then(async (locationName) => {
+        user.locationName = locationName;
+        await user.save();
+        console.log("📍 Address updated");
+      })
+      .catch(() => console.log("Address fetch failed"));
+
   } catch (err) {
     res.status(500).json({ msg: "Error updating location" });
   }
