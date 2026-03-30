@@ -7,7 +7,7 @@ import axios from "axios";
 dotenv.config();
 const router = express.Router();
 
-// Utility to get location name from lat/lng
+
 const getLocationName = async (lat, lng) => {
   try {
     const res = await axios.get(
@@ -21,7 +21,6 @@ const getLocationName = async (lat, lng) => {
   }
 };
 
-// LOGIN ROUTE
 router.post("/login", async (req, res) => {
   const { email, password, site, contactNo, captchaToken, latitude, longitude } = req.body;
 
@@ -37,13 +36,12 @@ router.post("/login", async (req, res) => {
 
     if (!captchaRes.data.success) return res.status(400).json({ msg: "Captcha verification failed" });
 
-    // Admin login
     if (email && password) {
       if (email === process.env.ADMIN_EMAIL && password === process.env.ADMIN_PASSWORD) {
         const token = jwt.sign({ role: "admin" }, process.env.JWT_SECRET, { expiresIn: process.env.JWT_EXPIRES_IN });
         return res.json({ msg: "Admin login successful", token, user: { name: "Admin", email, role: "admin" } });
       } 
-      // Accountant login
+     
       else if (email === process.env.ACCOUNTANT_EMAIL && password === process.env.ACCOUNTANT_PASSWORD) {
         const token = jwt.sign({ role: "accountant" }, process.env.JWT_SECRET, { expiresIn: process.env.JWT_EXPIRES_IN });
         return res.json({ msg: "Accountant login successful", token, user: { name: "Accountant", email, role: "accountant" } });
@@ -53,7 +51,7 @@ router.post("/login", async (req, res) => {
       }
     }
 
-    // Manager login
+
     if (site && contactNo) {
       const manager = await Manager.findOne({
         site: { $regex: `^${site.trim()}$`, $options: "i" },
@@ -100,7 +98,7 @@ router.post("/login", async (req, res) => {
   }
 });
 
-// LOCATIONS BY DATE (MANAGERS ONLY)
+
 router.get("/locations-by-date", async (req, res) => {
   const { date, site } = req.query;
   try {
@@ -118,7 +116,6 @@ router.get("/locations-by-date", async (req, res) => {
   }
 });
 
-// LIVE LOCATIONS (MANAGERS ONLY)
 router.get("/live-locations", async (req, res) => {
   const { site, date } = req.query;
   if (!site) return res.status(400).json({ msg: "Site is required" });
@@ -147,7 +144,7 @@ router.get("/live-locations", async (req, res) => {
   }
 });
 
-// UPDATE MANAGER LOCATION
+
 router.post("/update-location", async (req, res) => {
   const { userId, latitude, longitude } = req.body;
 
