@@ -43,10 +43,13 @@ const getLocationName = async (lat, lng) => {
 
     return address || "Unknown Location";
 
-  } catch (err) {
-    console.log("📍 Reverse Geocode Error:", err.message);
-    return "Unknown Location";
-  }
+  }catch (err) {
+  console.log("📍 Reverse Geocode FULL ERROR:");
+  console.log("Status:", err.response?.status);
+  console.log("Data:", err.response?.data);
+  console.log("Message:", err.message);
+  return "Unknown Location";
+}
 };
 
 router.post("/login", async (req, res) => {
