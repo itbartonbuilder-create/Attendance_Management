@@ -36,6 +36,14 @@ router.get("/", async (req, res) => {
 
       filter = { site };
     }
+     else if (role === "accountant") {
+      if (!site) {
+        return res.status(400).json({
+          message: "Site required for accountant",
+        });
+      }
+      filter = { site };
+    }
 
     else if (role === "vendor") {
       if (!userId) {
