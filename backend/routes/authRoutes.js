@@ -151,23 +151,20 @@ router.post("/update-location", async (req, res) => {
   try {
     const manager = await Manager.findById(userId);
     if (!manager) return res.status(404).json({ msg: "Manager not found" });
+    const locationName = await getLocationName(latitude, longitude);
 
+  
     manager.latitude = latitude;
     manager.longitude = longitude;
+    manager.locationName = locationName;
     manager.lastLocationUpdate = new Date();
+
     await manager.save();
 
-    res.json({ msg: "Location updated instantly" });
-
-    getLocationName(latitude, longitude)
-      .then(async locationName => {
-        manager.locationName = locationName;
-        await manager.save();
-        console.log("📍 Address updated");
-      })
-      .catch(() => console.log("Address fetch failed"));
+    res.json({ msg: "Location + Address updated" });
 
   } catch (err) {
+    console.error(err);
     res.status(500).json({ msg: "Error updating location" });
   }
 });
