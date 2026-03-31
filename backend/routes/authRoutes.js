@@ -10,21 +10,17 @@ const router = express.Router();
 
 const getLocationName = async (lat, lng) => {
   try {
-    const apiKey = process.env.GOOGLE_MAPS_API_KEY;
-
-    const url = `https://maps.googleapis.com/maps/api/geocode/json?latlng=${lat},${lng}&key=${apiKey}`;
+    const url = `https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${lat}&longitude=${lng}&localityLanguage=en`;
 
     const res = await axios.get(url);
 
-    if (res.data.status === "OK" && res.data.results.length > 0) {
-      return res.data.results[0].formatted_address;
+    if (res.data && res.data.city) {
+      return `${res.data.city}, ${res.data.principalSubdivision}, ${res.data.countryName}`;
     }
 
-    console.log("Google response:", res.data);
     return "Unknown Location";
-
   } catch (err) {
-    console.log("📍 Google Geocode ERROR:", err.response?.data || err.message);
+    console.log("Free Geocode Error:", err.message);
     return "Unknown Location";
   }
 };
