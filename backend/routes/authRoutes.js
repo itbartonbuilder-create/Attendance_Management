@@ -10,7 +10,7 @@ const router = express.Router();
 
 const getLocationName = async (lat, lng) => {
   try {
-    // lat/lng ko number me convert karna VERY IMPORTANT
+
     lat = Number(lat);
     lng = Number(lng);
 
