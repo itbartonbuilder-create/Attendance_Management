@@ -149,22 +149,37 @@ router.post("/update-location", async (req, res) => {
   const { userId, latitude, longitude } = req.body;
 
   try {
+    if (!userId || !latitude || !longitude) {
+      return res.status(400).json({ msg: "Missing location data" });
+    }
+
     const manager = await Manager.findById(userId);
     if (!manager) return res.status(404).json({ msg: "Manager not found" });
-    const locationName = await getLocationName(latitude, longitude);
 
-  
     manager.latitude = latitude;
     manager.longitude = longitude;
-    manager.locationName = locationName;
     manager.lastLocationUpdate = new Date();
-
     await manager.save();
 
-    res.json({ msg: "Location + Address updated" });
+    res.json({ msg: "Location updated instantly" });
+
+    try {
+      const locationName = await getLocationName(latitude, longitude);
+
+   
+      const freshManager = await Manager.findById(userId);
+      if (!freshManager) return;
+
+      freshManager.locationName = locationName;
+      await freshManager.save();
+
+      console.log("📍 Address updated:", locationName);
+    } catch (bgErr) {
+      console.log("Address fetch failed:", bgErr.message);
+    }
 
   } catch (err) {
-    console.error(err);
+    console.error("Update location error:", err);
     res.status(500).json({ msg: "Error updating location" });
   }
 });
