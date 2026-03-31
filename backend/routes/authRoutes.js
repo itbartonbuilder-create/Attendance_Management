@@ -10,46 +10,23 @@ const router = express.Router();
 
 const getLocationName = async (lat, lng) => {
   try {
+    const apiKey = process.env.GOOGLE_MAPS_API_KEY;
 
-    lat = Number(lat);
-    lng = Number(lng);
+    const url = `https://maps.googleapis.com/maps/api/geocode/json?latlng=${lat},${lng}&key=${apiKey}`;
 
-    const url =
-      `https://nominatim.openstreetmap.org/reverse` +
-      `?lat=${lat}` +
-      `&lon=${lng}` +
-      `&format=jsonv2` +            
-      `&addressdetails=1` +         
-      `&zoom=18` +                  
-      `&accept-language=en`;        
+    const res = await axios.get(url);
 
-    const res = await axios.get(url, {
-      headers: {
-        "User-Agent": "bartons-builders-attendance-app", // mandatory
-      },
-      timeout: 8000,
-    });
+    if (res.data.status === "OK" && res.data.results.length > 0) {
+      return res.data.results[0].formatted_address;
+    }
 
-    if (!res.data) return "Unknown Location";
+    console.log("Google response:", res.data);
+    return "Unknown Location";
 
-   
-    const address =
-      res.data.display_name ||
-      res.data.name ||
-      res.data.address?.road ||
-      res.data.address?.suburb ||
-      res.data.address?.city ||
-      res.data.address?.state;
-
-    return address || "Unknown Location";
-
-  }catch (err) {
-  console.log("📍 Reverse Geocode FULL ERROR:");
-  console.log("Status:", err.response?.status);
-  console.log("Data:", err.response?.data);
-  console.log("Message:", err.message);
-  return "Unknown Location";
-}
+  } catch (err) {
+    console.log("📍 Google Geocode ERROR:", err.response?.data || err.message);
+    return "Unknown Location";
+  }
 };
 
 router.post("/login", async (req, res) => {
