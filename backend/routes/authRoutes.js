@@ -10,13 +10,41 @@ const router = express.Router();
 
 const getLocationName = async (lat, lng) => {
   try {
-    const res = await axios.get(
-      `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json`,
-      { headers: { "User-Agent": "attendance-app" } }
-    );
-    return res.data.display_name || "Unknown Location";
+    // lat/lng ko number me convert karna VERY IMPORTANT
+    lat = Number(lat);
+    lng = Number(lng);
+
+    const url =
+      `https://nominatim.openstreetmap.org/reverse` +
+      `?lat=${lat}` +
+      `&lon=${lng}` +
+      `&format=jsonv2` +            
+      `&addressdetails=1` +         
+      `&zoom=18` +                  
+      `&accept-language=en`;        
+
+    const res = await axios.get(url, {
+      headers: {
+        "User-Agent": "bartons-builders-attendance-app", // mandatory
+      },
+      timeout: 8000,
+    });
+
+    if (!res.data) return "Unknown Location";
+
+   
+    const address =
+      res.data.display_name ||
+      res.data.name ||
+      res.data.address?.road ||
+      res.data.address?.suburb ||
+      res.data.address?.city ||
+      res.data.address?.state;
+
+    return address || "Unknown Location";
+
   } catch (err) {
-    console.log("Location fetch error:", err.message);
+    console.log("📍 Reverse Geocode Error:", err.message);
     return "Unknown Location";
   }
 };
