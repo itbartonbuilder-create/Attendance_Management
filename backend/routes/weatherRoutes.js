@@ -7,33 +7,42 @@ const API_KEY = "31ef7fe88ef4987d4f519587a9976b67";
 
 router.get("/sites", async (req, res) => {
   try {
-   
     const workerSites = await Worker.distinct("site");
     const managerSites = await Manager.distinct("site");
 
     const allSites = [...new Set([...workerSites, ...managerSites])];
 
-    if (allSites.length === 0) {
-      return res.json([]);
-    }
-
     const weatherPromises = allSites.map(async (city) => {
-      const url = `https://api.openweathermap.org/data/2.5/weather?q=${city},IN&units=metric&appid=${API_KEY}`;
-      const response = await fetch(url);
-      const data = await response.json();
+      try {
+        const url = `https://api.openweathermap.org/data/2.5/weather?q=${city},IN&units=metric&appid=${API_KEY}`;
+        const response = await fetch(url);
+        const data = await response.json();
 
-      return {
-        site: city,
-        temp: data.main?.temp,
-        condition: data.weather?.[0]?.main,
-        description: data.weather?.[0]?.description,
-        wind: data.wind?.speed,
-        humidity: data.main?.humidity,
-      };
+      
+        if (data.cod !== 200) {
+          return {
+            site: city,
+            temp: null,
+            condition: null,
+          };
+        }
+
+        return {
+          site: city,
+          temp: data.main.temp,
+          condition: data.weather[0].main,
+        };
+
+      } catch {
+        return {
+          site: city,
+          temp: null,
+          condition: null,
+        };
+      }
     });
 
     const results = await Promise.all(weatherPromises);
-
     res.json(results);
 
   } catch (err) {
