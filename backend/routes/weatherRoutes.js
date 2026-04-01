@@ -7,10 +7,10 @@ const API_KEY = "31ef7fe88ef4987d4f519587a9976b67";
 
 router.get("/sites", async (req, res) => {
   try {
-    const workerSites = await Worker.distinct("site");
-    const managerSites = await Manager.distinct("site");
+const workerCities = await Worker.distinct("weatherCity");
+const managerCities = await Manager.distinct("weatherCity");
 
-    const allSites = [...new Set([...workerSites, ...managerSites])];
+const allSites = [...new Set([...workerCities, ...managerCities])];
 
     const weatherPromises = allSites.map(async (city) => {
       try {
