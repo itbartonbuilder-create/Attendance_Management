@@ -16,15 +16,15 @@ export const createBill = async (req, res) => {
       site,
       vendor,
       sentTo,
-      price,
+      amount,
       quantity,
       gstType,
       gstPercent,
       billDate,
     } = req.body;
 
-
-    const subtotal = Number(price) * Number(quantity);
+    // 🧠 CALCULATION START
+    const subtotal = Number(amount) * Number(quantity);
 
     let gstAmount = 0;
     let totalAmount = subtotal;
@@ -42,7 +42,7 @@ export const createBill = async (req, res) => {
       site,
       vendor,
       sentTo,
-      price,
+      amount,
       quantity,
       gstType,
       gstPercent: gstType === "gst" ? gstPercent : 0,
