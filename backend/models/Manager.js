@@ -14,10 +14,7 @@ const ManagerSchema = new mongoose.Schema({
     url: { type: String },
     public_id: { type: String },
   },
-  weatherCity: {
-  type: String,
-  required: true
-},
+
 
   latitude: {
     type: Number,
