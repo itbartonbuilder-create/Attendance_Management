@@ -17,8 +17,8 @@ const billSchema = new mongoose.Schema(
     required: true,
   },
 
-  // NEW FIELDS
-  price: Number,
+
+ amount: Number,
   quantity: Number,
   gstType: {
     type: String,
