@@ -2,12 +2,7 @@ import Bill from "../models/BillModel.js";
 
 const generateBillNo = async () => {
   const lastBill = await Bill.findOne().sort({ billNo: -1 });
-
-  if (!lastBill) {
-    return 1;
-  }
-
-  return Number(lastBill.billNo) + 1;
+  return lastBill ? lastBill.billNo + 1 : 1;
 };
 
 export const createBill = async (req, res) => {
@@ -16,16 +11,45 @@ export const createBill = async (req, res) => {
       return res.status(400).json({ message: "Bill file required" });
     }
 
-    const billNo = await generateBillNo(); // ✅ 1,2,3,4
+    const {
+      workName,
+      site,
+      vendor,
+      sentTo,
+      price,
+      quantity,
+      gstType,
+      gstPercent,
+      billDate,
+    } = req.body;
+
+
+    const subtotal = Number(price) * Number(quantity);
+
+    let gstAmount = 0;
+    let totalAmount = subtotal;
+
+    if (gstType === "gst") {
+      gstAmount = (subtotal * Number(gstPercent)) / 100;
+      totalAmount = subtotal + gstAmount;
+    }
+
+    const billNo = await generateBillNo();
 
     const bill = await Bill.create({
-      workName: req.body.workName,
+      workName,
       billNo,
-      site: req.body.site,
-      vendor: req.body.vendor,
-      sentTo: req.body.sentTo,
-      amount: req.body.amount,
-      billDate: req.body.billDate,
+      site,
+      vendor,
+      sentTo,
+      price,
+      quantity,
+      gstType,
+      gstPercent: gstType === "gst" ? gstPercent : 0,
+      gstAmount,
+      totalAmount,
+
+      billDate,
       billFile: req.file.path,
       billFileId: req.file.filename,
     });
