@@ -6,19 +6,23 @@ const billSchema = new mongoose.Schema(
   billNo: { type: Number, unique: true },
   site: String,
 
-  vendor: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: "Vendor",
-    required: true,
+vendor: {
+  type: mongoose.Schema.Types.ObjectId,
+  ref: "Vendor",
+  required: function () {
+    return this.site !== "office";
   },
-  sentTo: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: "Manager",
-    required: true,
+},
+sentTo: {
+  type: mongoose.Schema.Types.ObjectId,
+  ref: "Manager",
+  required: function () {
+    return this.site !== "office";
   },
+},
 
 
- amount: Number,
+  amount: Number,
   quantity: Number,
   gstType: {
     type: String,
