@@ -36,8 +36,6 @@ function App() {
          <div className="main-content">
       <Routes>
        <Route path="/" element={<Login />} /> 
-        
-     
         <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/workers" element={<Workers />} />
         {/* <Route path="/attendance" element={<Attendance />} /> */}
