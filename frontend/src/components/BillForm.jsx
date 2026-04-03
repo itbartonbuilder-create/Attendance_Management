@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import axios from "axios";
+import API from "../api";
 
 function BillForm() {
   const user = JSON.parse(localStorage.getItem("user"));
@@ -24,8 +24,8 @@ function BillForm() {
   useEffect(() => {
     const fetchManagers = async () => {
       try {
-        const res = await axios.get(
-          "https://attendance-management-backend-vh2w.onrender.com/api/managers"
+        const res = await API.get(
+          "/managers"
         );
 
         setAllManagers(res.data);
@@ -83,8 +83,8 @@ function BillForm() {
       data.append("billFile", billFile);
       data.append("vendor", user?._id);
 
-      await axios.post(
-        "https://attendance-management-backend-vh2w.onrender.com/api/bill/create",
+      await API.post(
+        "/bill/create",
         data
       );
 
