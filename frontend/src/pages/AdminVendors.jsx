@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from "react";
-import axios from "axios";
-
+import API from "../api";
 const AdminVendors = () => {
   const [vendors, setVendors] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -11,8 +10,8 @@ const AdminVendors = () => {
 
   const fetchVendors = async () => {
     try {
-      const res = await axios.get(
-        "https://attendance-management-backend-vh2w.onrender.com/api/vendor"
+      const res = await API.get(
+        "/vendor"
       );
       setVendors(res.data);
     } catch (err) {
@@ -27,8 +26,8 @@ const AdminVendors = () => {
     if (!window.confirm("Approve this vendor?")) return;
 
     try {
-      await axios.put(
-  `https://attendance-management-backend-vh2w.onrender.com/api/admin/approve-vendor/${vendorId}`
+      await API.put(
+  `/admin/approve-vendor/${vendorId}`
 );
 
       alert("✅ Vendor approved successfully");
@@ -39,7 +38,6 @@ const AdminVendors = () => {
     }
   };
 
-  /* ================= CSV DOWNLOAD ================= */
   const downloadCSV = () => {
     const headers = [
       "Name",
