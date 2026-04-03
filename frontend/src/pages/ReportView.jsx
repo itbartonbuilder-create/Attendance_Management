@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
-import axios from "axios";
+import API from "../api";
 import { useLocation } from "react-router-dom";
 
 function ReportView() {
@@ -14,8 +14,7 @@ function ReportView() {
 const queryParams = new URLSearchParams(location.search);
 const siteId = queryParams.get("siteId");
   
-
-  const user = JSON.parse(localStorage.getItem("user") || "{}");
+const user = JSON.parse(localStorage.getItem("user") || "null");
 
 useEffect(() => {
   const fetchReport = async () => {
@@ -26,8 +25,8 @@ useEffect(() => {
     }
 
     try {
-      const res = await axios.get(
-        `https://attendance-management-backend-vh2w.onrender.com/api/report/${date}`,
+      const res = await API.get(
+        `/report/${date}`,
         {
           params: {
             siteId: siteId,
@@ -46,7 +45,7 @@ useEffect(() => {
   };
 
   fetchReport();
-}, [date, siteId]);
+},  [date, siteId, user?.role]);
   const openPreview = (src) =>
     setPreview({ visible: true, src });
 
@@ -57,23 +56,27 @@ useEffect(() => {
     if (!Array.isArray(photos) || photos.length === 0) {
       return <p style={{ color: "gray" }}>No {label} photos</p>;
     }
-
-    return photos.map((url, i) => (
-      <img
-        key={i}
-        src={url}
-        alt={`${label}-${i}`}
-        style={{
-          width: 150,
-          height: 110,
-          margin: 5,
-          borderRadius: 6,
-          objectFit: "cover",
-          cursor: "pointer",
-        }}
-        onClick={() => openPreview(url)}
-      />
-    ));
+return photos.map((url, i) => (
+  <img
+    key={i}
+    src={url}
+    alt={`${label}-${i}`}
+    loading="lazy"
+    onError={(e) => (e.target.style.display = "none")}
+    style={{
+      width: 150,
+      height: 110,
+      margin: 5,
+      borderRadius: 6,
+      objectFit: "cover",
+      cursor: "pointer",
+      transition: "0.2s",
+    }}
+    onClick={() => openPreview(url)}
+    onMouseEnter={(e) => (e.target.style.transform = "scale(1.05)")}
+    onMouseLeave={(e) => (e.target.style.transform = "scale(1)")}
+  />
+));
   };
 
   if (loading) return <p style={{ padding: 20 }}>Loading report...</p>;
@@ -87,14 +90,16 @@ useEffect(() => {
 
   return (
     <div className="view-container">
-      <h2>
+      <h2  style={{ fontSize: "21px" }}>
         📋 Reports for {date}{" "}
-        {reports[0] ? `(Site: ${reports[0].siteId})` : ""}
+        {reports[0]?.siteId?.name
+  ? `(Site: ${reports[0].siteId.name})`
+  : ""}
       </h2>
 
       {reports.map((report) => (
         <div key={report._id} style={{ marginBottom: 40 }}>
-          {/* Morning */}
+       
           <section style={{ marginBottom: 30 }}>
             <h2>🌅 Morning Update</h2>
 
@@ -111,7 +116,7 @@ useEffect(() => {
             </div>
           </section>
 
-          {/* Evening */}
+       
           <section>
             <h2>🌇 Evening Update</h2>
 
@@ -130,7 +135,7 @@ useEffect(() => {
         </div>
       ))}
 
-      {/* Preview Modal */}
+  
       {preview.visible && (
         <div
           onClick={closePreview}
