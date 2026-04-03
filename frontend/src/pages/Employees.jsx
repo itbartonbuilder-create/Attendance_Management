@@ -1,9 +1,9 @@
 import React, { useEffect, useState } from "react";
-import axios from "axios";
+import API from "../api";
 import "../App.css";
 
 function Employees() {
-  const defaultSites = ["Kashipur", "Japuriya", "Gwailor", "Gaya","jim corbett","Gunna", "Other"];
+  const defaultSites = ["Kashipur", "Japuriya", "Gwailor", "Gaya","jim corbett","Gunna","Office", "Other"];
 
   const [user, setUser] = useState(null);
   const [employees, setEmployees] = useState([]);
@@ -19,7 +19,7 @@ function Employees() {
   const [aadhaarFile, setAadhaarFile] = useState(null);
   const [panFile, setPanFile] = useState(null);
 
-  /* ================= AUTH ================= */
+
   useEffect(() => {
     const savedUser = JSON.parse(localStorage.getItem("user"));
     if (!savedUser || (savedUser.role !== "admin" && savedUser.role !== "manager")) {
@@ -32,14 +32,14 @@ function Employees() {
     if (savedUser.role === "manager") {
       setForm((prev) => ({ ...prev, site: savedUser.site }));
     }
-  }, []); // empty dependency array fixes infinite loop
+  }, []); 
 
-  /* ================= FETCH ================= */
+
   const fetchEmployees = async () => {
     if (!user) return;
     try {
-      const res = await axios.get(
-        "https://attendance-management-backend-vh2w.onrender.com/api/employees"
+      const res = await API.get(
+        "/employees"
       );
       const data = Array.isArray(res.data) ? res.data : [];
       setEmployees(
@@ -55,9 +55,8 @@ function Employees() {
 
   useEffect(() => {
     fetchEmployees();
-  }, [user]); // only fetch when user is set
+  }, [user]); 
 
-  /* ================= FORM ================= */
   const resetForm = () => {
     setForm({
       name: "",
@@ -99,13 +98,13 @@ function Employees() {
 
     try {
       if (editingId) {
-        await axios.put(
-          `https://attendance-management-backend-vh2w.onrender.com/api/employees/${editingId}`,
+        await API.put(
+          `/employees/${editingId}`,
           data
         );
       } else {
-        await axios.post(
-          "https://attendance-management-backend-vh2w.onrender.com/api/employees",
+        await API.post(
+          "/employees",
           data
         );
       }
@@ -116,7 +115,6 @@ function Employees() {
     }
   };
 
-  /* ================= EDIT / DELETE ================= */
   const editEmployee = (emp) => {
     setEditingId(emp._id);
     setForm({
@@ -132,8 +130,8 @@ function Employees() {
   const deleteEmployee = async (id) => {
     if (!window.confirm("Delete employee?")) return;
     try {
-      await axios.delete(
-        `https://attendance-management-backend-vh2w.onrender.com/api/employees/${id}`
+      await API.delete(
+        `/employees/${id}`
       );
       fetchEmployees();
     } catch (err) {
@@ -143,7 +141,6 @@ function Employees() {
 
   const allSites = [...new Set(employees.map((e) => e.site))];
 
-  /* ================= UI ================= */
   return (
     <div className="workers-container">
       <h2>👨‍💼 Employees</h2>
@@ -202,7 +199,7 @@ function Employees() {
         />
 
         <input
-          placeholder="Salary"
+          placeholder="Per Day Salary"
           type="number"
           value={form.salary}
           onChange={(e) => setForm({ ...form, salary: e.target.value })}
@@ -238,7 +235,6 @@ function Employees() {
         )}
       </form>
 
-      {/* ================= TABLE ================= */}
       {allSites.map((site) => (
         <div key={site}>
           <h3>🏗 {site}</h3>
@@ -250,7 +246,7 @@ function Employees() {
                 <th>Name</th>
                 <th>Role</th>
                 <th>Contact</th>
-                <th>Salary</th>
+                <th> Per Day Salary</th>
                 <th>Aadhaar</th>
                 <th>PAN</th>
                 <th>Action</th>
