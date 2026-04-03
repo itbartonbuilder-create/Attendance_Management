@@ -1,361 +1,169 @@
 import React, { useEffect, useState } from "react";
-import Calendar from "react-calendar";
-import "react-calendar/dist/Calendar.css";
-import { useNavigate } from "react-router-dom";
+import API from "../api";
+import dashboard from "../assets/dashboard.jpg";
+import {
+  BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer,
+  PieChart, Pie, Cell, Legend
+} from "recharts";
 import "../App.css";
-import axios from "axios";
 
 function Dashboard() {
+
   const [user, setUser] = useState(null);
-  const [userSite, setUserSite] = useState("");
-  const [date, setDate] = useState(new Date());
-
-  const [showModal, setShowModal] = useState(false);
-  const [showReportChoice, setShowReportChoice] = useState(false);
-  const [showManagementChoice, setShowManagementChoice] = useState(false); 
-  const [selectedDate, setSelectedDate] = useState("");
-  const [attendanceExists, setAttendanceExists] = useState(false);
-
-  const [reportExists, setReportExists] = useState({
-    morning: false,
-    evening: false,
-  });
-
-  const [taskExists, setTaskExists] = useState(false);
-
-  const [allSites, setAllSites] = useState([]);
-  const [selectedSite, setSelectedSite] = useState("");
-  const [isAdmin, setIsAdmin] = useState(false);
-
-  const navigate = useNavigate();
-
-  const BASE_API =
-    "https://attendance-management-backend-vh2w.onrender.com/api";
+  const [siteChart, setSiteChart] = useState([]);
+  const [roleChart, setRoleChart] = useState([]);
+  // const [weatherData, setWeatherData] = useState([]);
 
   useEffect(() => {
-    const savedUser = localStorage.getItem("user");
+    const savedUser = JSON.parse(localStorage.getItem("user"));
     if (!savedUser) return;
 
-    const userObj = JSON.parse(savedUser);
-
-    setUser(userObj);
-    setUserSite(userObj.siteId || "");
-    setSelectedSite(userObj.siteId || "");
-    setIsAdmin(userObj.role === "admin");
-
-    if (userObj.role === "admin") fetchAllSites();
+    setUser(savedUser);
+    fetchAllWorkers(savedUser);
+    // fetchWeather(savedUser);
   }, []);
 
-  const fetchAllSites = async () => {
+  // 🌤 Weather fetch role based
+  // const fetchWeather = async (loggedUser) => {
+  //   try {
+  //     let url = "/weather/sites";
+
+  //     // manager → sirf apni site
+  //     if (loggedUser.role === "manager") {
+  //       url += `?site=${loggedUser.weatherCity}`;
+  //     }
+
+  //     const res = await API.get(url);
+
+  //     const formatted = res.data.map(w => ({
+  //       city: w.site,
+  //       temp: w.temp ? Math.round(w.temp) : "--",
+  //       type: w.condition || null
+  //     }));
+
+  //     setWeatherData(formatted);
+  //   } catch (err) {
+  //     console.error("Weather error:", err);
+  //   }
+  // };
+
+  // 📊 Workers role based
+  const fetchAllWorkers = async (loggedUser) => {
     try {
-      const res = await axios.get(`${BASE_API}/sites`);
-      setAllSites(res.data || []);
-    } catch (err) {
-      console.error("Fetch sites error:", err);
-    }
-  };
+      const res = await API.get("/workers");
+      let workers = res.data;
 
-  const handleDateClick = async (selected) => {
-    const formatted = selected.toLocaleDateString("en-CA");
-    setSelectedDate(formatted);
+      // ⭐ MANAGER FILTER
+      if (loggedUser.role === "manager") {
+        workers = workers.filter(w => w.site === loggedUser.site);
+      }
 
-    const siteToUse = isAdmin ? selectedSite : userSite;
-
-    if (!siteToUse) {
-      alert("⚠️ Please select a site");
-      return;
-    }
-
-    try {
-      const res = await axios.get(
-        `${BASE_API}/check-data/${formatted}`,
-        { params: { siteId: siteToUse } }
-      );
-
-      setAttendanceExists(res.data.attendanceExists || false);
-
-      setReportExists({
-        morning: res.data.morningExists || false,
-        evening: res.data.eveningExists || false,
+      // Bar chart
+      const siteCount = {};
+      workers.forEach(w => {
+        siteCount[w.site] = (siteCount[w.site] || 0) + 1;
       });
 
-      const taskRes = await axios.get(
-        `${BASE_API}/tasks/by-date/${formatted}`,
-        { params: { site: siteToUse } }
+      setSiteChart(
+        Object.keys(siteCount).map(site => ({
+          site,
+          workers: siteCount[site]
+        }))
       );
 
-      setTaskExists(taskRes.data.length > 0);
+      // Pie chart
+      const roleCount = {};
+      workers.forEach(w => {
+        roleCount[w.role] = (roleCount[w.role] || 0) + 1;
+      });
 
-      setShowModal(true);
+      setRoleChart(
+        Object.keys(roleCount).map(role => ({
+          name: role,
+          value: roleCount[role]
+        }))
+      );
+
     } catch (err) {
-      console.error("Check data error:", err);
+      console.error(err);
     }
   };
 
-  const goToAttendance = () =>
-    navigate(
-      `/attendance/${selectedDate}?site=${
-        isAdmin ? selectedSite : userSite
-      }`
-    );
+  // 🌤 helpers
+  // const getWeatherIcon = (type) => {
+  //   if (!type) return "🌤";
+  //   if (type.includes("Rain")) return "🌧";
+  //   if (type.includes("Cloud")) return "☁";
+  //   if (type.includes("Clear")) return "☀";
+  //   if (type.includes("Haze")) return "🌫";
+  //   return "🌤";
+  // };
 
-  const viewAttendance = () =>
-    navigate(
-      `/attendance-view/${selectedDate}?site=${
-        isAdmin ? selectedSite : userSite
-      }`
-    );
+  // const getWeatherMessage = (type) => {
+  //   if (!type) return "Weather unavailable";
+  //   if (type.includes("Rain")) return "Work may slow";
+  //   if (type.includes("Clear")) return "Perfect for work";
+  //   if (type.includes("Cloud")) return "Good for work";
+  //   if (type.includes("Haze")) return "Safety alert";
+  //   return "Normal conditions";
+  // };
 
-  const viewReport = () =>
-    navigate(
-      `/report-view/${selectedDate}?siteId=${
-        isAdmin ? selectedSite : userSite
-      }`
-    );
-
-  const addTask = () =>
-    navigate(
-      `/task/${selectedDate}?site=${
-        isAdmin ? selectedSite : userSite
-      }`
-    );
-
-  const viewTask = () =>
-    navigate(
-      `/task/${selectedDate}?site=${
-        isAdmin ? selectedSite : userSite
-      }`
-    );
-
-  if (!user) return <h2 style={{ padding: 20 }}>Not Authorized</h2>;
+  if (!user) return <h2>❌ Not Authorized</h2>;
 
   return (
-    <div className="dashboard calendar-dashboard">
-      <div className="calendar-card">
-        <h2 className="calendar-title">📅 Daily Work Calendar</h2>
 
-        {isAdmin && (
-          <div style={{ marginBottom: 15 }}>
-            <label>
-              Select Site:{" "}
-              <select
-                value={selectedSite}
-                onChange={(e) => setSelectedSite(e.target.value)}
-              >
-                <option value="">--Select Site--</option>
-
-                {allSites.map((s) => (
-                  <option key={s._id} value={s.siteId}>
-                    {s.name} ({s.siteId})
-                  </option>
-                ))}
-              </select>
-            </label>
-          </div>
-        )}
-
-        <Calendar
-          onChange={setDate}
-          value={date}
-          onClickDay={handleDateClick}
-        />
+       <div className="dashboard">
+      <div className="dashboard-hero">
+        <img src={dashboard} alt="dashboard" className="dashboard-image" />
+        <div className="overlay">
+          <h2>Welcome, {user.name} 👋</h2>
+          <p>Manage your workforce and site operations efficiently</p>
+        </div>
       </div>
+     
 
-      {/* ================= MAIN MODAL ================= */}
-      {showModal && (
-        <div className="modal-overlay">
-          <div className="modal-box">
-            <h3>Select Action ({selectedDate})</h3>
-
-            {attendanceExists ? (
-              <button
-                className="modal-btn view"
-                onClick={viewAttendance}
-              >
-                👁 View Attendance
-              </button>
-            ) : (
-              <button
-                className="modal-btn attendance"
-                onClick={goToAttendance}
-              >
-                ➕ Add Attendance
-              </button>
-            )}
-
-            <button
-              className="modal-btn report"
-              onClick={() => setShowReportChoice(true)}
-            >
-              ➕ Add Daily Report
-            </button>
-
-            {isAdmin && (
-              <button
-                className="modal-btn attendance"
-                onClick={addTask}
-              >
-                ➕ Add Task
-              </button>
-            )}
-
-            {!isAdmin && taskExists && (
-              <button
-                className="modal-btn view"
-                onClick={viewTask}
-              >
-                👁 View Tasks
-              </button>
-            )}
-
-            {(user.role === "admin" || user.role === "manager") && (
-              <button
-                className="modal-btn report"
-                onClick={() => setShowManagementChoice(true)}
-              >
-                🏢 Management
-              </button>
-            )}
-
-            <button
-              className="modal-close"
-              onClick={() => setShowModal(false)}
-            >
-              Cancel
-            </button>
-          </div>
+      {/* 🌤 WEATHER */}
+      {/* <section className="weather-section">
+        <h2>Live Weather</h2>
+        <div className="weather-grid">
+          {weatherData.map((w, i) => (
+            <div key={i} className="weather-card">
+              <h3>{w.city} Site</h3>
+              <h1>{getWeatherIcon(w.type)} {w.temp}°C</h1>
+              <p>{getWeatherMessage(w.type)}</p>
+            </div>
+          ))}
         </div>
-      )}
+      </section> */}
 
-      {/* ================= REPORT MODAL ================= */}
-      {showReportChoice && (
-        <div className="modal-overlay">
-          <div className="modal-box">
-            <h3>Choose Report Type ({selectedDate})</h3>
-
-            <button
-              className="modal-btn report"
-              disabled={reportExists.morning}
-              onClick={() =>
-                navigate(
-                  `/daily-report/${selectedDate}/morning${
-                    isAdmin ? `?siteId=${selectedSite}` : ""
-                  }`
-                )
-              }
-            >
-              🌅 Morning Report{" "}
-              {reportExists.morning && "(Submitted)"}
-            </button>
-
-            <button
-              className="modal-btn report"
-              disabled={reportExists.evening}
-              onClick={() =>
-                navigate(
-                  `/daily-report/${selectedDate}/evening${
-                    isAdmin ? `?siteId=${selectedSite}` : ""
-                  }`
-                )
-              }
-            >
-              🌇 Evening Report{" "}
-              {reportExists.evening && "(Submitted)"}
-            </button>
-
-            {(reportExists.morning || reportExists.evening) && (
-              <button
-                className="modal-btn view"
-                onClick={viewReport}
-              >
-                👁 View Report
-              </button>
-            )}
-
-            <button
-              className="modal-close"
-              onClick={() => setShowReportChoice(false)}
-            >
-              Back
-            </button>
-          </div>
+      {/* 📊 CHARTS */}
+      <section className="charts-section container">
+        <div className="chart-box">
+          <h3>Workers Per Site</h3>
+          <ResponsiveContainer width="100%" height={260}>
+            <BarChart data={siteChart}>
+              <XAxis dataKey="site" />
+              <YAxis />
+              <Tooltip />
+              <Bar dataKey="workers" />
+            </BarChart>
+          </ResponsiveContainer>
         </div>
-      )}
 
-      {/* ================= MANAGEMENT MODAL ================= */}
-      {showManagementChoice && (
-        <div className="modal-overlay">
-          <div className="modal-box">
-            <h3>Management Options</h3>
-
-            {user.role === "admin" && (
-              <>
-                <button
-                  className="modal-btn"
-                 onClick={() =>
-  navigate(`/admin/bills?siteId=${selectedSite}`)
-}
-                >
-                  Bills
-                </button>
-
-                <button
-                  className="modal-btn"
-                  onClick={() => navigate("/admin/stock")}
-                >
-                  Stockmanagement
-                </button>
-
-                <button
-                  className="modal-btn"
-                  onClick={() => navigate("/vendors")}
-                >
-                  Vendors
-                </button>
-                 {/* <button
-      className="modal-btn"
-      onClick={() =>
-        navigate(`/site-expense?siteId=${selectedSite}`)
-      }
-    >
-      Site Expense
-    </button> */}
-              </>
-            )}
-
-            {user.role === "manager" && (
-              <>
-                <button
-                  className="modal-btn"
-                  onClick={() => navigate("/manager/bills")}
-                >
-                  Bills
-                </button>
-
-                <button
-                  className="modal-btn"
-                  onClick={() => navigate("/stock")}
-                >
-                  Stockmanagement
-                </button>
-                {/* <button
-                   className="modal-btn"
-                   onClick={()=>navigate("/site-expense")}
-                 >
-                  Site Expense
-                </button> */}
-              </>
-            )}
-
-            <button
-              className="modal-close"
-              onClick={() => setShowManagementChoice(false)}
-            >
-              Back
-            </button>
-          </div>
+        <div className="chart-box">
+          <h3>Role Distribution</h3>
+          <ResponsiveContainer width="100%" height={280}>
+            <PieChart>
+              <Pie data={roleChart} dataKey="value" nameKey="name" outerRadius={110} label>
+                {roleChart.map((_, i) => <Cell key={i} />)}
+              </Pie>
+              <Legend />
+              <Tooltip />
+            </PieChart>
+          </ResponsiveContainer>
         </div>
-      )}
+      </section>
+
     </div>
   );
 }
