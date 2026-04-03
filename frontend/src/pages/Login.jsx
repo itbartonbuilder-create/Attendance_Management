@@ -1,14 +1,18 @@
 import React, { useState } from "react";
-import axios from "axios";
+import API from "../api";
 import { useNavigate } from "react-router-dom";
 import logo from "../assets/logo.png";
 import loginPage from "../assets/loginPage.jpeg";
+import { Geolocation } from '@capacitor/geolocation';
 import ReCAPTCHA from "react-google-recaptcha";
-
+import { Capacitor } from '@capacitor/core';
+import { useEffect } from "react";
+// import { startTracking } from "../backgroundTracking";
 
 function Login() {
   const [step, setStep] = useState("select");
   const [role, setRole] = useState("admin");
+ 
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -44,108 +48,178 @@ function Login() {
     setEmail("");
     setPassword("");
   };
+  const getLocation = async () => {
+   try { 
+       
+    if (!Capacitor.isNativePlatform()) {
+      return new Promise((resolve, reject) => {
+        navigator.geolocation.getCurrentPosition(
+          (pos) => {
+            resolve({
+              latitude: pos.coords.latitude,
+              longitude: pos.coords.longitude,
+            });
+          },
+        (err) => reject(err)
+      );
+    });
+  }
+   
+  const permission = await Geolocation.requestPermissions();
 
+    if (permission.location !== "granted") {
+      throw new Error("Location permission denied");
+    }
+
+    const position = await Geolocation.getCurrentPosition();
+
+    return {
+      latitude: position.coords.latitude,
+      longitude: position.coords.longitude,
+    };
+
+  } catch (err) {
+    throw err;
+  }
+  };
   const handleLogin = async (e) => {
-    e.preventDefault();
-    setIsLoading(true);
+  e.preventDefault();
+  setIsLoading(true);
 
-    if (!captchaToken) {
+  if (!captchaToken) {
     alert("Please verify captcha");
     setIsLoading(false);
     return;
   }
 
+  try {
+    let res;
+    let userData;
+
+    let location = {};
     try {
-      let res;
-      let userData;
+      location = await getLocation();
+    } catch (err) {
+      alert("Location permission required");
+      setIsLoading(false);
+      return;
+    }
 
-      /* ================= OFFICE ================= */
-      if (step === "office") {
-        if (role === "admin") {
-          res = await axios.post(
-            "https://attendance-management-backend-vh2w.onrender.com/api/auth/login",
-            { email, password, captchaToken }
-          );
-        } else if (role === "manager") {
-          res = await axios.post(
-            "https://attendance-management-backend-vh2w.onrender.com/api/auth/login",
-            { site: name, contactNo, captchaToken }
-          );
-        } else {
-          res = await axios.post(
-            "https://attendance-management-backend-vh2w.onrender.com/api/auth/login",
-            { name, contactNo, captchaToken }
-          );
-        }
-
-       userData = {
-  ...res.data.user,
-  siteId: res.data.user.site || name,   
-  displayName:
-    res.data.user.name ||
-    res.data.user.site ||
-    "User",
-};
-        localStorage.setItem("user", JSON.stringify(userData));
-        alert(`✅ Login Successful — Welcome ${userData.displayName}`);
-        navigate("/dashboard");
-        return;
-      }
-      
-      if (step === "vendor") {
-       
-        if (vendorMode === "login") {
-          res = await axios.post(
-            "https://attendance-management-backend-vh2w.onrender.com/api/vendor/login",
-            {
-              contactNo,
-              password,
-              captchaToken
-            }
-          );
-
-          const vendor = res.data.vendor || res.data.user;
-
-          userData = {
-            ...vendor,
-              role: "vendor", 
-            displayName: vendor.name,
-          };
-
-          localStorage.setItem("user", JSON.stringify(userData));
-          alert(`✅ Login Successful — Welcome ${vendor.name}`);
-          navigate("/vendor-dashboard");
-          return;
-        }
-
-        // 🧾 REGISTER
-        await axios.post(
-          "https://attendance-management-backend-vh2w.onrender.com/api/vendor/register",
+    if (step === "office") {
+      if (role === "admin") {
+        res = await API.post(
+          "/auth/login",
           {
-            name,
-            companyName,
-            contactNo,
-            aadharNumber: aadhar,
-            panNumber: pan,
-            vendorType,
-            category,
-            gstNumber: gst,
             email,
             password,
+            captchaToken,
+            latitude: location.latitude,
+            longitude: location.longitude
           }
         );
-        resetVendorForm();
+      } else if (role === "manager") {
+        res = await API.post(
+          "/auth/login",
+          {
+            site: name,
+            contactNo,
+            captchaToken,
+            latitude: location.latitude,
+            longitude: location.longitude
+          }
+        );
+      }
+      else if (role === "accountant") {
+    res = await API.post("/auth/login", {
+      email,
+      password,
+      captchaToken,
+      latitude: location.latitude,
+      longitude: location.longitude
+    });
+  }
 
+      userData = {
+        ...res.data.user,
+        siteId: res.data.user.site || name,
+        displayName:
+          res.data.user.name ||
+          res.data.user.site ||
+          "User",
+      };
+ localStorage.setItem("token", res.data.token);
+ localStorage.setItem("user", JSON.stringify(userData));
+//  if (Capacitor.isNativePlatform()) {
+//   await startTracking();
+//  }
+      alert(`✅ Login Successful — Welcome ${userData.displayName}`);
+      navigate("/dashboard");
+      return;
+    }
 
-        alert("⏳ Vendor registered successfully. Admin approval pending.");
+    if (step === "vendor") {
+
+      if (vendorMode === "login") {
+        res = await API.post(
+          "/vendor/login",
+          {
+            contactNo,
+            password,
+            captchaToken,
+            latitude: location.latitude,
+            longitude: location.longitude
+          }
+        );
+
+        const vendor = res.data.vendor || res.data.user;
+
+        userData = {
+          ...vendor,
+          role: "vendor",
+          displayName: vendor.name,
+        };
+
+        localStorage.setItem("user", JSON.stringify(userData));
+//         if (Capacitor.isNativePlatform()) {
+//   await startTracking();
+//  }
+        alert(`✅ Login Successful — Welcome ${vendor.name}`);
+        navigate("/vendor-dashboard");
         return;
       }
-    } catch (err) {
-      alert(err.response?.data?.message || "❌ Action failed.");
-    } finally {
-      setIsLoading(false);
+      await API.post(
+        "/vendor/register",
+        {
+          name,
+          companyName,
+          contactNo,
+          aadharNumber: aadhar,
+          panNumber: pan,
+          vendorType,
+          category,
+          gstNumber: gst,
+          email,
+          password,
+        }
+      );
+
+      resetVendorForm();
+      alert("⏳ Vendor registered successfully. Admin approval pending.");
+      return;
     }
-  };
+
+  } catch (err) {
+    alert(err.response?.data?.message || "❌ Action failed.");
+  } finally {
+    setIsLoading(false);
+  }
+ };
+
+  useEffect(() => {
+   
+    localStorage.removeItem("token");
+    localStorage.removeItem("user");
+  }, []);
   return (
     <div
       style={{
@@ -172,7 +246,7 @@ function Login() {
         style={{
           backdropFilter: "blur(30px)",
           borderRadius: "16px",
-          padding: "30px",
+          padding: "13px",
           width: "360px",
           boxShadow: "0 4px 12px rgba(0,0,0,0.4)",
         }}
@@ -209,13 +283,8 @@ function Login() {
           <div style={{ textAlign: "center", color: "white" }}>
             <h2
               style={{
-                marginTop: "10px",
-                marginBottom: "12px",
-                color: "#633131",
-                fontSize: "32px",
-                fontFamily: "Times Roman",
-              }}
-            >
+                marginTop: "10px", marginBottom: "12px", color: "#633131",
+                fontSize: "32px", fontFamily: "Times Roman", }}>
               Select Login Type
             </h2>
 
@@ -228,8 +297,6 @@ function Login() {
             </button>
           </div>
         )}
-
-
 
         {step === "office" && (
           <>
@@ -256,16 +323,16 @@ function Login() {
                 Manager
               </label>
 
-              {/* <label style={{ fontSize: "19px" }}>
+              <label style={{ fontSize: "19px" }}>
                 <input
                   type="radio"
                   name="role"
-                  value="worker"
-                  checked={role === "worker"}
+                  value="accountant"
+                  checked={role === "accountant"}
                   onChange={(e) => setRole(e.target.value)}
                 />{" "}
-                Worker
-              </label> */}
+                Accountant
+              </label> 
             </div>
 
             <form onSubmit={handleLogin}>
@@ -315,7 +382,7 @@ function Login() {
                     <option value="Gaya">Gaya</option>
                      <option value="jim corbett">jim corbett</option>
                      <option value="Gunna">Gunna</option>
-                     
+                     <option value="Office">Office</option>
                   </select>
 
                   <div style={{ position: "relative" }}>
@@ -331,33 +398,36 @@ function Login() {
                 </>
               )}
 
-              {/* {role === "worker" && (
+              {role === "accountant" && (
                 <>
                   <input
-                    type="text"
-                    placeholder="Enter Worker Name"
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
+                    type="email"
+                    placeholder="Enter Email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
                     required
                     style={inputStyle}
                   />
 
                   <div style={{ position: "relative" }}>
                     <input
-                      type={"text"}
-                      placeholder="Enter Contact Number"
-                      value={contactNo}
-                      onChange={(e) => setContactNo(e.target.value)}
+                      type={showPassword ? "text" : "password"}
+                      placeholder="Enter Password"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
                       required
                       style={inputStyle}
                     />
+                    <span onClick={() => setShowPassword(!showPassword)} style={eyeStyle}>
+                      {showPassword ? "🙈" : "👁️"}
+                    </span>
                   </div>
                 </>
-              )} */}
-<ReCAPTCHA
+              )}
+ <ReCAPTCHA
   sitekey="6Le4zmcsAAAAAIT4l3JLSicblw3j-KmCu6Lllxdz"
   onChange={(token) => setCaptchaToken(token)}
-/>
+ />
               <button type="submit" style={buttonStyle}>
                 Login
               </button>
@@ -420,7 +490,7 @@ function Login() {
 
               {vendorMode === "register" && (
                 <>
-                  {/* Row 1 */}
+               
                   <div style={rowStyle}>
                     <input
                       type="text"
@@ -442,7 +512,7 @@ function Login() {
                   </div>
 
 
-                  {/* Row 2 */}
+         
                   <div style={rowStyle}>
                     <input
                       type="text"
@@ -464,7 +534,6 @@ function Login() {
                     />
                   </div>
 
-                  {/* Row 3 */}
                   <div style={rowStyle}>
                     <input
                       type="text"
@@ -484,7 +553,6 @@ function Login() {
                     />
                   </div>
 
-                  {/* Row 4 */}
                   <div style={rowStyle}>
                     <select
                       required
@@ -556,7 +624,6 @@ function Login() {
                     required
                     style={inputStyle}
                   />
-                  {/* Row 5 */}
                   <input
                     type="password"
                     placeholder="Create Password"
@@ -568,10 +635,9 @@ function Login() {
                 </>
               )}
 
-              <ReCAPTCHA
-  sitekey="6Le4zmcsAAAAAIT4l3JLSicblw3j-KmCu6Lllxdz"
-  onChange={(token) => setCaptchaToken(token)}
-/>
+              <ReCAPTCHA sitekey="6Le4zmcsAAAAAIT4l3JLSicblw3j-KmCu6Lllxdz"
+              onChange={(token) => setCaptchaToken(token)}
+              />
               <div style={{ display: "flex", gap: "10px" }}>
   
                 <button type="submit" style={{ ...buttonStyle, flex: 1 }}>
@@ -603,9 +669,6 @@ function Login() {
     </div>
   );
 }
-
-
-
 const selectBtn = {
   width: "100%",
   padding: "12px",
@@ -617,7 +680,6 @@ const selectBtn = {
   fontSize: "18px",
   cursor: "pointer",
 };
-
 const backBtn = {
   width: "100%",
   padding: "10px",
@@ -629,7 +691,6 @@ const backBtn = {
   fontSize: "16px",
   cursor: "pointer",
 };
-
 const inputStyle = {
   width: "93%",
   padding: "12px",
@@ -641,7 +702,6 @@ const inputStyle = {
   outline: "none",
   fontSize: "17px",
 };
-
 const eyeStyle = {
   position: "absolute",
   right: "12px",
@@ -650,7 +710,6 @@ const eyeStyle = {
   fontSize: "18px",
   color: "#fff",
 };
-
 const buttonStyle = {
   width: "100%",
   padding: "12px",
@@ -662,7 +721,6 @@ const buttonStyle = {
   fontWeight: "bold",
   cursor: "pointer",
 };
-
 const overlayStyle = {
   position: "absolute",
   top: 0,
@@ -676,7 +734,6 @@ const overlayStyle = {
   alignItems: "center",
   zIndex: 999,
 };
-
 const spinnerStyle = {
   border: "6px solid #f3f3f3",
   borderTop: "6px solid #007bff",
@@ -690,7 +747,6 @@ const rowStyle = {
   gap: "10px",
   marginBottom: "2px",
 };
-
 const halfInput = {
   ...inputStyle,
   width: "100%",
