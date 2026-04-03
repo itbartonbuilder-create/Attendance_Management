@@ -3,8 +3,6 @@ import "../App.css";
 
 function Workers() {
   const [user, setUser] = useState(null);
-
-  /* ================= STATES ================= */
   const [workers, setWorkers] = useState([]);
   const [editingId, setEditingId] = useState(null);
 
@@ -29,7 +27,6 @@ function Workers() {
     perDaySalary: "",
   });
 
-  /* ================= AUTH ================= */
   useEffect(() => {
     const savedUser = JSON.parse(localStorage.getItem("user"));
     if (!savedUser || (savedUser.role !== "admin" && savedUser.role !== "manager")) {
@@ -42,9 +39,8 @@ function Workers() {
     if (savedUser.role === "manager") {
       setForm((prev) => ({ ...prev, site: savedUser.site }));
     }
-  }, []); // empty dependency array fixes infinite loop
+  }, []); 
 
-  /* ================= FETCH ================= */
   const fetchWorkers = async () => {
     if (!user) return;
     try {
@@ -64,9 +60,8 @@ function Workers() {
 
   useEffect(() => {
     fetchWorkers();
-  }, [user]); // fetch only when user is set
+  }, [user]); 
 
-  /* ================= FORM ================= */
   const resetForm = () => {
     setForm({
       name: "",
@@ -135,7 +130,6 @@ function Workers() {
     }
   };
 
-  /* ================= EDIT / DELETE ================= */
   const editWorker = (w) => {
     setEditingId(w._id);
     setForm({
@@ -162,7 +156,6 @@ function Workers() {
 
   const allSites = [...new Set(workers.map((w) => w.site))];
 
-  /* ================= UI ================= */
   return (
     <div className="workers-container">
       <h2>👷 Workers</h2>
@@ -175,7 +168,6 @@ function Workers() {
           required
         />
 
-        {/* ROLE TYPE */}
         <select
           value={form.roleType}
           onChange={(e) =>
@@ -205,7 +197,6 @@ function Workers() {
           />
         )}
 
-        {/* ROLE */}
         <select
           value={form.role}
           onChange={(e) => setForm({ ...form, role: e.target.value })}
@@ -230,7 +221,6 @@ function Workers() {
           />
         )}
 
-        {/* SITE */}
         {user?.role === "admin" ? (
           <>
             <select
@@ -286,7 +276,6 @@ function Workers() {
         )}
       </form>
 
-      {/* ================= TABLE ================= */}
       {allSites.map((s) => (
         <div key={s}>
           <h3>🏗 {s}</h3>
@@ -298,7 +287,7 @@ function Workers() {
                 <th>Role Type</th>
                 <th>Role</th>
                 <th>Contact</th>
-                <th>Salary</th>
+                <th>Per Day Salary</th>
                 <th>Action</th>
               </tr>
             </thead>
