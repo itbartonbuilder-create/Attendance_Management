@@ -6,7 +6,6 @@ function Attendance() {
   const navigate = useNavigate();
   const { date: urlDate } = useParams();
   const [searchParams] = useSearchParams();
-
   const [user, setUser] = useState(null);
   const [recordType, setRecordType] = useState("");
   const [selectedSite, setSelectedSite] = useState("");
