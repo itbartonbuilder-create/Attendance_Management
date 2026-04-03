@@ -6,7 +6,6 @@ const AdminVendors = () => {
   useEffect(() => {
     fetchVendors();
   }, []);
-
   const fetchVendors = async () => {
     try {
       const res = await API.get(
