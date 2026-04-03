@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import axios from "axios";
+import API from "../api";
 import { jsPDF } from "jspdf";
 import autoTable from "jspdf-autotable";
 import { useNavigate } from "react-router-dom";
@@ -10,7 +10,7 @@ function AttendanceReport() {
   const [user, setUser] = useState(null);
 
   const [recordType, setRecordType] = useState("");
-  const [sites] = useState(["Kashipur", "Japuriya", "Gwailor", "Gaya","jim corbett","Gunna", "Other"]);
+  const [sites] = useState(["Kashipur", "Japuriya", "Gwailor", "Gaya","jim corbett","Gunna", "Office", "Other"]);
   const [selectedSite, setSelectedSite] = useState("");
 
   const [workers, setWorkers] = useState([]);
@@ -26,10 +26,6 @@ const [selectedWorker, setSelectedWorker] = useState(null);
   const [workerData, setWorkerData] = useState([]);
   const [showReport, setShowReport] = useState(false);
 
-  const API_BASE =
-    "https://attendance-management-backend-vh2w.onrender.com/api";
-
-  // ---------------- AUTH ----------------
   useEffect(() => {
     const savedUser = localStorage.getItem("user");
     if (!savedUser) {
@@ -40,7 +36,6 @@ const [selectedWorker, setSelectedWorker] = useState(null);
     const parsedUser = JSON.parse(savedUser);
     setUser(parsedUser);
 
-    // ✅ MANAGER → AUTO SELECT HIS SITE
     if (parsedUser.role === "manager" && parsedUser.site) {
       setSelectedSite(parsedUser.site);
     }
@@ -51,15 +46,14 @@ const [selectedWorker, setSelectedWorker] = useState(null);
   }
 }, [recordType, selectedSite]);
 
-  // ---------------- FETCH WORKERS ----------------
   const fetchPeopleBySite = async (site) => {
     try {
       const url =
         recordType === "employee"
-          ? `${API_BASE}/employees`
-          : `${API_BASE}/workers`;
+          ? `/employees`
+          : `/workers`;
 
-      const res = await axios.get(url);
+      const res = await API.get(url);
       setWorkers(res.data.filter((p) => p.site === site));
     } catch (err) {
       console.error(err);
@@ -67,7 +61,7 @@ const [selectedWorker, setSelectedWorker] = useState(null);
   };
 
   const handleSiteChange = (e) => {
-    // ✅ MANAGER CAN'T CHANGE SITE
+  
     if (user?.role === "manager") return;
 
     const site = e.target.value;
@@ -77,7 +71,6 @@ const [selectedWorker, setSelectedWorker] = useState(null);
     if (site && recordType) fetchPeopleBySite(site);
   };
 
-  // ---------------- GET REPORT ----------------
 const fetchAllHistory = async () => {
 
   if (!recordType || !selectedSite || !startDate || !endDate) {
@@ -89,12 +82,12 @@ const fetchAllHistory = async () => {
 
     const requests = workers.map(async (p) => {
 
-      const historyReq = axios.get(
-        `${API_BASE}/attendance/worker-history/${p._id}?start=${startDate}&end=${endDate}`
+      const historyReq = API.get(
+        `/attendance/worker-history/${p._id}?start=${startDate}&end=${endDate}`
       );
 
-      const paymentReq = axios.get(
-        `${API_BASE}/attendance/payment/${p._id}?site=${selectedSite}&start=${startDate}&end=${endDate}`
+      const paymentReq = API.get(
+        `/attendance/payment/${p._id}?site=${selectedSite}&start=${startDate}&end=${endDate}`
       );
 
       const [res, pay] = await Promise.all([historyReq, paymentReq]);
@@ -174,8 +167,8 @@ const openHistory = async (worker) => {
 
   try {
 
-    const res = await axios.get(
-      `${API_BASE}/attendance/payment/${worker._id}?site=${selectedSite}&start=${startDate}&end=${endDate}`
+    const res = await API.get(
+      `/attendance/payment/${worker._id}?site=${selectedSite}&start=${startDate}&end=${endDate}`
     );
 
     setAdvanceHistory(res.data.payments || []);
@@ -195,7 +188,7 @@ const addAdvance = async (worker) => {
 
   try {
 
-    await axios.post(`${API_BASE}/attendance/payment`, {
+    await API.post(`/attendance/payment`, {
       workerId: worker._id,
       site: selectedSite,
       amount: Number(amount),
@@ -218,7 +211,7 @@ const addAdvance = async (worker) => {
 
 //   try {
 
-//     await axios.post(`${API_BASE}/attendance/payment`, {
+//     await API.post(`/attendance/payment`, {
 //       workerId: worker._id,
 //       site: selectedSite,
 //       amount: amount,
@@ -235,7 +228,7 @@ const addAdvance = async (worker) => {
 //   }
 
 // };
-  // ---------------- PDF ----------------
+
   const downloadPDF = () => {
     if (selectedWorkers.length === 0 && user?.role !== "worker") {
       alert("Select at least one record");
@@ -458,7 +451,6 @@ const addAdvance = async (worker) => {
         </>
       )}
 
-      {/* ⭐ ADVANCE HISTORY POPUP YAHAN ADD KARO */}
 {showHistory && (
   <div className="popup">
     <div className="popup-content">
