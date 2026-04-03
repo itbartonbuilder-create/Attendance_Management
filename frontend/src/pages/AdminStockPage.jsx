@@ -8,7 +8,6 @@ function AdminStockPage() {
   const [site, setSite] = useState(role === "manager" ? managerSite : "");
   const [sites, setSites] = useState([]);
   const [loading, setLoading] = useState(false);
-
 const fetchStocks = async () => {
   setLoading(true);
   try {
