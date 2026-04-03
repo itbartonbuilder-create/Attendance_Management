@@ -1,8 +1,8 @@
 import { useEffect, useState } from "react";
-import axios from "axios";
+import API from "../api";
 
 function VendorBills() {
-  const user = JSON.parse(localStorage.getItem("user"));
+const user = JSON.parse(localStorage.getItem("user") || "null");
   const [bills, setBills] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -11,8 +11,8 @@ function VendorBills() {
 
     const fetchBills = async () => {
       try {
-        const res = await axios.get(
-          "https://attendance-management-backend-vh2w.onrender.com/api/bill",
+        const res = await API.get(
+          "/bill",
           {
             params: {
               role: "vendor",
