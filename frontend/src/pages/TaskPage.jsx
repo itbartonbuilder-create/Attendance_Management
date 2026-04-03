@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import axios from "axios";
+import API from "../api";
 import { useLocation } from "react-router-dom";
 import "../App.css";
 
@@ -12,18 +12,18 @@ const TaskPage = () => {
   const location = useLocation();
   const params = new URLSearchParams(location.search);
 
-  const siteFromDashboard = params.get("site");
-  const dateFromDashboard = params.get("date");
+  const siteFromCalendar = params.get("site");
+  const dateFromCalendar = params.get("date");
 
   const user = JSON.parse(localStorage.getItem("user"));
 
   const [form, setForm] = useState({
-    site: siteFromDashboard || "",
+    site: siteFromCalendar || "",
     type: "",
     assignedTo: "",
     title: "",
     description: "",
-    deadline: dateFromDashboard || "",
+    deadline: dateFromCalendar || "",
   });
 
   const TYPES = ["Manager", "Worker"];
@@ -35,13 +35,13 @@ const [reassignForm, setReassignForm] = useState({
 });
 
   const fetchTasks = () => {
-    const siteFilter = siteFromDashboard || user.siteId;
+    const siteFilter = siteFromCalendar || user.siteId;
 
     let url =
-      "https://attendance-management-backend-vh2w.onrender.com/api/tasks";
+      "/tasks";
 
-    if (dateFromDashboard) {
-      url += `/by-date/${dateFromDashboard}?site=${siteFilter}`;
+    if (dateFromCalendar) {
+      url += `/by-date/${dateFromCalendar}?site=${siteFilter}`;
     } else {
       url += `?site=${siteFilter}`;
     }
@@ -50,7 +50,7 @@ const [reassignForm, setReassignForm] = useState({
       url += `&assignedTo=${user._id}`;
     }
 
-    axios.get(url).then((res) => setTasks(res.data));
+    API.get(url).then((res) => setTasks(res.data));
   };
 
   useEffect(() => {
@@ -58,7 +58,7 @@ const [reassignForm, setReassignForm] = useState({
   }, [location.search]);
 
   useEffect(() => {
-    const siteToUse = form.site || siteFromDashboard;
+    const siteToUse = form.site || siteFromCalendar;
 
     if (!siteToUse || !form.type) {
       setPeople([]);
@@ -67,10 +67,10 @@ const [reassignForm, setReassignForm] = useState({
 
     const endpoint =
       form.type === "Manager"
-        ? "https://attendance-management-backend-vh2w.onrender.com/api/managers"
-        : "https://attendance-management-backend-vh2w.onrender.com/api/workers";
+        ? "/managers"
+        : "/workers";
 
-    axios
+   API
       .get(`${endpoint}?site=${siteToUse}`)
       .then((res) => {
         
@@ -80,16 +80,16 @@ const [reassignForm, setReassignForm] = useState({
         setPeople(filtered);
       })
       .catch(() => setPeople([]));
-  }, [form.site, form.type, siteFromDashboard]);
+  }, [form.site, form.type, siteFromCalendar]);
 
 
   const handleSubmit = (e) => {
     e.preventDefault();
 
     if (editingId) {
-      axios
+      API
         .put(
-          `https://attendance-management-backend-vh2w.onrender.com/api/tasks/${editingId}`,
+          `/tasks/${editingId}`,
           form
         )
         .then(() => {
@@ -98,9 +98,9 @@ const [reassignForm, setReassignForm] = useState({
           resetForm();
         });
     } else {
-      axios
+      API
         .post(
-          "https://attendance-management-backend-vh2w.onrender.com/api/tasks/create",
+          "/tasks/create",
           form
         )
         .then(() => {
@@ -112,19 +112,19 @@ const [reassignForm, setReassignForm] = useState({
 
   const resetForm = () => {
     setForm({
-      site: siteFromDashboard || "",
+      site: siteFromCalendar || "",
       type: "",
       assignedTo: "",
       title: "",
       description: "",
-      deadline: dateFromDashboard || "",
+      deadline: dateFromCalendar || "",
     });
   };
 
   const handleDelete = (id) => {
-    axios
+    API
       .delete(
-        `https://attendance-management-backend-vh2w.onrender.com/api/tasks/${id}`
+        `/tasks/${id}`
       )
       .then(() => fetchTasks());
   };
@@ -154,10 +154,9 @@ useEffect(() => {
 
   const endpoint =
     reassignForm.type === "Manager"
-      ? "https://attendance-management-backend-vh2w.onrender.com/api/managers"
-      : "https://attendance-management-backend-vh2w.onrender.com/api/workers";
-
-axios
+      ? "/managers"
+      : "/workers";
+API
   .get(`${endpoint}?site=${reassignTask.site}`)
   .then((res) => {
     const filtered = res.data.filter(
@@ -169,9 +168,9 @@ axios
 }, [reassignTask, reassignForm.type]);
 
 const submitReassign = () => {
-  axios
+  API
     .put(
-      `https://attendance-management-backend-vh2w.onrender.com/api/tasks/reassign/${reassignTask._id}`,
+      `/tasks/reassign/${reassignTask._id}`,
       {
         newAssignedTo: reassignForm.assignedTo,
         type: reassignForm.type,
@@ -314,9 +313,9 @@ const submitReassign = () => {
       value={t.status}
       disabled={t.status !== "Pending"}
       onChange={(e) =>
-        axios
+        API
           .put(
-            `https://attendance-management-backend-vh2w.onrender.com/api/tasks/status/${t._id}`,
+            `/tasks/status/${t._id}`,
             { status: e.target.value }
           )
           .then(fetchTasks)
