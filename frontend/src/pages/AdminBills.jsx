@@ -7,7 +7,6 @@ import autoTable from "jspdf-autotable";
 
 const AdminBills = () => {
   const user = JSON.parse(localStorage.getItem("user"));
-
   const [bills, setBills] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
