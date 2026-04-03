@@ -4,7 +4,6 @@ function AdminStockPage() {
   const user = JSON.parse(localStorage.getItem("user"));
   const role = user?.role;
   const managerSite = user?.site;
-
   const [stocks, setStocks] = useState([]);
   const [site, setSite] = useState(role === "manager" ? managerSite : "");
   const [sites, setSites] = useState([]);
