@@ -3,7 +3,6 @@ import API from "../api";
 const AdminVendors = () => {
   const [vendors, setVendors] = useState([]);
   const [loading, setLoading] = useState(true);
-
   useEffect(() => {
     fetchVendors();
   }, []);
