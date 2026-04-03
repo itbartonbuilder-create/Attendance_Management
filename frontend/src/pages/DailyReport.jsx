@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate, useLocation } from "react-router-dom";
 // import { useParams, useNavigate } from "react-router-dom";
-import axios from "axios";
+import API from "../api";
 
 function DailyReport() {
   const { date, type } = useParams();
@@ -13,11 +13,11 @@ function DailyReport() {
   const [adminSite, setAdminSite] = useState("");
   const location = useLocation();
 const params = new URLSearchParams(location.search);
-const siteFromDashboard = params.get("siteId");
+const  siteFromCalendar = params.get("siteId");
 
   const user = JSON.parse(localStorage.getItem("user"));
 const siteId =
-  siteFromDashboard ||
+   siteFromCalendar ||
   (user?.role === "admin"
     ? adminSite
     : user?.siteId || user?.site || "");
@@ -28,8 +28,8 @@ const siteId =
 
     const check = async () => {
       try {
-        const res = await axios.get(
-          `https://attendance-management-backend-vh2w.onrender.com/api/check-data/${date}`,
+        const res = await API.get(
+          `/check-data/${date}`,
           { params: { siteId } }
         );
 
@@ -60,14 +60,14 @@ const siteId =
         photos.forEach((file) => formData.append("eveningPhotos", file));
       }
 
-      const res = await axios.post(
-        "https://attendance-management-backend-vh2w.onrender.com/api/daily-report",
+      const res = await API.post(
+        "/daily-report",
         formData
       );
 
       console.log(res.data);
       alert("✅ Report Saved");
-      navigate("/dashboard");
+      navigate("/work-calendar");
     } catch (err) {
       console.error("SAVE ERROR:", err.response?.data || err.message);
       alert("❌ Failed to save report");
@@ -76,8 +76,8 @@ const siteId =
 
   return (
     <div style={{ padding: 20, marginTop: 80 }}>
-      <h2>{type === "morning" ? "🌅 Morning" : "🌇 Evening"} Report — {date} </h2>
-      <h2 style={{ color: "#555" }}> Site: {siteId || "Not Assigned"}</h2>
+      <h2 style={{ fontSize: "21px" }}>{type === "morning" ? "🌅 Morning" : "🌇 Evening"} Report — {date} </h2>
+      <h2 style={{fontSize: "21px", color: "#555" }}> Site: {siteId || "Not Assigned"}</h2>
 
       {exists ? (
         <>
