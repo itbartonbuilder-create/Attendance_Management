@@ -1,9 +1,9 @@
 import React, { useEffect, useState } from "react";
-import axios from "axios";
+import API from "../api";
 import "../App.css";
 
 function Managers() {
-  const defaultSites = ["Kashipur", "Japuriya", "Gwailor", "Gaya","jim corbett","Gunna", "Other"];
+  const defaultSites = ["Kashipur", "Japuriya", "Gwailor", "Gaya","jim corbett","Gunna","Office", "Other"];
 
   const [user, setUser] = useState(null);
   const [managers, setManagers] = useState([]);
@@ -18,7 +18,6 @@ function Managers() {
   const [aadhaarFile, setAadhaarFile] = useState(null);
   const [panFile, setPanFile] = useState(null);
 
-  /* ================= AUTH ================= */
   useEffect(() => {
     const savedUser = JSON.parse(localStorage.getItem("user"));
     if (!savedUser || savedUser.role.toLowerCase() !== "admin") {
@@ -29,12 +28,12 @@ function Managers() {
     setUser(savedUser);
   }, []);
 
-  /* ================= FETCH ================= */
+
   const fetchManagers = async () => {
     if (!user) return;
     try {
-      const res = await axios.get(
-        "https://attendance-management-backend-vh2w.onrender.com/api/managers"
+      const res = await API.get(
+        "/managers"
       );
       const data = Array.isArray(res.data) ? res.data : [];
       setManagers(data);
@@ -48,7 +47,7 @@ function Managers() {
     fetchManagers();
   }, [user]);
 
-  /* ================= FORM ================= */
+
   const resetForm = () => {
     setForm({
       name: "",
@@ -87,13 +86,13 @@ function Managers() {
 
     try {
       if (editingId) {
-        await axios.put(
-          `https://attendance-management-backend-vh2w.onrender.com/api/managers/${editingId}`,
+        await API.put(
+          `/managers/${editingId}`,
           data
         );
       } else {
-        await axios.post(
-          "https://attendance-management-backend-vh2w.onrender.com/api/managers",
+        await API.post(
+          "/managers",
           data
         );
       }
@@ -104,7 +103,6 @@ function Managers() {
     }
   };
 
-  /* ================= EDIT / DELETE ================= */
   const editManager = (m) => {
     setEditingId(m._id);
     setForm({
@@ -119,8 +117,8 @@ function Managers() {
   const deleteManager = async (id) => {
     if (!window.confirm("Delete manager?")) return;
     try {
-      await axios.delete(
-        `https://attendance-management-backend-vh2w.onrender.com/api/managers/${id}`
+      await API.delete(
+        `/managers/${id}`
       );
       fetchManagers();
     } catch (err) {
@@ -130,7 +128,7 @@ function Managers() {
 
   const allSites = [...new Set(managers.map((m) => m.site))];
 
-  /* ================= UI ================= */
+
   return (
     <div className="workers-container">
       <h2>👨‍💼 Managers</h2>
@@ -211,7 +209,6 @@ function Managers() {
         )}
       </form>
 
-      {/* ================= TABLE ================= */}
       {allSites.map((site) => (
         <div key={site}>
           <h3>🏗 {site}</h3>
