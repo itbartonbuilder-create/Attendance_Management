@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import axios from "axios";
+import API from "../api";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 
 function Attendance() {
@@ -8,15 +8,15 @@ function Attendance() {
   const [searchParams] = useSearchParams();
 
   const [user, setUser] = useState(null);
-  const [recordType, setRecordType] = useState(""); // initially empty to force user selection
+  const [recordType, setRecordType] = useState("");
   const [selectedSite, setSelectedSite] = useState("");
   const [records, setRecords] = useState([]);
   const [locked, setLocked] = useState(false);
 
   const date = urlDate || new Date().toISOString().split("T")[0];
-  const BASE_API = "https://attendance-management-backend-vh2w.onrender.com/api";
 
-  // Load user and default site
+
+ 
   useEffect(() => {
     const savedUser = localStorage.getItem("user");
     if (!savedUser) return navigate("/login");
@@ -29,21 +29,22 @@ function Attendance() {
     setSelectedSite(siteToUse);
   }, []);
 
-  // Reset records and lock when changing type
   useEffect(() => {
     setRecords([]);
     setLocked(false);
   }, [recordType]);
 
-  // Fetch saved attendance if already exists
   useEffect(() => {
     if (!selectedSite || !date || !recordType) return;
 
     const fetchSavedAttendance = async () => {
       try {
-        const res = await axios.get(`${BASE_API}/attendance/get`, {
-          params: { date, site: selectedSite, type: recordType },
-        });
+        const res = await API.get(`/attendance/get`, {
+        params: { date, site: selectedSite, type: recordType },
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+        },
+      });
 
         if (res.data.records && res.data.records.length > 0) {
           setRecords(
@@ -78,8 +79,8 @@ function Attendance() {
 
     const fetchPeople = async () => {
       try {
-        const url = recordType === "worker" ? `${BASE_API}/workers` : `${BASE_API}/employees`;
-        const res = await axios.get(url);
+        const url = recordType === "worker" ? `/workers` : `/employees`;
+        const res = await API.get(url);
 
         const filtered = res.data.filter((p) => p.site === selectedSite);
 
@@ -105,7 +106,6 @@ function Attendance() {
     fetchPeople();
   }, [selectedSite, recordType, locked]);
 
-  // Attendance calculation
   const calculate = (r) => {
     let hours = 0;
     let salary = 0;
@@ -188,17 +188,53 @@ function Attendance() {
       })
     );
   };
+  const getLiveLocation = () => {
+  return new Promise((resolve, reject) => {
+    if (!navigator.geolocation) {
+      return reject("Geolocation not supported");
+    }
 
-  const submitAttendance = async () => {
-    await axios.post(`${BASE_API}/attendance`, {
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        resolve({
+          lat: pos.coords.latitude,
+          lng: pos.coords.longitude,
+        });
+      },
+      (err) => reject(err.message)
+    );
+  });
+};
+
+const submitAttendance = async () => {
+  try {
+    const coords = await getLiveLocation();
+
+    const geoRes = await API.get(
+      `https://nominatim.openstreetmap.org/reverse?lat=${coords.lat}&lon=${coords.lng}&format=json`
+    );
+
+    const address = geoRes.data.display_name;
+
+    await API.post(`/attendance`, {
       date,
       site: selectedSite,
       type: recordType,
       records,
+      location: {
+        lat: coords.lat,
+        lng: coords.lng,
+        address,
+      },
     });
+
     setLocked(true);
-    alert("✅ Attendance Saved");
-  };
+    alert("✅ Attendance Saved ");
+  } catch (err) {
+    console.error(err);
+    alert("❌ Location required to mark attendance");
+  }
+};
 
   const enableEdit = () => setLocked(false);
 
@@ -208,7 +244,6 @@ function Attendance() {
     <div className="attendance-container">
       <h2>📝 Mark Attendance&nbsp;&nbsp;&nbsp;(Site: {selectedSite})</h2>
 
-      {/* Dropdown to select type */}
       <label>
         Select Type:{" "}
         <select
