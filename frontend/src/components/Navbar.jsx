@@ -9,6 +9,19 @@ function Navbar() {
   const [menuOpen, setMenuOpen] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
+  const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
+
+  const handleWorkCalendarOpen = () => {
+  if (!user) return;
+
+ 
+  if (user.role === "admin" || user.role === "accountant") {
+    navigate("/work-calendar?selectSite=true");
+    return;
+  }
+
+  navigate("/work-calendar");
+};
 
   useEffect(() => {
     const savedUser = localStorage.getItem("user");
@@ -29,7 +42,13 @@ useEffect(() => {
   document.addEventListener("click", closeDropdowns);
   return () => document.removeEventListener("click", closeDropdowns);
 }, []);
-
+useEffect(() => {
+  const handleResize = () => {
+    setIsMobile(window.innerWidth <= 768);
+  };
+  window.addEventListener("resize", handleResize);
+  return () => window.removeEventListener("resize", handleResize);
+}, []);
   if (location.pathname === "/" || location.pathname === "/login") return null;
   if (!user) return null;
 
@@ -38,18 +57,30 @@ useEffect(() => {
     setUser(null);
     navigate("/login");
   };
-
+const handleBack = () => {
+  navigate(-1);
+};
   const { role } = user;
 
   return (
     <nav className="navbar" style={navStyle}>
-    
-      <div className="navbar-left">
-        <Link to="/dashboard" className="navbar-logo" style={logoStyle}>
-          <img src={logo} alt="Bartons Builders Limited" style={{ width: 44, height: 44 }} />
-          <span style={{ marginLeft: 8 }}>Bartons Builders Limited</span>
-        </Link>
-      </div>
+    <div className="navbar-left" style={{ display: "flex", alignItems: "center" }}>
+
+
+  {isMobile && location.pathname !== "/dashboard" && (
+    <button onClick={handleBack} style={backButtonStyle}>
+      ←
+    </button>
+  )}
+
+  <Link to="/dashboard" style={logoStyle}>
+    <img src={logo} alt="logo" style={{ width: 44, height: 44 }} />
+   <span style={brandTextStyle}>
+      Bartons Builders Limited
+    </span>
+  </Link>
+
+</div>
 
       <button
         className="menu-toggle"
@@ -88,6 +119,9 @@ useEffect(() => {
         {role === "admin" && (
           <>
             <Link to="/dashboard" style={linkStyle}>Dashboard</Link>
+            <span onClick={handleWorkCalendarOpen} style={{...linkStyle, cursor:"pointer"}}>
+  Work Calendar
+</span>
            <div style={{ position: "relative" }}>
   <span
     style={{ ...linkStyle, cursor: "pointer" }}
@@ -173,6 +207,8 @@ useEffect(() => {
         {role === "manager" && (
           <>
             <Link to="/dashboard" style={linkStyle}>Dashboard</Link>
+            <span onClick={handleWorkCalendarOpen} style={{...linkStyle, cursor:"pointer"}}>
+            Work Calendar </span>
                    <div style={{ position: "relative" }}>
   <span
     style={{ ...linkStyle, cursor: "pointer" }}
@@ -246,10 +282,12 @@ useEffect(() => {
           </>
         )}
 
-        {role === "worker" && (
+        {role === "accountant" && (
           <>
-            {/* <Link to="/reports" style={linkStyle}>Reports</Link> */}
-             <Link to="/task" style={linkStyle}>Task</Link>
+          <Link to="/dashboard" style={linkStyle}>Dashboard</Link>
+          <span onClick={handleWorkCalendarOpen} style={{...linkStyle, cursor:"pointer"}}>
+          Work Calendar</span>
+            <Link to="/reports" style={linkStyle}>Reports</Link>
             <Link to="/profile" style={linkStyle}>Profile</Link>
           </>
         )}
@@ -277,7 +315,7 @@ const navStyle = {
   width: "100%",
   zIndex: 1000,
   background: "#2C3E50",
-  padding: "24px 20px",
+  padding: "15px 20px",
   display: "flex",
   justifyContent: "space-between",
   alignItems: "center",
@@ -342,7 +380,23 @@ const dropdownItemStyle = {
   textDecoration: "none",
   fontWeight: 500,
 };
+const backButtonStyle = {
+  background: "none",
+  border: "none",
+  color: "white",
+  fontSize: "22px",
+  marginRight: "12px",
+  cursor: "pointer",
+  fontWeight: "bold",
+  display: "flex",
+  alignItems: "center"
+};
 
-
-
+const brandTextStyle = {
+  marginLeft: 8,
+  fontSize: "16px",
+  fontWeight: "700",
+  color: "#f39c12", 
+  letterSpacing: "0.5px"
+};
 export default Navbar;
