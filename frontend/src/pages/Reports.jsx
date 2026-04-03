@@ -8,7 +8,6 @@ import "../App.css";
 function AttendanceReport() {
   const navigate = useNavigate();
   const [user, setUser] = useState(null);
-
   const [recordType, setRecordType] = useState("");
   const [sites] = useState(["Kashipur", "Japuriya", "Gwailor", "Gaya","jim corbett","Gunna", "Office", "Other"]);
   const [selectedSite, setSelectedSite] = useState("");
