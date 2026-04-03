@@ -6,7 +6,6 @@ import API from "../api";
 function DailyReport() {
   const { date, type } = useParams();
   const navigate = useNavigate();
-
   const [text, setText] = useState("");
   const [photos, setPhotos] = useState([]);
   const [exists, setExists] = useState(false);
