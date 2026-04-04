@@ -1,19 +1,8 @@
 import mongoose from "mongoose";
 
-const itemSchema = new mongoose.Schema({
-  itemName: { type: String, required: true },
-  quantity: { type: Number, required: true },
-  rate: { type: Number, required: true },
-
-  amount: Number,      
-  gstPercent: { type: Number, default: 0 },
-  gstAmount: Number,  
-  total: Number       
-});
-
-
 const billSchema = new mongoose.Schema(
 {
+  workName: String,
   billNo: { type: Number, unique: true },
   site: String,
 
@@ -22,19 +11,23 @@ const billSchema = new mongoose.Schema(
     ref: "Vendor",
     required: true,
   },
-
   sentTo: {
     type: mongoose.Schema.Types.ObjectId,
     ref: "Manager",
     required: true,
   },
 
-  items: [itemSchema],
 
-
-  billSubtotal: Number,
-  billGSTTotal: Number,
-  billGrandTotal: Number,
+  amount: Number,
+  quantity: Number,
+  gstType: {
+    type: String,
+    enum: ["gst", "non-gst"],
+    default: "non-gst"
+  },
+  gstPercent: Number,
+  gstAmount: Number,
+  totalAmount: Number,
 
   billDate: Date,
   billFile: String,
