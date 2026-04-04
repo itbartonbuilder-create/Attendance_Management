@@ -11,43 +11,43 @@ export const createBill = async (req, res) => {
       return res.status(400).json({ message: "Bill file required" });
     }
 
-    const { site, vendor, sentTo, billDate } = req.body;
-    const items = JSON.parse(req.body.items); 
+    const {
+      workName,
+      site,
+      vendor,
+      sentTo,
+      amount,
+      quantity,
+      gstType,
+      gstPercent,
+      billDate,
+    } = req.body;
 
-    let billSubtotal = 0;
-    let billGSTTotal = 0;
+    const subtotal = Number(amount) * Number(quantity);
 
-    const processedItems = items.map((item) => {
-      const amount = item.quantity * item.rate;
-      const gstAmount = (amount * item.gstPercent) / 100;
-      const total = amount + gstAmount;
+    let gstAmount = 0;
+    let totalAmount = subtotal;
 
-      billSubtotal += amount;
-      billGSTTotal += gstAmount;
+    if (gstType === "gst") {
+      gstAmount = (subtotal * Number(gstPercent)) / 100;
+      totalAmount = subtotal + gstAmount;
+    }
 
-      return {
-        itemName: item.itemName,
-        quantity: item.quantity,
-        rate: item.rate,
-        amount,
-        gstPercent: item.gstPercent,
-        gstAmount,
-        total,
-      };
-    });
-
-    const billGrandTotal = billSubtotal + billGSTTotal;
     const billNo = await generateBillNo();
 
     const bill = await Bill.create({
+      workName,
       billNo,
       site,
       vendor,
       sentTo,
-      items: processedItems,
-      billSubtotal,
-      billGSTTotal,
-      billGrandTotal,
+      amount,
+      quantity,
+      gstType,
+      gstPercent: gstType === "gst" ? gstPercent : 0,
+      gstAmount,
+      totalAmount,
+
       billDate,
       billFile: req.file.path,
       billFileId: req.file.filename,
@@ -55,7 +55,7 @@ export const createBill = async (req, res) => {
 
     res.status(201).json(bill);
   } catch (err) {
-    console.error(err);
+    console.error("CREATE BILL ERROR ❌", err);
     res.status(500).json({ message: err.message });
   }
 };
