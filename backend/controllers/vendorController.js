@@ -4,7 +4,6 @@ import axios from "axios";
 
 import { sendPendingMail } from "../utils/emailService.js";
 
-/* ================= REGISTER ================= */
 export const registerVendor = async (req, res) => {
   try {
     const {
@@ -20,6 +19,7 @@ export const registerVendor = async (req, res) => {
       password,
     } = req.body;
 
+
     if (
       !name ||
       !email ||
@@ -33,12 +33,15 @@ export const registerVendor = async (req, res) => {
       return res.status(400).json({ message: "All required fields must be filled" });
     }
 
+
     const exists = await Vendor.findOne({
       $or: [{ email }, { contactNo }],
     });
+
     if (exists) {
       return res.status(400).json({ message: "Vendor already exists" });
     }
+
 
     const hashedPassword = await bcrypt.hash(password, 10);
 
@@ -57,19 +60,29 @@ export const registerVendor = async (req, res) => {
       vendorCode: null,
     });
 
-    await sendPendingMail(email, name);
+
+    sendPendingMail(email, name)
+      .then(() => console.log("📧 Pending mail sent"))
+      .catch((err) =>
+        console.log("⚠️ Email failed but vendor registered:", err.message)
+      );
+
 
     res.status(201).json({
       message: "Registered successfully. Approval pending.",
       vendor,
     });
+
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ message: "Server error" });
+    console.error("REGISTER ERROR:", err);
+    res.status(500).json({
+      message: "Registration failed",
+      error: err.message, 
+    });
   }
 };
 
-/* ================= LOGIN ================= */
+
 export const loginVendor = async (req, res) => {
   try {
     const { contactNo, password,captchaToken } = req.body;
@@ -78,7 +91,6 @@ export const loginVendor = async (req, res) => {
       return res.status(400).json({ message: "Captcha token missing" });
     }
 
-    // 🔐 Verify Captcha
     const verifyURL = "https://www.google.com/recaptcha/api/siteverify";
 
     const captchaRes = await axios.post(
@@ -115,7 +127,6 @@ export const loginVendor = async (req, res) => {
   }
 };
 
-/* ================= GET ALL ================= */
 export const getAllVendors = async (req, res) => {
   try {
     const vendors = await Vendor.find().sort({ createdAt: -1 });
