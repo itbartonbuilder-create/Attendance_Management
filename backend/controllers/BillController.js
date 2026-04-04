@@ -11,44 +11,43 @@ export const createBill = async (req, res) => {
       return res.status(400).json({ message: "Bill file required" });
     }
 
-    const {
-      workName,
-      site,
-      vendor,
-      sentTo,
-      amount,
-      quantity,
-      gstType,
-      gstPercent,
-      billDate,
-    } = req.body;
+    const { site, vendor, sentTo, billDate } = req.body;
+    const items = JSON.parse(req.body.items); 
 
-    // 🧠 CALCULATION START
-    const subtotal = Number(amount) * Number(quantity);
+    let billSubtotal = 0;
+    let billGSTTotal = 0;
 
-    let gstAmount = 0;
-    let totalAmount = subtotal;
+    const processedItems = items.map((item) => {
+      const amount = item.quantity * item.rate;
+      const gstAmount = (amount * item.gstPercent) / 100;
+      const total = amount + gstAmount;
 
-    if (gstType === "gst") {
-      gstAmount = (subtotal * Number(gstPercent)) / 100;
-      totalAmount = subtotal + gstAmount;
-    }
+      billSubtotal += amount;
+      billGSTTotal += gstAmount;
 
+      return {
+        itemName: item.itemName,
+        quantity: item.quantity,
+        rate: item.rate,
+        amount,
+        gstPercent: item.gstPercent,
+        gstAmount,
+        total,
+      };
+    });
+
+    const billGrandTotal = billSubtotal + billGSTTotal;
     const billNo = await generateBillNo();
 
     const bill = await Bill.create({
-      workName,
       billNo,
       site,
       vendor,
       sentTo,
-      amount,
-      quantity,
-      gstType,
-      gstPercent: gstType === "gst" ? gstPercent : 0,
-      gstAmount,
-      totalAmount,
-
+      items: processedItems,
+      billSubtotal,
+      billGSTTotal,
+      billGrandTotal,
       billDate,
       billFile: req.file.path,
       billFileId: req.file.filename,
@@ -56,7 +55,7 @@ export const createBill = async (req, res) => {
 
     res.status(201).json(bill);
   } catch (err) {
-    console.error("CREATE BILL ERROR ❌", err);
+    console.error(err);
     res.status(500).json({ message: err.message });
   }
 };
