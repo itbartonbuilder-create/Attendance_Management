@@ -1,5 +1,5 @@
 import express from "express";
-import authMiddleware from "../middleware/auth.js"; // top me add
+import authMiddleware from "../middleware/auth.js"; 
 import Attendance from "../models/Attendance.js";
 import Worker from "../models/Worker.js";
 import Employee from "../models/employeeModel.js";
@@ -111,9 +111,6 @@ const perDay =
 });
 
 
-
-
-
 router.get("/get", authMiddleware, async (req, res) => {
   try {
     const { date, site, type } = req.query;
@@ -140,7 +137,6 @@ const attendance = await Attendance.findOne({
       records: filtered,
     };
 
-    // ✅ sirf admin ko location milegi
     if (req.user?.role === "admin") {
       response.location = attendance.markedByLocation;
     }
@@ -219,5 +215,106 @@ router.get("/payment/:workerId", async (req, res) => {
     res.status(500).json({ success: false });
   }
 });
+
+
+//  DASHBOARD ATTENDANCE SUMMARY
+router.get("/summary", async (req, res) => {
+  try {
+    const { site } = req.query;
+
+    const todayStart = new Date();
+    todayStart.setHours(0,0,0,0);
+
+    const todayEnd = new Date();
+    todayEnd.setHours(23,59,59,999);
+
+    const siteFilter = site ? { site } : {};
+
+    const todayAttendance = await Attendance.findOne({
+      ...siteFilter,
+      date: { $gte: todayStart, $lte: todayEnd }
+    });
+
+    let today = {
+      present: 0,
+      absent: 0,
+      leave: 0,
+      late: 0,
+      overtime: 0
+    };
+
+    if (todayAttendance) {
+      todayAttendance.records.forEach(r => {
+        if (r.status === "Present") today.present++;
+        if (r.status === "Absent") today.absent++;
+        if (r.status === "Leave") today.leave++;
+
+        if (r.hoursWorked > 8) today.overtime++;
+        if (r.hoursWorked > 0 && r.hoursWorked < 8) today.late++;
+      });
+    }
+
+
+    const last7Days = [];
+    for (let i = 6; i >= 0; i--) {
+      const start = new Date();
+      start.setDate(start.getDate() - i);
+      start.setHours(0,0,0,0);
+
+      const end = new Date(start);
+      end.setHours(23,59,59,999);
+
+      const dayAttendance = await Attendance.find({
+        ...siteFilter,
+        date: { $gte: start, $lte: end }
+      });
+
+      let present = 0;
+      let absent = 0;
+
+      dayAttendance.forEach(a => {
+        a.records.forEach(r => {
+          if (r.status === "Present") present++;
+          if (r.status === "Absent") absent++;
+        });
+      });
+
+      last7Days.push({
+        date: start.toLocaleDateString("en-US", { weekday: "short" }),
+        present,
+        absent
+      });
+    }
+
+    const allAttendance = await Attendance.find();
+
+    const siteMap = {};
+
+    allAttendance.forEach(a => {
+      a.records.forEach(r => {
+        if (!siteMap[a.site]) {
+          siteMap[a.site] = { site: a.site, present:0, absent:0, leave:0 };
+        }
+
+        if (r.status === "Present") siteMap[a.site].present++;
+        if (r.status === "Absent") siteMap[a.site].absent++;
+        if (r.status === "Leave") siteMap[a.site].leave++;
+      });
+    });
+
+    const siteWise = Object.values(siteMap);
+
+    res.json({
+      today,
+      last7Days,
+      siteWise
+    });
+
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Summary error" });
+  }
+});
+
 
 export default router;
