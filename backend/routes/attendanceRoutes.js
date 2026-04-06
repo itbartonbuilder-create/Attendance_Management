@@ -255,40 +255,36 @@ router.get("/summary", async (req, res) => {
     }
 
 
+    const last7Days = [];
+    for (let i = 6; i >= 0; i--) {
+      const start = new Date();
+      start.setDate(start.getDate() - i);
+      start.setHours(0,0,0,0);
 
-const sites = await Attendance.distinct("site");
+      const end = new Date(start);
+      end.setHours(23,59,59,999);
 
-const last7Days = [];
+      const dayAttendance = await Attendance.find({
+        ...siteFilter,
+        date: { $gte: start, $lte: end }
+      });
 
-for (let i = 6; i >= 0; i--) {
-  const start = new Date();
-  start.setDate(start.getDate() - i);
-  start.setHours(0,0,0,0);
+      let present = 0;
+      let absent = 0;
 
-  const end = new Date(start);
-  end.setHours(23,59,59,999);
+      dayAttendance.forEach(a => {
+        a.records.forEach(r => {
+          if (r.status === "Present") present++;
+          if (r.status === "Absent") absent++;
+        });
+      });
 
-  const dayAttendance = await Attendance.find({
-    date: { $gte: start, $lte: end }
-  });
-
-  const dayData = {
-    date: start.toLocaleDateString("en-US", { weekday: "short" })
-  };
-
-
-  sites.forEach(site => {
-    dayData[site] = 0;
-  });
-
-  
-  dayAttendance.forEach(a => {
-    const presentCount = a.records.filter(r => r.status === "Present").length;
-    dayData[a.site] += presentCount;
-  });
-
-  last7Days.push(dayData);
-}
+      last7Days.push({
+        date: start.toLocaleDateString("en-US", { weekday: "short" }),
+        present,
+        absent
+      });
+    }
 
     const allAttendance = await Attendance.find();
 
