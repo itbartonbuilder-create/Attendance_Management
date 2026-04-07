@@ -30,7 +30,6 @@ export const addEmployee = async (req, res) => {
   }
 };
 
-/* ================= GET EMPLOYEES ================= */
 export const getEmployees = async (req, res) => {
   try {
     const employees = await Employee.find().sort({ createdAt: -1 });
@@ -40,7 +39,6 @@ export const getEmployees = async (req, res) => {
   }
 };
 
-/* ================= UPDATE EMPLOYEE ================= */
 export const updateEmployee = async (req, res) => {
   try {
     const employee = await Employee.findById(req.params.id);
@@ -55,25 +53,33 @@ export const updateEmployee = async (req, res) => {
     employee.contactNo = contactNo;
     employee.salary = Number(salary);
 
-    const aadhaarFile = req.files?.aadhaar?.[0];
-    const panFile = req.files?.pan?.[0];
+   const aadhaarFile = req.files?.aadhaar?.[0];
+const panFile = req.files?.pan?.[0];
 
-    if (aadhaarFile && employee.aadhaarDoc?.public_id) {
-      await cloudinary.uploader.destroy(employee.aadhaarDoc.public_id);
-      employee.aadhaarDoc = {
-        url: aadhaarFile.path,
-        public_id: aadhaarFile.filename,
-      };
-    }
 
- 
-    if (panFile && employee.panDoc?.public_id) {
-      await cloudinary.uploader.destroy(employee.panDoc.public_id);
-      employee.panDoc = {
-        url: panFile.path,
-        public_id: panFile.filename,
-      };
-    }
+if (aadhaarFile) {
+  // delete old if exists
+  if (employee.aadhaarDoc?.public_id) {
+    await cloudinary.uploader.destroy(employee.aadhaarDoc.public_id);
+  }
+
+  // save new file
+  employee.aadhaarDoc = {
+    url: aadhaarFile.path,
+    public_id: aadhaarFile.filename,
+  };
+}
+
+if (panFile) {
+  if (employee.panDoc?.public_id) {
+    await cloudinary.uploader.destroy(employee.panDoc.public_id);
+  }
+
+  employee.panDoc = {
+    url: panFile.path,
+    public_id: panFile.filename,
+  };
+}
 
     await employee.save();
     res.json(employee);
@@ -82,7 +88,7 @@ export const updateEmployee = async (req, res) => {
   }
 };
 
-/* ================= DELETE EMPLOYEE ================= */
+
 export const deleteEmployee = async (req, res) => {
   try {
     const employee = await Employee.findById(req.params.id);
