@@ -3,6 +3,7 @@ import { useParams, useNavigate, useLocation } from "react-router-dom";
 // import { useParams, useNavigate } from "react-router-dom";
 import API from "../api";
 
+
 function DailyReport() {
   const { date, type } = useParams();
   const navigate = useNavigate();
