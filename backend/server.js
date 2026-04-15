@@ -17,7 +17,7 @@ import stockRoutes from "./routes/stockRoutes.js";
 import dailyReportRoutes from "./routes/dailyReportRoutes.js";
 import siteExpenseRoutes from "./routes/siteExpenseRoutes.js";
 import weatherRoutes from "./routes/weatherRoutes.js";
-
+import measurementRoutes from "./routes/siteMeasurementRoutes.js";
 
 const app = express();
 app.use(cors());
@@ -54,6 +54,8 @@ app.use("/api/stocks", stockRoutes);
 app.use("/api", dailyReportRoutes);
 app.use("/api/site-expense", siteExpenseRoutes);
 app.use("/api/weather", weatherRoutes);
+app.use("/api/measurement", measurementRoutes);
+
 
 
 
