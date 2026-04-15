@@ -63,5 +63,15 @@ router.delete("/:id", async (req, res) => {
     res.status(500).json({ message: err.message });
   }
 });
+router.get("/site/:siteId", async (req, res) => {
+  try {
+    const data = await SiteMeasurement
+      .find({ site: req.params.siteId })
+      .sort({ date: -1 });
 
+    res.json(data);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
 export default router;
