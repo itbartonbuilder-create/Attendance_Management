@@ -4,7 +4,6 @@ import "../App.css";
 
 function Managers() {
   const defaultSites = ["Kashipur", "Japuriya", "Gwailor", "Gaya","jim corbett","Gunna","Office", "Other"];
-
   const [user, setUser] = useState(null);
   const [managers, setManagers] = useState([]);
   const [editingId, setEditingId] = useState(null);
