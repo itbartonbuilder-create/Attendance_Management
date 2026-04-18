@@ -10,7 +10,6 @@ function Profile() {
     }
   }, []);
 
-  
   if (!user) return <p>⚠️ Please login first.</p>;
 
   return (
