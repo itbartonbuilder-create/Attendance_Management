@@ -13,7 +13,6 @@ function Workers() {
     Worker: ["Male", "Female", "Labour"],
     Other: [],
   };
-
   const [form, setForm] = useState({
     name: "",
     contactNo: "",
