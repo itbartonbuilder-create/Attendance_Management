@@ -7,7 +7,6 @@ function Workers() {
   const [editingId, setEditingId] = useState(null);
 
   const defaultSites = ["Kashipur", "Japuriya", "Gwailor", "Gaya","jim corbett","Gunna", "Other"];
-
   const roleOptions = {
     Skilled: ["Electrician", "Plumber", "Carpenter", "Mason","Structure Mistri","Welder","Arection"],
     "Semi-Skilled": ["Helper", "Assistant", "Operator"],
