@@ -5,6 +5,7 @@ import autoTable from "jspdf-autotable";
 import { useNavigate } from "react-router-dom";
 import "../App.css";
 
+
 function AttendanceReport() {
   const navigate = useNavigate();
   const [user, setUser] = useState(null);
