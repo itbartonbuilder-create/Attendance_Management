@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import API from "../api";
 
-
 function BillForm() {
   const user = JSON.parse(localStorage.getItem("user"));
   const initialForm = {
