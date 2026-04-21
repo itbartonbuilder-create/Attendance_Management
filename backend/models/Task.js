@@ -1,5 +1,4 @@
 import mongoose from "mongoose";
-
 const reassignSchema = new mongoose.Schema({
   assignedTo: {
     type: mongoose.Schema.Types.ObjectId,
