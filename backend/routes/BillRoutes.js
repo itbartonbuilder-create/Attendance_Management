@@ -4,8 +4,6 @@ import { createBill } from "../controllers/BillController.js";
 import { uploadBill } from "../middleware/upload.js";
 
 const router = express.Router();
-
-
 router.post(
   "/create",
   uploadBill.single("billFile"),
