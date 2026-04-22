@@ -6,7 +6,6 @@ import {
   updateEmployee,
   deleteEmployee,
 } from "../controllers/employeeController.js";
-
 const router = express.Router();
 
 router.post(
