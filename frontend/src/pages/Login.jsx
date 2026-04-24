@@ -12,7 +12,6 @@ import { useEffect } from "react";
 function Login() {
   const [step, setStep] = useState("select");
   const [role, setRole] = useState("admin");
- 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
