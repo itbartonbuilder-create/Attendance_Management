@@ -8,7 +8,6 @@ function Register() {
   const [role, setRole] = useState("worker"); 
   const navigate = useNavigate();
 
-  
   const handleRegister = async (e) => {
     e.preventDefault();
     try {
