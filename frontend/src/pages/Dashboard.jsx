@@ -7,7 +7,6 @@ import {
 } from "recharts";
 import "../App.css";
 
-
 function Dashboard() {
   const [user, setUser] = useState(null);
   const [siteChart, setSiteChart] = useState([]);
