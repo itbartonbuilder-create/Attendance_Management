@@ -11,7 +11,6 @@ function Profile() {
   }, []);
 
   if (!user) return <p>⚠️ Please login first.</p>;
-
   return (
     <div className="profile-container">
       <h2>👤 {user.role.charAt(0).toUpperCase() + user.role.slice(1)} Profile</h2>
