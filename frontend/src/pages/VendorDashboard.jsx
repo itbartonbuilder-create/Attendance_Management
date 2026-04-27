@@ -4,7 +4,6 @@ const VendorDashboard = () => {
   const user = JSON.parse(localStorage.getItem("user"));
 
   if (!user) return <h2>Please login</h2>;
-
   return (
     <div style={{ padding: "100px 30px", color: "white" }}>
       <h1>Welcome, {user.name} 👋</h1>
