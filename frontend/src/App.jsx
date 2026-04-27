@@ -48,17 +48,17 @@ function App() {
         <Route path="/stock" element={<Stockmanagement />} />
         <Route path="/vendor-dashboard" element={<VendorDashboard />} />
         <Route path="/admin/bills" element={<AdminBills />} />
-<Route path="/manager/bills" element={<ManagerBills />} />
-<Route path="/vendors" element={<AdminVendors />} />
-<Route path="/employees" element={<Employees />} />
-<Route path="/vendor/bills" element={<VendorBills />} />
-<Route path="/vendor/submit-bill" element={<VendorSubmitBill />} />
-<Route path="/admin/stock" element={<AdminStockPage />} />
-<Route path="/daily-report/:date/:type" element={<DailyReport />} />
-<Route path="/attendance/:date" element={<Attendance/>} />
-<Route path="/report-view/:date" element={<ReportView />} />
-{/* <Route path="/site-expense" element={<SiteExpense />} /> */}
-<Route path="/live-location" element={<LiveLocation />} />
+        <Route path="/manager/bills" element={<ManagerBills />} />
+        <Route path="/vendors" element={<AdminVendors />} />
+        <Route path="/employees" element={<Employees />} />
+        <Route path="/vendor/bills" element={<VendorBills />} />
+        <Route path="/vendor/submit-bill" element={<VendorSubmitBill />} />
+        <Route path="/admin/stock" element={<AdminStockPage />} />
+        <Route path="/daily-report/:date/:type" element={<DailyReport />} />
+        <Route path="/attendance/:date" element={<Attendance/>} />
+        <Route path="/report-view/:date" element={<ReportView />} />
+        {/* <Route path="/site-expense" element={<SiteExpense />} /> */}
+        <Route path="/live-location" element={<LiveLocation />} />
         <Route path="/work-calendar" element={<WorkCalendar />} />
         <Route path="/measurement" element={<Measurement />} />
         <Route path="/admin-measurements" element={<AdminMeasurements />} />
