@@ -260,11 +260,17 @@ const handleDateClick = (selected) => {
               </button>
             )}
 
-            <button
-              className="modal-btn report"
-             onClick={() =>navigate(`/work-calendar?date=${selectedDate}&site=${selectedSite}&modal=report`)
-            }>
-              ➕ Add Daily Report
+           <button
+                className="modal-btn report"
+                onClick={() => {
+                  if (isAdmin) {
+                    navigate(`/report-view/${selectedDate}?siteId=${selectedSite}`);
+                  } else {
+                    navigate(`/work-calendar?date=${selectedDate}&site=${selectedSite}&modal=report`);
+                  }
+                }}
+              >
+                {isAdmin ? "Daily Report" : "➕ Add Daily Report"}
             </button>
 
             {isAdmin && (
@@ -300,11 +306,12 @@ const handleDateClick = (selected) => {
         </div>
       )}
 
-      {showReportChoice && (
+      {showReportChoice && !isAdmin &&(
         <div className="modal-overlay">
           <div className="modal-box">
             <h3>Choose Report Type ({selectedDate})</h3>
-
+        {!isAdmin && (
+         <>
             <button
               className="modal-btn report"
               disabled={reportExists.morning}
@@ -332,7 +339,8 @@ const handleDateClick = (selected) => {
             >
                Evening Report {reportExists.evening && "(Submitted)"}
             </button>
-
+          </>
+        )}
             {(reportExists.morning || reportExists.evening) && (
               <button className="modal-btn view" onClick={viewReport}>
                 👁 View Report
@@ -369,11 +377,18 @@ const handleDateClick = (selected) => {
 
                 <button
                   className="modal-btn"
-                  onClick={() => navigate("/admin/stock")}
+                  onClick={() => navigate(`/admin/stock?site=${selectedSite}`)}
                 >
                   Stockmanagement
                 </button>
-
+                                    <button
+                      className="modal-btn"
+                      onClick={() =>
+                        navigate(`/admin-measurements?site=${selectedSite}`)
+                      }
+                    >
+                      Measurements
+                    </button>
                 <button
                   className="modal-btn"
                   onClick={() => navigate("/vendors")}
@@ -408,6 +423,9 @@ const handleDateClick = (selected) => {
                   onClick={() => navigate("/stock")}
                 >
                   Stockmanagement
+                </button>
+                          <button className="modal-btn" onClick={() => navigate(`/measurement?site=${selectedSite}&date=${selectedDate}`) }>
+                  Measurement
                 </button>
               </>
             )}
