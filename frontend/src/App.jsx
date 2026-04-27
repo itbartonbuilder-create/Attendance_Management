@@ -25,7 +25,7 @@ import ReportView from "./pages/ReportView";
 import LiveLocation from "./pages/LiveLocation";
 // import SiteExpense from "./pages/SiteExpense";
 import WorkCalendar from "./pages/WorkCalendar";
-
+import Measurement from "./pages/Measurement";
 
 function App() {
   return (
@@ -59,6 +59,7 @@ function App() {
 {/* <Route path="/site-expense" element={<SiteExpense />} /> */}
 <Route path="/live-location" element={<LiveLocation />} />
         <Route path="/work-calendar" element={<WorkCalendar />} />
+        <Route path="/measurement" element={<Measurement />} />
 
       </Routes>
             </div>
