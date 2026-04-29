@@ -6,9 +6,7 @@ function Measurement() {
   const location = useLocation();
   const params = new URLSearchParams(location.search);
   const site = params.get("site");
-  const dateParam = params.get("date");
-
-  
+  const dateParam = params.get("date");  
   const [workType, setWorkType] = useState("");
   const [length, setLength] = useState("");
   const [breadth, setBreadth] = useState("");
