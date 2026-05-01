@@ -19,7 +19,6 @@ const AdminVendors = () => {
       setLoading(false);
     }
   };
-
   
   const approveVendor = async (vendorId) => {
     if (!window.confirm("Approve this vendor?")) return;
