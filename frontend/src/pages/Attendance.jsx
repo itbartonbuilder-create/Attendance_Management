@@ -15,7 +15,6 @@ function Attendance() {
   const date = urlDate || new Date().toISOString().split("T")[0];
 
 
- 
   useEffect(() => {
     const savedUser = localStorage.getItem("user");
     if (!savedUser) return navigate("/login");
