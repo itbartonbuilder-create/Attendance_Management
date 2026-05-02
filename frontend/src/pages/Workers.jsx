@@ -5,7 +5,6 @@ function Workers() {
   const [user, setUser] = useState(null);
   const [workers, setWorkers] = useState([]);
   const [editingId, setEditingId] = useState(null);
-
   
   const defaultSites = ["Kashipur", "Japuriya", "Gwailor", "Gaya","jim corbett","Gunna", "Other"];
   const roleOptions = {
