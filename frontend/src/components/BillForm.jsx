@@ -10,7 +10,6 @@ function BillForm() {
     amount: "",
     billDate: "",
   };
-
   
   const [form, setForm] = useState(initialForm);
   const [billFile, setBillFile] = useState(null);
