@@ -6,7 +6,6 @@ function LiveLocation() {
   const [locations, setLocations] = useState([]);
   const [loading, setLoading] = useState(true);
   const [now, setNow] = useState(new Date());
-
   const hash = window.location.hash;
   const queryString = hash.includes("?") ? hash.split("?")[1] : "";
   const query = new URLSearchParams(queryString);
