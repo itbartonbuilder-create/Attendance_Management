@@ -2,7 +2,6 @@ import React, { useEffect, useState } from "react";
 import API from "../api";
 import "../App.css";
 
-
 function Employees() {
   const defaultSites = ["Kashipur", "Japuriya", "Gwailor", "Gaya","jim corbett","Gunna","Office", "Other"];
   const [user, setUser] = useState(null);
