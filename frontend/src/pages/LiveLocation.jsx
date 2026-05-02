@@ -12,7 +12,6 @@ function LiveLocation() {
   const site = query.get("site");
   const date = query.get("date");
 
-  // ⏱️ TIME AGO CALCULATOR
   const getTimeAgo = (time) => {
     if (!time) return "-";
     const diff = Math.floor((now - new Date(time)) / 1000);
