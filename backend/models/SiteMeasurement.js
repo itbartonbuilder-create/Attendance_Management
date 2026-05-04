@@ -1,18 +1,35 @@
 import mongoose from "mongoose";
 
 const MeasurementSchema = new mongoose.Schema({
-  site: String,
-  workType: String,
+  site: {
+    type: String,
+    required: true
+  },
+  workType: {
+    type: String,
+    required: true
+  },
   length: Number,
   breadth: Number,
   height: Number,
-  quantity: Number,
+
+  quantity: {
+    type: Number,
+    required: true
+  },
+
+  unit: {            
+    type: String,
+    required: true
+  },
+
   remarks: String,
-  date: Date
-}, {
-  timestamps: true
-});
 
-const SiteMeasurement = mongoose.model("SiteMeasurement", MeasurementSchema);
+  date: {
+    type: Date,
+    required: true
+  }
 
-export default SiteMeasurement;
+}, { timestamps: true });
+
+export default mongoose.model("SiteMeasurement", MeasurementSchema);
