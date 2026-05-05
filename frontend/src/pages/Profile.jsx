@@ -2,7 +2,6 @@ import React, { useEffect, useState } from "react";
 
 function Profile() {
   const [user, setUser] = useState(null);
-
   useEffect(() => {
     const storedUser = localStorage.getItem("user");
     if (storedUser) {
