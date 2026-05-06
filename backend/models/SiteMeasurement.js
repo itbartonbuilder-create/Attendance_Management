@@ -9,16 +9,19 @@ const MeasurementSchema = new mongoose.Schema({
     type: String,
     required: true
   },
+
   length: Number,
   breadth: Number,
   height: Number,
+
+  unitWeight: Number,
 
   quantity: {
     type: Number,
     required: true
   },
 
-  unit: {            
+  unit: {
     type: String,
     required: true
   },
