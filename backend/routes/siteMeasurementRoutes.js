@@ -12,6 +12,7 @@ router.post("/", async (req, res) => {
       length,
       breadth,
       height,
+      unitWeight,   
       quantity,
       unit,
       remarks,
@@ -28,6 +29,7 @@ router.post("/", async (req, res) => {
       length,
       breadth,
       height,
+      unitWeight,   
       quantity,
       unit,
       remarks,
@@ -41,7 +43,6 @@ router.post("/", async (req, res) => {
     res.status(500).json({ message: err.message });
   }
 });
-
 
 router.get("/", async (req, res) => {
   try {
