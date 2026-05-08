@@ -4,6 +4,7 @@ import logo from "../assets/logo.png";
 function Navbar() {
   const [workersDropdown, setWorkersDropdown] = useState(false);
   // const [managementDropdown, setManagementDropdown] = useState(false);
+
   
   const [user, setUser] = useState(null);
   const [menuOpen, setMenuOpen] = useState(false);
