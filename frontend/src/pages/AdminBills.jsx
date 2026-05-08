@@ -11,7 +11,6 @@ const AdminBills = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [selectedBills, setSelectedBills] = useState([]);
-
   const location = useLocation();
   const queryParams = new URLSearchParams(location.search);
   const selectedSite = queryParams.get("siteId");
