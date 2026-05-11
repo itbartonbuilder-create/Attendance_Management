@@ -8,7 +8,7 @@ function AdminStockPage() {
   const [sites, setSites] = useState([]);
   const [loading, setLoading] = useState(false);
 
-  
+
 const fetchStocks = async () => {
   setLoading(true);
   try {
