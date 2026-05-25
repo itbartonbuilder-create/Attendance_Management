@@ -2,19 +2,31 @@ import Stock from "../models/Stock.js";
 
 export const createStock = async (req, res) => {
   try {
-    const { site, category, material, unit, addStock, usedStock } = req.body;
+    const {
+      site,
+      category,
+      material,
+      unit,
+      addStock,
+      usedStock,
+      date,
+    } = req.body;
 
     const add = Number(addStock || 0);
     const used = Number(usedStock || 0);
-const previousStock = await Stock.findOne({ site, material })
-  .sort({ createdAt: -1 });
 
-const previousRemaining = previousStock
-  ? previousStock.remainingStock
-  : 0;
+    const previousStock = await Stock.findOne({
+      site,
+      material,
+    }).sort({ createdAt: -1 });
 
+    const previousRemaining = previousStock
+      ? previousStock.remainingStock
+      : 0;
 
+  
     const newTotal = previousRemaining + add;
+
 
     if (used > newTotal) {
       return res.status(400).json({
@@ -23,17 +35,22 @@ const previousRemaining = previousStock
       });
     }
 
+
     const newRemaining = newTotal - used;
+
 
     const newStock = await Stock.create({
       site,
       category,
       material,
       unit,
+
       totalStock: newTotal,
       usedStock: used,
       remainingStock: newRemaining,
-      date: new Date(),
+
+  
+      date: date ? new Date(date) : new Date(),
     });
 
     res.status(201).json({
@@ -49,18 +66,22 @@ const previousRemaining = previousStock
     });
   }
 };
+
 export const getAllStocks = async (req, res) => {
   try {
     const { site } = req.query;
 
     const filter = site ? { site } : {};
 
-    const stocks = await Stock.find(filter).sort({ createdAt: -1 });
+    const stocks = await Stock.find(filter).sort({
+      date: -1,
+    });
 
     res.json({
       success: true,
       data: stocks,
     });
+
   } catch (error) {
     res.status(500).json({
       success: false,
