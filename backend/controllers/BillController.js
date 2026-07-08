@@ -37,14 +37,23 @@ export const createBill = async (req, res) => {
       totalAmount = subtotal + gstAmount;
     }
 
-     const uploadedFile = await cloudinary.uploader.upload(req.file.path, {
+   const uploadedFile = await new Promise((resolve, reject) => {
+  const uploadStream = cloudinary.uploader.upload_stream(
+    {
       folder: "bills",
       resource_type: "auto",
       use_filename: true,
       unique_filename: false,
       overwrite: false,
-    });
+    },
+    (error, result) => {
+      if (error) return reject(error);
+      resolve(result);
+    }
+  );
 
+  streamifier.createReadStream(req.file.buffer).pipe(uploadStream);
+});
     const billNo = await generateBillNo();
 
     const bill = await Bill.create({
