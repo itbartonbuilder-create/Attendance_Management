@@ -41,7 +41,7 @@ export const createBill = async (req, res) => {
   const uploadStream = cloudinary.uploader.upload_stream(
     {
       folder: "bills",
-     resource_type:  req.file.mimetype === "application/pdf" ? "raw" : "image",,
+     resource_type:  req.file.mimetype === "application/pdf" ? "raw" : "image",
       use_filename: true,
       unique_filename: false,
       overwrite: false,
