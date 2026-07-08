@@ -7,6 +7,7 @@ const generateBillNo = async () => {
 
 export const createBill = async (req, res) => {
   try {
+    console.log("REQ.FILE =>", req.file);
     if (!req.file) {
       return res.status(400).json({ message: "Bill file required" });
     }
