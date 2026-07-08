@@ -9,11 +9,15 @@ const generateBillNo = async () => {
 
 export const createBill = async (req, res) => {
   try {
-    console.log("REQ.FILE =>", req.file);
-
     if (!req.file) {
       return res.status(400).json({ message: "Bill file required" });
     }
+
+    console.log("========== FILE INFO ==========");
+    console.log("Original Name :", req.file.originalname);
+    console.log("MimeType      :", req.file.mimetype);
+    console.log("Size          :", req.file.size);
+    console.log("===============================");
 
     const {
       workName,
@@ -33,26 +37,23 @@ export const createBill = async (req, res) => {
     let totalAmount = subtotal;
 
     if (gstType === "gst") {
-      gstAmount = (subtotal * Number(gstPercent)) / 100;
+      gstAmount = subtotal * Number(gstPercent) / 100;
       totalAmount = subtotal + gstAmount;
     }
 
-    // PDF ya Image detect karo
-    const resourceType =
-      req.file.mimetype === "application/pdf" ? "image" : "image";
-
     const uploadedFile = await new Promise((resolve, reject) => {
+
       const uploadStream = cloudinary.uploader.upload_stream(
         {
           folder: "bills",
-          resource_type: resourceType,
+          resource_type: "auto",
           public_id: `bill_${Date.now()}`,
-          overwrite: false,
-          unique_filename: true,
+          overwrite: true,
         },
         (error, result) => {
+
           if (error) {
-            console.error("Cloudinary Upload Error:", error);
+            console.log("Cloudinary Error", error);
             return reject(error);
           }
 
@@ -60,10 +61,19 @@ export const createBill = async (req, res) => {
         }
       );
 
-      streamifier.createReadStream(req.file.buffer).pipe(uploadStream);
+      streamifier
+        .createReadStream(req.file.buffer)
+        .pipe(uploadStream);
+
     });
 
-    console.log("UPLOADED FILE =>", uploadedFile);
+    console.log("========== CLOUDINARY ==========");
+    console.log(uploadedFile);
+    console.log("Bytes :", uploadedFile.bytes);
+    console.log("Format :", uploadedFile.format);
+    console.log("Resource :", uploadedFile.resource_type);
+    console.log("URL :", uploadedFile.secure_url);
+    console.log("===============================");
 
     const billNo = await generateBillNo();
 
@@ -80,17 +90,15 @@ export const createBill = async (req, res) => {
       gstAmount,
       totalAmount,
       billDate,
-
       billFile: uploadedFile.secure_url,
       billFileId: uploadedFile.public_id,
     });
 
-    return res.status(201).json(bill);
+    res.status(201).json(bill);
 
   } catch (err) {
-    console.error("CREATE BILL ERROR ❌", err);
-    return res.status(500).json({
-      success: false,
+    console.log(err);
+    res.status(500).json({
       message: err.message,
     });
   }
