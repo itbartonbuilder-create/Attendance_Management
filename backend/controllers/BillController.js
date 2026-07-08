@@ -55,14 +55,7 @@ export const createBill = async (req, res) => {
 
   streamifier.createReadStream(req.file.buffer).pipe(uploadStream);
 });
-console.log("UPLOADED FILE =>", uploadedFile);
 
-console.log({
-  resource_type: uploadedFile.resource_type,
-  format: uploadedFile.format,
-  public_id: uploadedFile.public_id,
-  secure_url: uploadedFile.secure_url,
-});
     const billNo = await generateBillNo();
 
     const bill = await Bill.create({
