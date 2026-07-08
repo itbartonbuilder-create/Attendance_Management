@@ -9,7 +9,7 @@ const generateBillNo = async () => {
 
 export const createBill = async (req, res) => {
   try {
-        console.log("REQ.FILE =>", req.file);
+    console.log("REQ.FILE =>", req.file);
 
     if (!req.file) {
       return res.status(400).json({ message: "Bill file required" });
@@ -37,31 +37,34 @@ export const createBill = async (req, res) => {
       totalAmount = subtotal + gstAmount;
     }
 
-   const uploadedFile = await new Promise((resolve, reject) => {
-  const uploadStream = cloudinary.uploader.upload_stream(
-  {
-    folder: "bills",
-    resource_type: "auto",
+    // PDF ya Image detect karo
+    const resourceType =
+      req.file.mimetype === "application/pdf" ? "image" : "image";
 
-    public_id: `bill_${Date.now()}`,
-    overwrite: true,
-  },
-    (error, result) => {
-      if (error) return reject(error);
-      resolve(result);
-    }
-  );
+    const uploadedFile = await new Promise((resolve, reject) => {
+      const uploadStream = cloudinary.uploader.upload_stream(
+        {
+          folder: "bills",
+          resource_type: resourceType,
+          public_id: `bill_${Date.now()}`,
+          overwrite: false,
+          unique_filename: true,
+        },
+        (error, result) => {
+          if (error) {
+            console.error("Cloudinary Upload Error:", error);
+            return reject(error);
+          }
 
-  streamifier.createReadStream(req.file.buffer).pipe(uploadStream);
-});
-console.log("UPLOADED FILE =>", uploadedFile);
+          resolve(result);
+        }
+      );
 
-console.log({
-  resource_type: uploadedFile.resource_type,
-  format: uploadedFile.format,
-  public_id: uploadedFile.public_id,
-  secure_url: uploadedFile.secure_url,
-});
+      streamifier.createReadStream(req.file.buffer).pipe(uploadStream);
+    });
+
+    console.log("UPLOADED FILE =>", uploadedFile);
+
     const billNo = await generateBillNo();
 
     const bill = await Bill.create({
@@ -82,10 +85,13 @@ console.log({
       billFileId: uploadedFile.public_id,
     });
 
-    res.status(201).json(bill);
+    return res.status(201).json(bill);
 
   } catch (err) {
     console.error("CREATE BILL ERROR ❌", err);
-    res.status(500).json({ message: err.message });
+    return res.status(500).json({
+      success: false,
+      message: err.message,
+    });
   }
 };
