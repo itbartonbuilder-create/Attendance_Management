@@ -39,13 +39,13 @@ export const createBill = async (req, res) => {
 
    const uploadedFile = await new Promise((resolve, reject) => {
   const uploadStream = cloudinary.uploader.upload_stream(
-    {
-      folder: "bills",
-     resource_type:  "auto",
-      use_filename: true,
-      unique_filename: false,
-      overwrite: false,
-    },
+  {
+    folder: "bills",
+    resource_type: "auto",
+
+    public_id: `bill_${Date.now()}`,
+    overwrite: true,
+  },
     (error, result) => {
       if (error) return reject(error);
       resolve(result);
