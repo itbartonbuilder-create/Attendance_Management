@@ -1,4 +1,6 @@
 import Bill from "../models/BillModel.js";
+import cloudinary from "../utils/cloudinary.js";
+import streamifier from "streamifier";
 
 const generateBillNo = async () => {
   const lastBill = await Bill.findOne().sort({ billNo: -1 });
@@ -7,7 +9,8 @@ const generateBillNo = async () => {
 
 export const createBill = async (req, res) => {
   try {
-    console.log("REQ.FILE =>", req.file);
+        console.log("REQ.FILE =>", req.file);
+
     if (!req.file) {
       return res.status(400).json({ message: "Bill file required" });
     }
@@ -34,6 +37,14 @@ export const createBill = async (req, res) => {
       totalAmount = subtotal + gstAmount;
     }
 
+     const uploadedFile = await cloudinary.uploader.upload(req.file.path, {
+      folder: "bills",
+      resource_type: "auto",
+      use_filename: true,
+      unique_filename: false,
+      overwrite: false,
+    });
+
     const billNo = await generateBillNo();
 
     const bill = await Bill.create({
@@ -48,13 +59,14 @@ export const createBill = async (req, res) => {
       gstPercent: gstType === "gst" ? gstPercent : 0,
       gstAmount,
       totalAmount,
-
       billDate,
-      billFile: req.file.path,
-      billFileId: req.file.filename,
+
+      billFile: uploadedFile.secure_url,
+      billFileId: uploadedFile.public_id,
     });
 
     res.status(201).json(bill);
+
   } catch (err) {
     console.error("CREATE BILL ERROR ❌", err);
     res.status(500).json({ message: err.message });
