@@ -1,8 +1,6 @@
 import Bill from "../models/BillModel.js";
 import cloudinary from "../utils/cloudinary.js";
-import fs from "fs";
-import os from "os";
-import path from "path";
+import streamifier from "streamifier";
 
 const generateBillNo = async () => {
   const lastBill = await Bill.findOne().sort({ billNo: -1 });
@@ -11,16 +9,10 @@ const generateBillNo = async () => {
 
 export const createBill = async (req, res) => {
   try {
-    console.log("========= FILE INFO =========");
-    console.log("Original :", req.file?.originalname);
-    console.log("MimeType :", req.file?.mimetype);
-    console.log("Size :", req.file?.size);
-    console.log("=============================");
+        console.log("REQ.FILE =>", req.file);
 
     if (!req.file) {
-      return res.status(400).json({
-        message: "Bill file required",
-      });
+      return res.status(400).json({ message: "Bill file required" });
     }
 
     const {
@@ -45,33 +37,31 @@ export const createBill = async (req, res) => {
       totalAmount = subtotal + gstAmount;
     }
 
-    // ---------- TEMP FILE ----------
-    const tempPath = path.join(
-      os.tmpdir(),
-      `${Date.now()}_${req.file.originalname}`
-    );
+   const uploadedFile = await new Promise((resolve, reject) => {
+ const uploadStream = cloudinary.uploader.upload_stream(
+  {
+    folder: "bills",
+    resource_type: "auto",
 
-    fs.writeFileSync(tempPath, req.file.buffer);
+    public_id: `bill_${Date.now()}`,
+    overwrite: true,
+  },
+    (error, result) => {
+      if (error) return reject(error);
+      resolve(result);
+    }
+  );
 
-    // ---------- CLOUDINARY ----------
-    const uploadedFile = await cloudinary.uploader.upload(tempPath, {
-      folder: "bills",
+  streamifier.createReadStream(req.file.buffer).pipe(uploadStream);
+});
+console.log("UPLOADED FILE =>", uploadedFile);
 
-      resource_type:
-        req.file.mimetype === "application/pdf"
-          ? "raw"
-          : "image",
-
-      public_id: `bill_${Date.now()}`,
-      overwrite: true,
-    });
-
-    fs.unlinkSync(tempPath);
-
-    console.log("========= CLOUDINARY =========");
-    console.log(uploadedFile);
-    console.log("==============================");
-
+console.log({
+  resource_type: uploadedFile.resource_type,
+  format: uploadedFile.format,
+  public_id: uploadedFile.public_id,
+  secure_url: uploadedFile.secure_url,
+});
     const billNo = await generateBillNo();
 
     const bill = await Bill.create({
@@ -93,10 +83,9 @@ export const createBill = async (req, res) => {
     });
 
     res.status(201).json(bill);
+
   } catch (err) {
-    console.error(err);
-    res.status(500).json({
-      message: err.message,
-    });
+    console.error("CREATE BILL ERROR ❌", err);
+    res.status(500).json({ message: err.message });
   }
 };
