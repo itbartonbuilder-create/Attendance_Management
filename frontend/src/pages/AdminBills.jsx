@@ -5,13 +5,14 @@ import * as XLSX from "xlsx";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 
-
 const AdminBills = () => {
   const user = JSON.parse(localStorage.getItem("user"));
+
   const [bills, setBills] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [selectedBills, setSelectedBills] = useState([]);
+
   const location = useLocation();
   const queryParams = new URLSearchParams(location.search);
   const selectedSite = queryParams.get("siteId");
@@ -55,20 +56,40 @@ const toggleSelectAll = () => {
     setSelectedBills(bills.map((b) => b._id));
   }
 };
-  const downloadBill = async (url) => {
-    try {
-      const response = await fetch(url);
-      const blob = await response.blob();
-      const link = document.createElement("a");
-      link.href = window.URL.createObjectURL(blob);
-      link.download = "bill-file";
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-    } catch (err) {
-      console.error("Download failed", err);
+ const downloadBill = async (url) => {
+  try {
+    const response = await fetch(url);
+
+    if (!response.ok) {
+      throw new Error("Failed to download");
     }
-  };
+
+    const blob = await response.blob();
+
+    const link = document.createElement("a");
+    link.href = URL.createObjectURL(blob);
+
+    const contentType = response.headers.get("content-type");
+
+    if (contentType?.includes("pdf")) {
+      link.download = "bill.pdf";
+    } else if (contentType?.includes("jpeg")) {
+      link.download = "bill.jpg";
+    } else if (contentType?.includes("png")) {
+      link.download = "bill.png";
+    } else {
+      link.download = "bill-file";
+    }
+
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+
+    URL.revokeObjectURL(link.href);
+  } catch (err) {
+    console.error(err);
+  }
+};
 
   const changeStatus = async (billId, status) => {
     const confirmMsg = status === "approved" ? "Approve this bill?" : "Reject this bill?";
@@ -87,7 +108,7 @@ const toggleSelectAll = () => {
     const ws = XLSX.utils.json_to_sheet(
       bills.map((b) => ({
         Vendor: b.vendor?.name || "Manager",
-        Company: b.vendor?.companyName || "-",
+        // Company: b.vendor?.companyName || "-",
         Work: b.workName,
         "Bill No": b.billNo,
         Site: b.site,
@@ -118,13 +139,13 @@ const downloadSelectedPDF = () => {
   doc.text(`Selected Bills - ${selectedSite}`, 14, 15);
 
   const columns = [
-    "Vendor","Company","Work","Bill No","Site",
+    "Vendor","Work","Bill No","Site",
     "Amount","Qty","GST","Total","Date","Status"
   ];
 
   const rows = selectedData.map((b) => [
     b.vendor?.name || "Manager",
-    b.vendor?.companyName || "-",
+    // b.vendor?.companyName || "-",
     b.workName,
     b.billNo,
     b.site,
@@ -163,8 +184,8 @@ const downloadSelectedPDF = () => {
                 type="checkbox"
                 checked={selectedBills.length === bills.length && bills.length > 0}
                 onChange={toggleSelectAll}/> </th>
-              <th style={th}>Vendor</th>
-              <th style={th}>Company</th>
+              <th style={th}>Created By</th>
+              {/* <th style={th}>Company</th> */}
               <th style={th}>Shop_name/material</th>
               <th style={th}>Bill No</th>
               <th style={th}>Site</th>
@@ -191,7 +212,7 @@ const downloadSelectedPDF = () => {
                 />
               </td>
                   <td style={td}>{b.vendor?.name || "Manager"}</td>
-                  <td style={td}>{b.vendor?.companyName || "-"}</td>
+                  {/* <td style={td}>{b.vendor?.companyName || "-"}</td> */}
                   <td style={td}>{b.workName}</td>
                   <td style={td}>{b.billNo}</td>
                   <td style={td}>{b.site}</td>
@@ -204,13 +225,28 @@ const downloadSelectedPDF = () => {
                     {status}
                   </td>
                   <td style={td}>
-                    {b.billFile ? (
-                      <>
-                        <a href={b.billFile} target="_blank" rel="noreferrer" style={viewBtn}>View</a>
-                        <button style={downloadBtn} onClick={() => downloadBill(b.billFile)}>Download</button>
-                      </>
-                    ) : "-"}
-                  </td>
+  {b.billFile ? (
+    <>
+      <a
+        href={b.billFile}
+        target="_blank"
+        rel="noreferrer"
+        style={viewBtn}
+      >
+        View
+      </a>
+
+      <button
+        style={downloadBtn}
+        onClick={() => downloadBill(b.billFile)}
+      >
+        Download
+      </button>
+    </>
+  ) : (
+    "-"
+  )}
+</td>
                   <td style={td}>
                     {status === "pending" ? (
                       <>
