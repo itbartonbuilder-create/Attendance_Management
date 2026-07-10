@@ -1,6 +1,8 @@
 import Bill from "../models/BillModel.js";
 import cloudinary from "../utils/cloudinary.js";
-import streamifier from "streamifier";
+import fs from "fs";
+import os from "os";
+import path from "path";
 
 const generateBillNo = async () => {
   const lastBill = await Bill.findOne().sort({ billNo: -1 });
@@ -9,10 +11,16 @@ const generateBillNo = async () => {
 
 export const createBill = async (req, res) => {
   try {
-        console.log("REQ.FILE =>", req.file);
+    console.log("========= FILE INFO =========");
+    console.log("Original :", req.file?.originalname);
+    console.log("MimeType :", req.file?.mimetype);
+    console.log("Size :", req.file?.size);
+    console.log("=============================");
 
     if (!req.file) {
-      return res.status(400).json({ message: "Bill file required" });
+      return res.status(400).json({
+        message: "Bill file required",
+      });
     }
 
     const {
@@ -37,31 +45,33 @@ export const createBill = async (req, res) => {
       totalAmount = subtotal + gstAmount;
     }
 
-   const uploadedFile = await new Promise((resolve, reject) => {
- const uploadStream = cloudinary.uploader.upload_stream(
-  {
-    folder: "bills",
-    resource_type: "auto",
+    // ---------- TEMP FILE ----------
+    const tempPath = path.join(
+      os.tmpdir(),
+      `${Date.now()}_${req.file.originalname}`
+    );
 
-    public_id: `bill_${Date.now()}`,
-    overwrite: true,
-  },
-    (error, result) => {
-      if (error) return reject(error);
-      resolve(result);
-    }
-  );
+    fs.writeFileSync(tempPath, req.file.buffer);
 
-  streamifier.createReadStream(req.file.buffer).pipe(uploadStream);
-});
-console.log("UPLOADED FILE =>", uploadedFile);
+    // ---------- CLOUDINARY ----------
+    const uploadedFile = await cloudinary.uploader.upload(tempPath, {
+      folder: "bills",
 
-console.log({
-  resource_type: uploadedFile.resource_type,
-  format: uploadedFile.format,
-  public_id: uploadedFile.public_id,
-  secure_url: uploadedFile.secure_url,
-});
+      resource_type:
+        req.file.mimetype === "application/pdf"
+          ? "raw"
+          : "image",
+
+      public_id: `bill_${Date.now()}`,
+      overwrite: true,
+    });
+
+    fs.unlinkSync(tempPath);
+
+    console.log("========= CLOUDINARY =========");
+    console.log(uploadedFile);
+    console.log("==============================");
+
     const billNo = await generateBillNo();
 
     const bill = await Bill.create({
@@ -83,9 +93,10 @@ console.log({
     });
 
     res.status(201).json(bill);
-
   } catch (err) {
-    console.error("CREATE BILL ERROR ❌", err);
-    res.status(500).json({ message: err.message });
+    console.error(err);
+    res.status(500).json({
+      message: err.message,
+    });
   }
 };
