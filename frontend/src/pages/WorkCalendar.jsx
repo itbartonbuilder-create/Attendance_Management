@@ -427,6 +427,13 @@ const handleDateClick = (selected) => {
                           <button className="modal-btn" onClick={() => navigate(`/measurement?site=${selectedSite}&date=${selectedDate}`) }>
                   Measurement
                 </button>
+                <button
+                  className="modal-btn voucher-btn"
+                  
+                  onClick={() => navigate(`/create-voucher?site=${selectedSite}&date=${selectedDate}`)}
+                >
+                   Voucher
+                </button>
               </>
             )}
 
