@@ -6,7 +6,6 @@ const router = express.Router();
 
 router.post("/create", createVoucher);
 
-
 router.get("/next-number", getNextVoucherNumber);
 
 
