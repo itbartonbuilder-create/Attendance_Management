@@ -15,11 +15,12 @@ const CreateVoucher = () => {
   const [amount, setAmount] = useState("");
   const [amountInWords, setAmountInWords] = useState("");
   
-
-  const [screenshot, setScreenshot] = useState("");
+  
+  const [screenshotFile, setScreenshotFile] = useState(null); 
+  
+  const [screenshotPreview, setScreenshotPreview] = useState(""); 
   
   const [isSubmitting, setIsSubmitting] = useState(false);
-
 
   const [existingVouchers, setExistingVouchers] = useState([]);
   const [showHistory, setShowHistory] = useState(false);
@@ -75,6 +76,7 @@ const CreateVoucher = () => {
     setAmountInWords(convertNumberToWords(val));
   };
 
+ 
   const handleImageUpload = (e) => {
     const file = e.target.files[0];
     if (file) {
@@ -82,11 +84,8 @@ const CreateVoucher = () => {
         alert("File size should be less than 2MB");
         return;
       }
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setScreenshot(reader.result);
-      };
-      reader.readAsDataURL(file);
+      setScreenshotFile(file);
+      setScreenshotPreview(URL.createObjectURL(file));
     }
   };
 
@@ -179,13 +178,11 @@ const CreateVoucher = () => {
         6: { halign: "right", fontStyle: "bold" } 
       },
       didParseCell: (data) => {
-       
         if (data.section === "body") {
           data.row.height = 20;
         }
       },
       didDrawCell: (data) => {
-        
         if (data.section === "body" && data.column.index === 5) {
           const voucher = vouchersToDownload[data.row.index];
           if (voucher && voucher.screenshotUrl) {
@@ -217,7 +214,7 @@ const CreateVoucher = () => {
       return;
     }
 
-    if ((paymentMode === "UPI") && !screenshot) {
+    if (paymentMode === "UPI" && !screenshotFile) {
       alert("Please upload payment receipt/proof for digital transactions.");
       return;
     }
@@ -225,30 +222,39 @@ const CreateVoucher = () => {
     if (isSubmitting) return;
     setIsSubmitting(true);
 
-    const voucherData = {
-      voucherNo, 
-      payableTo,
-      particulars,
-      paymentMode,
-      screenshotUrl: screenshot,
-      amount: Number(amount),
-      amountInWords,
-      site: currentSite,
-      createdByName: loggedInName,
-      createdByUserId: loggedInUid
-    };
+  
+    const formData = new FormData();
+    formData.append("voucherNo", voucherNo);
+    formData.append("payableTo", payableTo);
+    formData.append("particulars", particulars);
+    formData.append("paymentMode", paymentMode);
+    formData.append("amount", Number(amount));
+    formData.append("amountInWords", amountInWords);
+    formData.append("site", currentSite);
+    formData.append("createdByName", loggedInName);
+    formData.append("createdByUserId", loggedInUid);
+
+
+    if (screenshotFile) {
+      formData.append("proof", screenshotFile);  chahiye
+    }
 
     try {
-      const res = await axios.post("https://attendance-management-backend-vh2w.onrender.com/api/vouchers/create", voucherData);
+      const res = await axios.post(
+        "https://attendance-management-backend-vh2w.onrender.com/api/vouchers/create", 
+        formData,
+        { headers: { "Content-Type": "multipart/form-data" } }
+      );
       
       if (res.data.success || res.status === 200 || res.status === 201) {
-        alert("Voucher generated .");
+        alert("Voucher generated successfully.");
         
         setPayableTo("");
         setParticulars("");
         setAmount("");
         setAmountInWords("");
-        setScreenshot("");
+        setScreenshotFile(null);
+        setScreenshotPreview("");
         
         if (showHistory) {
           const freshRes = await axios.get(`https://attendance-management-backend-vh2w.onrender.com/api/vouchers?site=${currentSite}`);
@@ -333,7 +339,10 @@ const CreateVoucher = () => {
                   value={paymentMode} 
                   onChange={(e) => {
                     setPaymentMode(e.target.value);
-                    if (e.target.value === "Cash") setScreenshot("");
+                    if (e.target.value === "Cash") {
+                      setScreenshotFile(null);
+                      setScreenshotPreview("");
+                    }
                   }}
                   style={{ width: "100%", padding: "8px", border: "none", outline: "none", fontSize: "14px", background: "transparent", cursor: "pointer", fontWeight: "500" }}
                 >
@@ -354,7 +363,7 @@ const CreateVoucher = () => {
           </tbody>
         </table>
 
-        {(paymentMode === "UPI" ) && (
+        {paymentMode === "UPI" && (
           <div style={{ marginBottom: "20px", padding: "16px", border: "1px dashed #2563eb", borderRadius: "8px", background: "#eff6ff" }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "10px" }}>
               <div>
@@ -371,10 +380,10 @@ const CreateVoucher = () => {
               />
             </div>
 
-            {screenshot && (
+            {screenshotPreview && (
               <div style={{ marginTop: "12px", display: "flex", alignItems: "center", gap: "12px" }}>
                 <img 
-                  src={screenshot} 
+                  src={screenshotPreview} 
                   alt="Payment Proof" 
                   style={{ width: "50px", height: "50px", objectFit: "cover", borderRadius: "6px", border: "1px solid #bfdbfe" }} 
                 />
@@ -443,7 +452,6 @@ const CreateVoucher = () => {
         </button>
       </div>
 
-  
       {showHistory && (
         <div style={{ marginTop: "16px", background: "#ffffff", border: "1px solid #e2e8f0", borderRadius: "12px", padding: "20px", boxShadow: "0 4px 6px -1px rgba(0, 0, 0, 0.05)" }}>
           
