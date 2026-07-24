@@ -18,6 +18,7 @@ import dailyReportRoutes from "./routes/dailyReportRoutes.js";
 import siteExpenseRoutes from "./routes/siteExpenseRoutes.js";
 import weatherRoutes from "./routes/weatherRoutes.js";
 import measurementRoutes from "./routes/siteMeasurementRoutes.js";
+import voucherRoutes from "./routes/voucher.js";
 
 const app = express();
 app.use(cors());
@@ -27,11 +28,9 @@ console.log("EMAIL_USER:", process.env.EMAIL_USER);
 console.log("EMAIL_PASS:", process.env.EMAIL_PASS ? "LOADED" : "MISSING");
 
 
-// 🔥 REQUIRED FOR ES MODULES
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// 🔥 MAKE UPLOADS PUBLIC (FIX)
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
 
@@ -55,6 +54,7 @@ app.use("/api", dailyReportRoutes);
 app.use("/api/site-expense", siteExpenseRoutes);
 app.use("/api/weather", weatherRoutes);
 app.use("/api/measurement", measurementRoutes);
+app.use("/api/vouchers", voucherRoutes);
 
 
 
