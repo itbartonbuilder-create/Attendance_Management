@@ -91,7 +91,7 @@ export const uploadSiteExpense = multer({
 const voucherStorage = new CloudinaryStorage({
   cloudinary,
   params: {
-    folder: "vouchers", // Cloudinary me "vouchers" naam ka folder banega
+    folder: "vouchers", 
     resource_type: "image",
     allowed_formats: ["jpg", "jpeg", "png", "pdf"],
   },
