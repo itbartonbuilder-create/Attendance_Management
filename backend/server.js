@@ -33,7 +33,6 @@ const __dirname = path.dirname(__filename);
 
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
-
 await connectDB();
 
 app.use("/api/auth", (await import("./routes/authRoutes.js")).default);
