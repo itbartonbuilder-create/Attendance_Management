@@ -55,7 +55,7 @@ const CreateVoucher = () => {
   useEffect(() => {
     const fetchVoucherNumber = async () => {
       try {
-        const res = await axios.get("http://localhost:8000/api/vouchers/next-number");
+        const res = await axios.get("https://attendance-management-backend-vh2w.onrender.com/api/vouchers/next-number");
         setVoucherNo(res.data.nextVoucherNo);
       } catch (err) {
         console.error("Error fetching voucher number ❌", err);
@@ -78,7 +78,7 @@ const CreateVoucher = () => {
 
     setIsLoadingHistory(true);
     try {
-      const res = await axios.get(`http://localhost:8000/api/vouchers?site=${currentSite}`);
+      const res = await axios.get(`https://attendance-management-backend-vh2w.onrender.com/api/vouchers?site=${currentSite}`);
       const data = res.data.vouchers || res.data || [];
       
       const filteredData = data.filter(item => item.site === currentSite);
@@ -186,7 +186,7 @@ const CreateVoucher = () => {
     };
 
     try {
-      const res = await axios.post("http://localhost:8000/api/vouchers/create", voucherData);
+      const res = await axios.post("https://attendance-management-backend-vh2w.onrender.com/api/vouchers/create", voucherData);
       
       if (res.data.success || res.status === 200 || res.status === 201) {
         alert("Voucher Generated and Saved Successfully! 🎉");
@@ -197,12 +197,12 @@ const CreateVoucher = () => {
         setAmountInWords("");
         
         if (showHistory) {
-          const freshRes = await axios.get(`http://localhost:8000/api/vouchers?site=${currentSite}`);
+          const freshRes = await axios.get(`https://attendance-management-backend-vh2w.onrender.com/api/vouchers?site=${currentSite}`);
           const data = freshRes.data.vouchers || freshRes.data || [];
           setExistingVouchers(data.filter(item => item.site === currentSite));
         }
 
-        const nextNumRes = await axios.get("http://localhost:8000/api/vouchers/next-number");
+        const nextNumRes = await axios.get("https://attendance-management-backend-vh2w.onrender.com/api/vouchers/next-number");
         setVoucherNo(nextNumRes.data.nextVoucherNo);
       }
     } catch (error) {
