@@ -154,7 +154,7 @@ const CreateVoucher = () => {
     doc.text(`Voucher History Report - Site: ${currentSite}`, 65, 24);
     doc.text(`Generated Date: ${new Date().toLocaleDateString("en-IN")}`, 65, 29);
 
-    const tableHeaders = [["Voucher No", "Date", "Paid To", "Particulars", "Mode", "Proof", "Amount", "Created By"]];
+    const tableHeaders = [["Voucher No", "Date", "Paid To", "Particulars", "Mode", "Attachment", "Amount", "Created By"]];
     
     const tableRows = vouchersToDownload.map((item) => [
       item.voucherNo || "-",
@@ -505,7 +505,7 @@ const CreateVoucher = () => {
                     <th style={{ padding: "10px" }}>Paid To</th>
                     <th style={{ padding: "10px" }}>Particulars</th>
                     <th style={{ padding: "10px", textAlign: "center" }}>Mode</th>
-                    <th style={{ padding: "10px", textAlign: "center" }}>Payment Proof</th>
+                    <th style={{ padding: "10px", textAlign: "center" }}>Attachment</th>
                     <th style={{ padding: "10px", textAlign: "right" }}>Amount</th>
                     <th style={{ padding: "10px" }}>Created By</th>
                   </tr>
@@ -538,7 +538,7 @@ const CreateVoucher = () => {
                             onClick={() => setPreviewImage(item.screenshotUrl)}
                             style={{ background: "transparent", border: "1px solid #bfdbfe", color: "#2563eb", padding: "4px 10px", borderRadius: "4px", fontSize: "12px", fontWeight: "600", cursor: "pointer" }}
                           >
-                            👁️ View Proof
+                            👁️ View Attachment
                           </button>
                         ) : (
                           <span style={{ color: "#cbd5e1" }}>—</span>
