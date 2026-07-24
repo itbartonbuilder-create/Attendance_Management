@@ -27,7 +27,7 @@ import LiveLocation from "./pages/LiveLocation";
 import WorkCalendar from "./pages/WorkCalendar";
 import Measurement from "./pages/Measurement";
 import AdminMeasurements from "./pages/AdminMeasurements";
-import CreateVoucher from "./Pages/CreateVoucher";
+import CreateVoucher from "./pages/CreateVoucher";
 
 
 function App() {
