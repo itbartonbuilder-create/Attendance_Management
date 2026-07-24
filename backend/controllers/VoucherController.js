@@ -2,7 +2,7 @@ import Voucher from "../models/Voucher.js";
 
 export const createVoucher = async (req, res) => {
   try {
-    let { voucherNo, payableTo, particulars, paymentMode, txnNo, amount, amountInWords, site, createdByName, createdByUserId } = req.body;
+    let { voucherNo, payableTo, particulars, paymentMode, screenshotUrl, amount, amountInWords, site, createdByName, createdByUserId } = req.body;
 
     if (!voucherNo) {      
       voucherNo = "VCH-" + Date.now(); 
@@ -13,7 +13,7 @@ export const createVoucher = async (req, res) => {
       payableTo,
       particulars,
       paymentMode,
-      txnNo: txnNo || "",
+      screenshotUrl: screenshotUrl || "",
       amount,
       amountInWords,
       site,
@@ -43,7 +43,7 @@ export const createVoucher = async (req, res) => {
 export const getNextVoucherNumber = async (req, res) => {
   try {
     const count = await Voucher.countDocuments();
-    const nextNum = String(count + 1).padStart(2, "0"); 
+    const nextNum = String(count + 1).padStart(2, "0");
     res.status(200).json({ nextVoucherNo: nextNum });
   } catch (error) {
     console.error("GET VOUCHER NUMBER ERROR ❌", error);
