@@ -13,5 +13,6 @@ const voucherSchema = new mongoose.Schema({
   createdAt: { type: Date, default: Date.now }
 });
 
+
 const Voucher = mongoose.model("Voucher", voucherSchema);
 export default Voucher;
