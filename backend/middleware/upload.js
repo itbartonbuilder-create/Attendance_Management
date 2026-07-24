@@ -87,3 +87,17 @@ export const uploadSiteExpense = multer({
   storage: siteExpenseStorage,
   limits: { fileSize: 10 * 1024 * 1024 },
 });
+
+const voucherStorage = new CloudinaryStorage({
+  cloudinary,
+  params: {
+    folder: "vouchers", // Cloudinary me "vouchers" naam ka folder banega
+    resource_type: "image",
+    allowed_formats: ["jpg", "jpeg", "png", "pdf"],
+  },
+});
+
+export const uploadVoucher = multer({
+  storage: voucherStorage,
+  limits: { fileSize: 10 * 1024 * 1024 }, // 10MB limit
+});
