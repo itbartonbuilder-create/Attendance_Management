@@ -5,6 +5,7 @@ const voucherSchema = new mongoose.Schema({
   payableTo: { type: String, required: true },
   particulars: { type: String, required: true },
   paymentMode: { type: String, required: true },
+  txnNo: { type: String, default: "" },
   amount: { type: Number, required: true },
   amountInWords: { type: String, required: true },
   site: { type: String, required: true },          
