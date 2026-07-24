@@ -2,7 +2,19 @@ import Voucher from "../models/Voucher.js";
 
 export const createVoucher = async (req, res) => {
   try {
-    let { voucherNo, payableTo, particulars, paymentMode, screenshotUrl, amount, amountInWords, site, createdByName, createdByUserId } = req.body;
+    let { 
+      voucherNo, 
+      payableTo, 
+      particulars, 
+      paymentMode, 
+      amount, 
+      amountInWords, 
+      site, 
+      createdByName, 
+      createdByUserId 
+    } = req.body;
+
+    const screenshotUrl = req.file ? req.file.path : (req.body.screenshotUrl || "");
 
     if (!voucherNo) {      
       voucherNo = "VCH-" + Date.now(); 
@@ -13,7 +25,7 @@ export const createVoucher = async (req, res) => {
       payableTo,
       particulars,
       paymentMode,
-      screenshotUrl: screenshotUrl || "",
+      screenshotUrl,
       amount,
       amountInWords,
       site,
@@ -57,14 +69,12 @@ export const getVouchers = async (req, res) => {
     const { role, userId, site } = req.query;
     let filter = {};
 
-    
     if (role === "admin" || role === "manager" || role === "accountant") {
       if (!site) {
         return res.status(400).json({ message: `Site is required for ${role}` });
       }
       filter = { site };
     } 
-   
     else if (role === "vendor" || role === "user") {
       if (!userId) {
         return res.status(400).json({ message: "User ID required" });
