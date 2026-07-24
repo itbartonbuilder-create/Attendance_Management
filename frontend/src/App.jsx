@@ -27,6 +27,7 @@ import LiveLocation from "./pages/LiveLocation";
 import WorkCalendar from "./pages/WorkCalendar";
 import Measurement from "./pages/Measurement";
 import AdminMeasurements from "./pages/AdminMeasurements";
+import CreateVoucher from "./Pages/CreateVoucher";
 
 function App() {
   return (
@@ -62,6 +63,7 @@ function App() {
         <Route path="/work-calendar" element={<WorkCalendar />} />
         <Route path="/measurement" element={<Measurement />} />
         <Route path="/admin-measurements" element={<AdminMeasurements />} />
+        <Route path="/create-voucher" element={<CreateVoucher />} />
 
       </Routes>
             </div>
