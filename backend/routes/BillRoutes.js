@@ -6,14 +6,14 @@ import { uploadBill } from "../middleware/upload.js";
 
 const router = express.Router();
 
-// CREATE BILL
+
 router.post(
   "/create",
   uploadBill.single("billFile"),
   createBill
 );
 
-// GET ALL BILLS & VOUCHERS MERGED (PROFESSIONAL METHOD)
+
 router.get("/", async (req, res) => {
   try {
     const { role, userId, site } = req.query;
@@ -34,7 +34,7 @@ router.get("/", async (req, res) => {
       voucherFilter = { createdByUserId: userId };
     }
 
-    // Bills aur Vouchers parallelly fetch karein
+  
     const [bills, vouchers] = await Promise.all([
       Bill.find(billFilter)
         .sort({ createdAt: -1 })
@@ -46,24 +46,24 @@ router.get("/", async (req, res) => {
         .lean()
     ]);
 
-    // Vouchers ko Bill Table ke format me standardize kar rahe hain
+
     const formattedVouchers = vouchers.map((v) => ({
       _id: v._id,
-      workName: v.particulars,               // particulars -> workName
-      billNo: v.voucherNo,                   // voucherNo -> billNo
+      workName: v.particulars,              
+      billNo: v.voucherNo,                   
       amount: v.amount,
       quantity: 1,
       gstType: "non-gst",
       gstPercent: 0,
       totalAmount: v.amount,
       billDate: v.createdAt,
-      billFile: v.screenshotUrl,             // screenshotUrl -> billFile
-      vendor: { name: v.payableTo },         // payableTo -> vendor name
+      billFile: v.screenshotUrl,             
+      vendor: { name: v.payableTo },        
       status: "approved",
       isVoucher: true
     }));
 
-    // Dono ko combine karke Date-wise Sort karein (Latest pehle)
+   
     const combinedHistory = [...bills, ...formattedVouchers].sort(
       (a, b) => new Date(b.billDate || b.createdAt) - new Date(a.billDate || a.createdAt)
     );
@@ -75,7 +75,6 @@ router.get("/", async (req, res) => {
   }
 });
 
-// UPDATE BILL STATUS
 router.put("/:billId/status", async (req, res) => {
   try {
     const { billId } = req.params;
