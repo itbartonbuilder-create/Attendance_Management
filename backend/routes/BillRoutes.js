@@ -1,70 +1,81 @@
 import express from "express";
 import Bill from "../models/BillModel.js";
+import Voucher from "../models/Voucher.js"; // Voucher model import kiya
 import { createBill } from "../controllers/BillController.js";
 import { uploadBill } from "../middleware/upload.js";
 
 const router = express.Router();
+
+// CREATE BILL
 router.post(
   "/create",
   uploadBill.single("billFile"),
   createBill
 );
 
+// GET ALL BILLS & VOUCHERS MERGED (PROFESSIONAL METHOD)
 router.get("/", async (req, res) => {
   try {
     const { role, userId, site } = req.query;
-    let filter = {};
+    let billFilter = {};
+    let voucherFilter = {};
 
-    if (role === "admin") {
+    if (role === "admin" || role === "manager" || role === "accountant") {
       if (!site) {
-        return res.status(400).json({
-          message: "Site is required for admin",
-        });
+        return res.status(400).json({ message: "Site required" });
       }
-
-      filter = { site };
-    }
-
-    else if (role === "manager") {
-      if (!site) {
-        return res.status(400).json({
-          message: "Site required",
-        });
-      }
-
-      filter = { site };
-    }
-     else if (role === "accountant") {
-      if (!site) {
-        return res.status(400).json({
-          message: "Site required for accountant",
-        });
-      }
-      filter = { site };
-    }
-
-    else if (role === "vendor") {
+      billFilter = { site };
+      voucherFilter = { site };
+    } else if (role === "vendor") {
       if (!userId) {
-        return res.status(400).json({
-          message: "Vendor id required",
-        });
+        return res.status(400).json({ message: "Vendor id required" });
       }
-
-      filter = { vendor: userId };
+      billFilter = { vendor: userId };
+      voucherFilter = { createdByUserId: userId };
     }
 
-    const bills = await Bill.find(filter)
-      .sort({ billNo: -1 })
-      .populate("vendor", "name companyName")
-      .populate("sentTo", "name email");
+    // Bills aur Vouchers parallelly fetch karein
+    const [bills, vouchers] = await Promise.all([
+      Bill.find(billFilter)
+        .sort({ createdAt: -1 })
+        .populate("vendor", "name companyName")
+        .populate("sentTo", "name email")
+        .lean(),
+      Voucher.find(voucherFilter)
+        .sort({ createdAt: -1 })
+        .lean()
+    ]);
 
-    res.status(200).json(bills);
+    // Vouchers ko Bill Table ke format me standardize kar rahe hain
+    const formattedVouchers = vouchers.map((v) => ({
+      _id: v._id,
+      workName: v.particulars,               // particulars -> workName
+      billNo: v.voucherNo,                   // voucherNo -> billNo
+      amount: v.amount,
+      quantity: 1,
+      gstType: "non-gst",
+      gstPercent: 0,
+      totalAmount: v.amount,
+      billDate: v.createdAt,
+      billFile: v.screenshotUrl,             // screenshotUrl -> billFile
+      vendor: { name: v.payableTo },         // payableTo -> vendor name
+      status: "approved",
+      isVoucher: true
+    }));
+
+    // Dono ko combine karke Date-wise Sort karein (Latest pehle)
+    const combinedHistory = [...bills, ...formattedVouchers].sort(
+      (a, b) => new Date(b.billDate || b.createdAt) - new Date(a.billDate || a.createdAt)
+    );
+
+    res.status(200).json(combinedHistory);
   } catch (error) {
-    console.error("FETCH BILL ERROR ❌", error);
+    console.error("FETCH BILL & VOUCHER ERROR ❌", error);
     res.status(500).json({ message: "Server Error" });
   }
 });
 
+// UPDATE BILL STATUS
 router.put("/:billId/status", async (req, res) => {
   try {
     const { billId } = req.params;
