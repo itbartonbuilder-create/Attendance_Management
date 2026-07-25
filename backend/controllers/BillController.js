@@ -9,12 +9,7 @@ const generateBillNo = async () => {
 
 export const createBill = async (req, res) => {
   try {
-    console.log("REQ.FILE =>", req.file);
-
-    // यह चेक करें कि क्या यूजर लॉग-इन है (यह आपके Auth Middleware पर निर्भर करता है)
-    if (!req.user) {
-      return res.status(401).json({ message: "User not authenticated" });
-    }
+        console.log("REQ.FILE =>", req.file);
 
     if (!req.file) {
       return res.status(400).json({ message: "Bill file required" });
@@ -42,26 +37,33 @@ export const createBill = async (req, res) => {
       totalAmount = subtotal + gstAmount;
     }
 
-    const uploadedFile = await new Promise((resolve, reject) => {
-      const uploadStream = cloudinary.uploader.upload_stream(
-        {
-          folder: "bills",
-          resource_type: "auto",
-          public_id: `bill_${Date.now()}`,
-          overwrite: true,
-        },
-        (error, result) => {
-          if (error) return reject(error);
-          resolve(result);
-        }
-      );
+   const uploadedFile = await new Promise((resolve, reject) => {
+ const uploadStream = cloudinary.uploader.upload_stream(
+  {
+    folder: "bills",
+    resource_type: "auto",
 
-      streamifier.createReadStream(req.file.buffer).pipe(uploadStream);
-    });
+    public_id: `bill_${Date.now()}`,
+    overwrite: true,
+  },
+    (error, result) => {
+      if (error) return reject(error);
+      resolve(result);
+    }
+  );
 
+  streamifier.createReadStream(req.file.buffer).pipe(uploadStream);
+});
+console.log("UPLOADED FILE =>", uploadedFile);
+
+console.log({
+  resource_type: uploadedFile.resource_type,
+  format: uploadedFile.format,
+  public_id: uploadedFile.public_id,
+  secure_url: uploadedFile.secure_url,
+});
     const billNo = await generateBillNo();
 
-    // यहाँ बदलाव किया गया है: createdBy और createdByName को जोड़ा गया है
     const bill = await Bill.create({
       workName,
       billNo,
@@ -75,10 +77,6 @@ export const createBill = async (req, res) => {
       gstAmount,
       totalAmount,
       billDate,
-      
-      // ये दो फील्ड्स अब डेटाबेस में नाम सेव करेंगी:
-      createdBy: req.user._id,
-      createdByName: req.user.name, 
 
       billFile: uploadedFile.secure_url,
       billFileId: uploadedFile.public_id,
