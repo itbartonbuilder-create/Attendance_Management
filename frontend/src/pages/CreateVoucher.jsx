@@ -370,7 +370,7 @@ const CreateVoucher = () => {
                 <label style={{ fontWeight: "600", fontSize: "13px", color: "#1e40af", display: "block", marginBottom: "4px" }}>
                   📎 Attach Payment Proof / Receipt ({paymentMode})
                 </label>
-                <span style={{ fontSize: "12px", color: "#3b82f6" }}>Upload transaction confirmation image (JPG, PNG - Max 2MB)</span>
+                <span style={{ fontSize: "12px", color: "#3b82f6" }}>Upload transaction confirmation image (JPG, PNG - Max 10MB)</span>
               </div>
               <input 
                 type="file" 
