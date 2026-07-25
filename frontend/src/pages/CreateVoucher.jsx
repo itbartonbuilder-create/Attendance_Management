@@ -80,8 +80,8 @@ const CreateVoucher = () => {
   const handleImageUpload = (e) => {
     const file = e.target.files[0];
     if (file) {
-      if (file.size > 2 * 1024 * 1024) { // 2MB Limit
-        alert("File size should be less than 2MB");
+      if (file.size > 10 * 1024 * 1024) { 
+        alert("File size should be less than 10MB");
         return;
       }
       setScreenshotFile(file);
@@ -236,7 +236,7 @@ const CreateVoucher = () => {
 
 
     if (screenshotFile) {
-      formData.append("proof", screenshotFile);  chahiye
+      formData.append("proof", screenshotFile);
     }
 
     try {
@@ -580,4 +580,4 @@ const CreateVoucher = () => {
   );
 };
 
-export default CreateVoucher;
+export default CreateVoucher; 
