@@ -25,6 +25,7 @@ export const createBill = async (req, res) => {
       gstType,
       gstPercent,
       billDate,
+      createdByName,
     } = req.body;
 
     const subtotal = Number(amount) * Number(quantity);
