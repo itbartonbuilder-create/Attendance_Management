@@ -5,6 +5,7 @@ const billSchema = new mongoose.Schema(
   workName: String,
   billNo: { type: Number, unique: true },
   site: String,
+  createdByName: String,
 
   vendor: {
     type: mongoose.Schema.Types.ObjectId,
