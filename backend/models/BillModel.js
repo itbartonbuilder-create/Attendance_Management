@@ -34,11 +34,7 @@ const billSchema = new mongoose.Schema(
   billFile: String,
   billFileId: String,
 
-  status: {
-    type: String,
-    enum: ["pending", "approved", "rejected"],
-    default: "pending",
-  },
+
 },
 { timestamps: true }
 );
