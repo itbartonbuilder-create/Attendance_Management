@@ -81,6 +81,7 @@ console.log({
 
       billFile: uploadedFile.secure_url,
       billFileId: uploadedFile.public_id,
+      createdByName,
     });
 
     res.status(201).json(bill);
