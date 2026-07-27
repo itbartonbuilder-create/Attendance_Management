@@ -47,21 +47,23 @@ router.get("/", async (req, res) => {
     ]);
 
 
-    const formattedVouchers = vouchers.map((v) => ({
-      _id: v._id,
-      workName: v.particulars,              
-      billNo: v.voucherNo,                   
-      amount: v.amount,
-      quantity: 1,
-      gstType: "non-gst",
-      gstPercent: 0,
-      totalAmount: v.amount,
-      billDate: v.createdAt,
-      billFile: v.screenshotUrl,             
-      vendor: { name: v.payableTo },        
-      status: "approved",
-      isVoucher: true
-    }));
+  const formattedVouchers = vouchers.map((v) => ({
+  _id: v._id,
+  site: v.site,                  
+  createdByName: v.createdByName, 
+  workName: v.particulars,
+  billNo: v.voucherNo,
+  amount: v.amount,
+  quantity: 1,
+  gstType: "non-gst",
+  gstPercent: 0,
+  totalAmount: v.amount,
+  billDate: v.createdAt,
+  billFile: v.screenshotUrl,
+  vendor: { name: v.payableTo },
+  status: "approved",
+  isVoucher: true
+}));
 
    
     const combinedHistory = [...bills, ...formattedVouchers].sort(
