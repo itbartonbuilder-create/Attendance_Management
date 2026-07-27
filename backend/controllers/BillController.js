@@ -9,7 +9,6 @@ const generateBillNo = async () => {
 
 export const createBill = async (req, res) => {
   try {
-    console.log("SERVER KO MILA DATA (req.body):", req.body);
         console.log("REQ.FILE =>", req.file);
 
     if (!req.file) {
