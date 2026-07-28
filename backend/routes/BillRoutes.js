@@ -58,6 +58,7 @@ router.get("/", async (req, res) => {
   gstType: "non-gst",
   gstPercent: 0,
   totalAmount: v.amount,
+      paymentMode: v.paymentMode,
   billDate: v.createdAt,
   billFile: v.screenshotUrl,
   vendor: { name: v.payableTo },
