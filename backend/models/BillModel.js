@@ -21,11 +21,7 @@ const billSchema = new mongoose.Schema(
 
   amount: Number,
   quantity: Number,
-  paymentMode: {
-  type: String,
-  enum: ["Cash", "UPI"],
-  default: "Cash",
-},
+
 
   gstType: {
     type: String,
