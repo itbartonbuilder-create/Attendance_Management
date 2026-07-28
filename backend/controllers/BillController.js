@@ -9,6 +9,7 @@ const generateBillNo = async () => {
 
 export const createBill = async (req, res) => {
   try {
+    
         console.log("REQ.FILE =>", req.file);
 
     if (!req.file) {
@@ -24,6 +25,7 @@ export const createBill = async (req, res) => {
       quantity,
       gstType,
       gstPercent,
+        paymentMode,
       billDate,
       createdByName,
     } = req.body;
@@ -77,6 +79,7 @@ console.log({
       gstPercent: gstType === "gst" ? gstPercent : 0,
       gstAmount,
       totalAmount,
+       paymentMode,
       billDate,
 
       billFile: uploadedFile.secure_url,
