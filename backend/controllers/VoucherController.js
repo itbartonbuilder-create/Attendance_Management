@@ -4,6 +4,7 @@ export const createVoucher = async (req, res) => {
   try {
     let { 
       voucherNo, 
+      voucherDate,
       payableTo, 
       particulars, 
       paymentMode, 
@@ -22,6 +23,7 @@ export const createVoucher = async (req, res) => {
 
     const newVoucher = new Voucher({
       voucherNo,
+      voucherDate,
       payableTo,
       particulars,
       paymentMode,
