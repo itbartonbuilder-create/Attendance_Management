@@ -59,7 +59,7 @@ router.get("/", async (req, res) => {
   gstPercent: 0,
   totalAmount: v.amount,
       paymentMode: v.paymentMode,
-  billDate: v.voucherDate,
+ billDate: v.voucherDate || v.createdAt,
   billFile: v.screenshotUrl,
   vendor: { name: v.payableTo },
   status: "approved",
