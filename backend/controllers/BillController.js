@@ -2,6 +2,7 @@ import Bill from "../models/BillModel.js";
 import cloudinary from "../utils/cloudinary.js";
 import streamifier from "streamifier";
 
+
 const generateBillNo = async () => {
   const lastBill = await Bill.findOne().sort({ billNo: -1 });
   return lastBill ? lastBill.billNo + 1 : 1;
