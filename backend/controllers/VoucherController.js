@@ -56,16 +56,36 @@ export const createVoucher = async (req, res) => {
 
 export const getNextVoucherNumber = async (req, res) => {
   try {
-    const count = await Voucher.countDocuments();
-    const nextNum = String(count + 1).padStart(2, "0");
-    res.status(200).json({ nextVoucherNo: nextNum });
+    const vouchers = await Voucher.find({
+      voucherNo: { $exists: true, $ne: "" }
+    })
+      .select("voucherNo")
+      .lean();
+
+    let maxNumber = 0;
+
+    vouchers.forEach((voucher) => {
+      const num = parseInt(voucher.voucherNo, 10);
+
+      if (!isNaN(num) && num > maxNumber) {
+        maxNumber = num;
+      }
+    });
+
+    const nextVoucherNo = String(maxNumber + 1).padStart(2, "0");
+
+    res.status(200).json({
+      nextVoucherNo
+    });
+
   } catch (error) {
     console.error("GET VOUCHER NUMBER ERROR ❌", error);
-    res.status(500).json({ message: "Server Error" });
+
+    res.status(500).json({
+      message: "Server Error"
+    });
   }
 };
-
-
 export const getVouchers = async (req, res) => {
   try {
     const { role, userId, site } = req.query;
