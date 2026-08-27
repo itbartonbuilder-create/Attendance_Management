@@ -67,9 +67,36 @@ router.get("/", async (req, res) => {
 }));
 
    
-    const combinedHistory = [...bills, ...formattedVouchers].sort(
-      (a, b) => new Date(b.billDate || b.createdAt) - new Date(a.billDate || a.createdAt)
-    );
+  const parseDate = (date) => {
+  if (!date) return 0;
+
+ 
+  if (/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+    return new Date(`${date}T00:00:00`).getTime();
+  }
+
+ 
+  if (/^\d{2}\/\d{2}\/\d{4}$/.test(date)) {
+    const [day, month, year] = date.split("/");
+
+    return new Date(
+      `${year}-${month}-${day}T00:00:00`
+    ).getTime();
+  }
+
+  const parsed = new Date(date).getTime();
+
+  return Number.isNaN(parsed) ? 0 : parsed;
+};
+
+const combinedHistory = [...bills, ...formattedVouchers].sort(
+  (a, b) => {
+    const dateA = parseDate(a.billDate || a.createdAt);
+    const dateB = parseDate(b.billDate || b.createdAt);
+
+    return dateB - dateA;
+  }
+);
 
     res.status(200).json(combinedHistory);
   } catch (error) {
