@@ -6,7 +6,6 @@ import { uploadBill } from "../middleware/upload.js";
 
 const router = express.Router();
 
-
 router.post(
   "/create",
   uploadBill.single("billFile"),
