@@ -27,14 +27,14 @@ const requirementSchema = new mongoose.Schema(
         required: true,
         min: 0,
       },
-      availableStock: {
-        type: Number,
-        default: 0,
-      },
-      shortageQuantity: {
-        type: Number,
-        default: 0,
-      },
+      // availableStock: {
+      //   type: Number,
+      //   default: 0,
+      // },
+      // shortageQuantity: {
+      //   type: Number,
+      //   default: 0,
+      // },
       requiredDate: {
         type: Date,
         required: true,
