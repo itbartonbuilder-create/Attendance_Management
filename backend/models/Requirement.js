@@ -39,6 +39,12 @@ const requirementSchema = new mongoose.Schema(
         type: Date,
         required: true,
       },
+               priority: {
+      type: String,
+      enum: ["Normal", "Urgent", "Critical"],
+      default: "Normal",
+    },
+
       purpose: {
         type: String,
         default: "",
