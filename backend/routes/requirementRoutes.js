@@ -12,15 +12,15 @@ router.post("/", async (req, res) => {
       material: req.body.material,
       unit: req.body.unit,
       quantity: Number(req.body.quantity || 0),
-      availableStock: Number(
-        req.body.availableStock || 0
-      ),
+      // availableStock: Number(
+      //   req.body.availableStock || 0
+      // ),
 
-      shortageQuantity: Number(
-        req.body.shortageQuantity || 0
-      ),
+      // shortageQuantity: Number(
+      //   req.body.shortageQuantity || 0
+      // ),
 
-      requiredDate: req.body.requiredDate,
+      // requiredDate: req.body.requiredDate,
       priority:
         req.body.priority || "Normal",
       purpose:
