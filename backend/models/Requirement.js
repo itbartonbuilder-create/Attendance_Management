@@ -41,7 +41,7 @@ const requirementSchema = new mongoose.Schema(
       // },
                priority: {
       type: String,
-      enum: ["Normal", "Urgent", "Critical"],
+       enum: ["Normal", "Medium", "High"],
       default: "Normal",
     },
 
