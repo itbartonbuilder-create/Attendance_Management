@@ -35,10 +35,10 @@ const requirementSchema = new mongoose.Schema(
       //   type: Number,
       //   default: 0,
       // },
-      requiredDate: {
-        type: Date,
-        required: true,
-      },
+      // requiredDate: {
+      //   type: Date,
+      //   required: true,
+      // },
                priority: {
       type: String,
       enum: ["Normal", "Urgent", "Critical"],
