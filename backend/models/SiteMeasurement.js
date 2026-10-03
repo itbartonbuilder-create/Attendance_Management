@@ -15,6 +15,11 @@ const MeasurementSchema = new mongoose.Schema({
   height: Number,
 
   unitWeight: Number,
+  measurementUnit: {
+  type: String,
+  enum: ["m", "ft", "in", "Rft"],
+  default: "m"
+},
 
   quantity: {
     type: Number,
