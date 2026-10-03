@@ -1,6 +1,6 @@
 import express from "express";
 import Bill from "../models/BillModel.js";
-import Voucher from "../models/Voucher.js"; // Voucher model import kiya
+import Voucher from "../models/Voucher.js"; 
 import { createBill } from "../controllers/BillController.js";
 import { uploadBill } from "../middleware/upload.js";
 
