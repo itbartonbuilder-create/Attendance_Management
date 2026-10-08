@@ -10,6 +10,7 @@ router.post("/", async (req, res) => {
     const {
       site,
       workType,
+      description,
       length,
       breadth,
       height,
@@ -59,6 +60,8 @@ router.post("/", async (req, res) => {
       site: String(site).trim(),
 
       workType: String(workType).trim(),
+        description:
+        description || "",
 
       length:
         length !== undefined &&
@@ -205,6 +208,7 @@ router.put("/:id", async (req, res) => {
     const {
       site,
       workType,
+        description,
       length,
       breadth,
       height,
@@ -260,6 +264,8 @@ router.put("/:id", async (req, res) => {
           site: String(site).trim(),
 
           workType: String(workType).trim(),
+           description:
+            description || "",
 
           length:
             length !== undefined &&
