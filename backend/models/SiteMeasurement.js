@@ -13,6 +13,11 @@ const MeasurementSchema = new mongoose.Schema(
       required: true,
       trim: true,
     },
+    description: {
+      type: String,
+      trim: true,
+      default: "",
+    },
 
     length: {
       type: Number,
