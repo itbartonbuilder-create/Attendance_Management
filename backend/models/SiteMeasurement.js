@@ -16,17 +16,17 @@ const MeasurementSchema = new mongoose.Schema(
 
     length: {
       type: Number,
-      default: 0,
+      default: null,
     },
 
     breadth: {
       type: Number,
-      default: 0,
+      default: null,
     },
 
     height: {
       type: Number,
-      default: 0,
+      default: null,
     },
 
     unitWeight: {
@@ -36,10 +36,11 @@ const MeasurementSchema = new mongoose.Schema(
 
     measurementUnit: {
       type: String,
-      enum: ["m", "ft", "in", "Rft"],
       default: "m",
+      trim: true,
     },
 
+   
     quantity: {
       type: Number,
       required: true,
@@ -48,12 +49,13 @@ const MeasurementSchema = new mongoose.Schema(
     unit: {
       type: String,
       required: true,
+      trim: true,
     },
 
     remarks: {
       type: String,
-      default: "",
       trim: true,
+      default: "",
     },
 
     date: {
