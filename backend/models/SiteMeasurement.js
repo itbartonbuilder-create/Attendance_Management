@@ -7,7 +7,10 @@ const MeasurementSchema = new mongoose.Schema(
       required: true,
       trim: true,
     },
-
+ batchId: {
+      type: String,
+      index: true,
+    },
     workType: {
       type: String,
       required: true,
