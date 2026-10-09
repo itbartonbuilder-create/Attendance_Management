@@ -7,16 +7,26 @@ const MeasurementSchema = new mongoose.Schema(
       required: true,
       trim: true,
     },
-batchId: {
-  type: String,
-  default: null,
-  index: true,
-},
+
+    measurementNo: {
+      type: String,
+      default: undefined,
+      trim: true,
+    },
+
+    batchId: {
+      type: String,
+      default: null,
+      index: true,
+      trim: true,
+    },
+
     workType: {
       type: String,
       required: true,
       trim: true,
     },
+
     description: {
       type: String,
       trim: true,
@@ -49,7 +59,6 @@ batchId: {
       trim: true,
     },
 
-   
     quantity: {
       type: Number,
       required: true,
