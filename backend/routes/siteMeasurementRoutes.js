@@ -1,7 +1,41 @@
 import express from "express";
+import mongoose from "mongoose";
 import SiteMeasurement from "../models/SiteMeasurement.js";
+import MeasurementCounter from "../models/MeasurementCounter.js";
 
 const router = express.Router();
+
+
+async function getNextMeasurementNo(site) {
+  const siteKey = String(site).trim().toLowerCase();
+
+  if (!siteKey) {
+    throw new Error("Site is required");
+  }
+
+  for (let attempt = 0; attempt < 5; attempt++) {
+    try {
+      const counter = await MeasurementCounter.findOneAndUpdate(
+        { siteKey },
+        { $inc: { seq: 1 } },
+        {
+          new: true,
+          upsert: true,
+          setDefaultsOnInsert: true,
+        }
+      );
+
+      return String(counter.seq).padStart(2, "0");
+    } catch (err) {
+     
+      if (err.code !== 11000 || attempt === 4) {
+        throw err;
+      }
+    }
+  }
+
+  throw new Error("Unable to generate measurement number");
+}
 
 
 
@@ -23,21 +57,17 @@ router.post("/", async (req, res) => {
       date,
     } = req.body;
 
-
-
-    if (!site || !workType) {
+    if (!site || !String(site).trim() || !workType) {
       return res.status(400).json({
         message: "Site and Work Type are required",
       });
     }
-
 
     if (!unit) {
       return res.status(400).json({
         message: "Unit is required",
       });
     }
-
 
     if (
       quantity === undefined ||
@@ -50,38 +80,35 @@ router.post("/", async (req, res) => {
       });
     }
 
-
-    if (!date) {
+    if (!date || !Number.isFinite(new Date(date).getTime())) {
       return res.status(400).json({
-        message: "Date is required",
+        message: "Valid date is required",
       });
     }
 
+    const cleanSite = String(site).trim();
+
+    const measurementNo = await getNextMeasurementNo(cleanSite);
+
     const measurement = new SiteMeasurement({
-      site: String(site).trim(),
+      site: cleanSite,
+      measurementNo,
       batchId: batchId ? String(batchId).trim() : null,
       workType: String(workType).trim(),
-        description:
-        description || "",
+      description: description || "",
 
       length:
-        length !== undefined &&
-        length !== null &&
-        length !== ""
+        length !== undefined && length !== null && length !== ""
           ? Number(length)
           : null,
 
       breadth:
-        breadth !== undefined &&
-        breadth !== null &&
-        breadth !== ""
+        breadth !== undefined && breadth !== null && breadth !== ""
           ? Number(breadth)
           : null,
 
       height:
-        height !== undefined &&
-        height !== null &&
-        height !== ""
+        height !== undefined && height !== null && height !== ""
           ? Number(height)
           : null,
 
@@ -92,44 +119,28 @@ router.post("/", async (req, res) => {
           ? Number(unitWeight)
           : null,
 
-      measurementUnit:
-        measurementUnit
-          ? String(measurementUnit).trim()
-          : "m",
+      measurementUnit: measurementUnit
+        ? String(measurementUnit).trim()
+        : "m",
 
       quantity: Number(quantity),
-
       unit: String(unit).trim(),
-
-      remarks:
-        remarks !== undefined &&
-        remarks !== null
-          ? String(remarks).trim()
-          : "",
-
-      date,
+      remarks: remarks != null ? String(remarks).trim() : "",
+      date: new Date(date),
     });
 
-
-    const saved =
-      await measurement.save();
-
+    const saved = await measurement.save();
 
     return res.status(201).json(saved);
-
   } catch (err) {
-    console.error(
-      "POST /measurement error:",
-      err
-    );
+    console.error("POST /measurement error:", err);
 
     return res.status(500).json({
-      message:
-        err.message ||
-        "Failed to save measurement",
+      message: "Failed to save measurement",
     });
   }
 });
+
 
 
 
@@ -206,11 +217,18 @@ router.get("/:id", async (req, res) => {
 
 router.put("/:id", async (req, res) => {
   try {
+    if (!mongoose.isValidObjectId(req.params.id)) {
+      return res.status(400).json({
+        message: "Invalid measurement ID",
+      });
+    }
+
     const {
       site,
+      measurementNo,
       batchId,
       workType,
-        description,
+      description,
       length,
       breadth,
       height,
@@ -222,105 +240,86 @@ router.put("/:id", async (req, res) => {
       date,
     } = req.body;
 
+    const updates = {};
 
-
-    if (!site || !workType) {
-      return res.status(400).json({
-        message:
-          "Site and Work Type are required",
-      });
+    if (workType !== undefined) {
+      if (!String(workType).trim()) {
+        return res.status(400).json({
+          message: "Work Type is required",
+        });
+      }
+      updates.workType = String(workType).trim();
     }
 
-
-    if (!unit) {
-      return res.status(400).json({
-        message: "Unit is required",
-      });
+    if (description !== undefined) {
+      updates.description = description || "";
     }
 
+    for (const field of ["length", "breadth", "height", "unitWeight"]) {
+      if (req.body[field] !== undefined) {
+        const value = req.body[field];
 
-    if (
-      quantity === undefined ||
-      quantity === null ||
-      quantity === "" ||
-      !Number.isFinite(Number(quantity))
-    ) {
-      return res.status(400).json({
-        message:
-          "Valid quantity is required",
-      });
-    }
+        updates[field] =
+          value === "" || value === null ? null : Number(value);
 
-
-    if (!date) {
-      return res.status(400).json({
-        message: "Date is required",
-      });
-    }
-
-    const updated =
-      await SiteMeasurement.findByIdAndUpdate(
-        req.params.id,
-
-        {
-          site: String(site).trim(),
-          batchId: batchId ? String(batchId).trim() : null,
-          workType: String(workType).trim(),
-           description:
-            description || "",
-
-          length:
-            length !== undefined &&
-            length !== null &&
-            length !== ""
-              ? Number(length)
-              : null,
-
-          breadth:
-            breadth !== undefined &&
-            breadth !== null &&
-            breadth !== ""
-              ? Number(breadth)
-              : null,
-
-          height:
-            height !== undefined &&
-            height !== null &&
-            height !== ""
-              ? Number(height)
-              : null,
-
-          unitWeight:
-            unitWeight !== undefined &&
-            unitWeight !== null &&
-            unitWeight !== ""
-              ? Number(unitWeight)
-              : null,
-
-          measurementUnit:
-            measurementUnit
-              ? String(measurementUnit).trim()
-              : "m",
-
-          quantity: Number(quantity),
-
-          unit: String(unit).trim(),
-
-          remarks:
-            remarks !== undefined &&
-            remarks !== null
-              ? String(remarks).trim()
-              : "",
-
-          date,
-        },
-
-        {
-          new: true,
-          runValidators: true,
+        if (
+          updates[field] !== null &&
+          !Number.isFinite(updates[field])
+        ) {
+          return res.status(400).json({
+            message: `Invalid ${field}`,
+          });
         }
-      );
+      }
+    }
 
+    if (measurementUnit !== undefined) {
+      updates.measurementUnit = measurementUnit || "m";
+    }
+
+    if (quantity !== undefined) {
+      if (
+        quantity === "" ||
+        quantity === null ||
+        !Number.isFinite(Number(quantity))
+      ) {
+        return res.status(400).json({
+          message: "Valid quantity is required",
+        });
+      }
+      updates.quantity = Number(quantity);
+    }
+
+    if (unit !== undefined) {
+      if (!String(unit).trim()) {
+        return res.status(400).json({
+          message: "Unit is required",
+        });
+      }
+      updates.unit = String(unit).trim();
+    }
+
+    if (remarks !== undefined) {
+      updates.remarks = remarks == null ? "" : String(remarks).trim();
+    }
+
+    if (date !== undefined) {
+      if (!date || !Number.isFinite(new Date(date).getTime())) {
+        return res.status(400).json({
+          message: "Valid date is required",
+        });
+      }
+      updates.date = new Date(date);
+    }
+
+    const updated = await SiteMeasurement.findByIdAndUpdate(
+      req.params.id,
+      { $set: updates },
+      {
+        new: true,
+        runValidators: true,
+      }
+    );
 
     if (!updated) {
       return res.status(404).json({
@@ -328,22 +327,16 @@ router.put("/:id", async (req, res) => {
       });
     }
 
-
     return res.json(updated);
-
   } catch (err) {
-    console.error(
-      "PUT /measurement/:id error:",
-      err
-    );
+    console.error("PUT /measurement/:id error:", err);
 
     return res.status(500).json({
-      message:
-        err.message ||
-        "Failed to update measurement",
+      message: "Failed to update measurement",
     });
   }
 });
+
 
 
 
