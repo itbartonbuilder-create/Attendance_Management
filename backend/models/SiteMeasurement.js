@@ -77,6 +77,19 @@ batchId: {
   }
 );
 
+MeasurementSchema.index(
+  {
+    site: 1,
+    measurementNo: 1,
+  },
+  {
+    unique: true,
+    partialFilterExpression: {
+      measurementNo: { $type: "string" },
+    },
+  }
+);
+
 export default mongoose.model(
   "SiteMeasurement",
   MeasurementSchema
