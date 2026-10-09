@@ -9,6 +9,7 @@ router.post("/", async (req, res) => {
   try {
     const {
       site,
+      batchId,
       workType,
       description,
       length,
@@ -58,7 +59,7 @@ router.post("/", async (req, res) => {
 
     const measurement = new SiteMeasurement({
       site: String(site).trim(),
-
+      batchId: batchId ? String(batchId).trim() : null,
       workType: String(workType).trim(),
         description:
         description || "",
@@ -207,6 +208,7 @@ router.put("/:id", async (req, res) => {
   try {
     const {
       site,
+      batchId,
       workType,
         description,
       length,
@@ -262,7 +264,7 @@ router.put("/:id", async (req, res) => {
 
         {
           site: String(site).trim(),
-
+          batchId: batchId ? String(batchId).trim() : null,
           workType: String(workType).trim(),
            description:
             description || "",
