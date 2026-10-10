@@ -3,7 +3,6 @@ import Worker from "../models/Worker.js";
 
 const router = express.Router();
 
-// GET WORKERS FILTERED BY SITE
 router.get("/", async (req, res) => {
   try {
     const { site } = req.query;
