@@ -7,7 +7,6 @@ const MeasurementSchema = new mongoose.Schema(
       required: true,
       trim: true,
     },
-
     measurementNo: {
       type: String,
       default: undefined,
