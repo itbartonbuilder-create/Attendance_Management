@@ -7,6 +7,7 @@ const MeasurementSchema = new mongoose.Schema(
       required: true,
       trim: true,
     },
+
     measurementNo: {
       type: String,
       default: undefined,
@@ -79,6 +80,24 @@ const MeasurementSchema = new mongoose.Schema(
       type: Date,
       required: true,
     },
+    measurementType: {
+  type: String,
+  enum: ["calculating", "fixed"],
+  default: "calculating",
+  index: true,
+},
+
+rate: {
+  type: Number,
+  default: null,
+  min: 0,
+},
+
+amount: {
+  type: Number,
+  default: null,
+  min: 0,
+},
   },
   {
     timestamps: true,
