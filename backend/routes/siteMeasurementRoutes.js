@@ -8,12 +8,38 @@ import FixedMeasurementRate from "../models/FixedMeasurementRate.js";
 const router = express.Router();
 
 async function getNextMeasurementNo(site) {
-  const siteKey = String(site).trim().toLowerCase();
+  const cleanSite = String(site || "").trim();
+  const siteKey = cleanSite.toLowerCase();
 
-  if (!siteKey) throw new Error("Site is required");
+  if (!cleanSite) {
+    throw new Error("Site is required");
+  }
 
   for (let attempt = 0; attempt < 5; attempt++) {
     try {
+      
+      const existingRecords = await SiteMeasurement.find({
+        site: cleanSite,
+      })
+        .select("measurementNo")
+        .lean();
+
+      const maxExistingNo = existingRecords.reduce((max, item) => {
+        const number = parseInt(item.measurementNo, 10);
+        return Number.isFinite(number) ? Math.max(max, number) : max;
+      }, 0);
+
+      await MeasurementCounter.findOneAndUpdate(
+        { siteKey },
+        {
+          $max: { seq: maxExistingNo },
+        },
+        {
+          upsert: true,
+          setDefaultsOnInsert: true,
+        }
+      );
+
       const counter = await MeasurementCounter.findOneAndUpdate(
         { siteKey },
         { $inc: { seq: 1 } },
@@ -26,7 +52,12 @@ async function getNextMeasurementNo(site) {
 
       return String(counter.seq).padStart(2, "0");
     } catch (err) {
-      if (err.code !== 11000 || attempt === 4) throw err;
+
+      if (err.code === 11000 && attempt < 4) {
+        continue;
+      }
+
+      throw err;
     }
   }
 
