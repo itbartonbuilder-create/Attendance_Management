@@ -61,7 +61,7 @@ export const approveVendor = async (req, res) => {
     return res.status(200).json({
       message: emailSent
         ? "Vendor approved successfully"
-        : "Vendor approved successfully, but email could not be sent",
+        : "Vendor approved successfully",
       vendorCode: newCode,
       emailSent,
     });
