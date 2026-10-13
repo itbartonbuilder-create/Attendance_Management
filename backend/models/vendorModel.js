@@ -8,7 +8,7 @@ const vendorSchema = new mongoose.Schema(
     companyName: String,
     contactNo: { type: String, required: true, unique: true },
 
-    aadharNumber: { type: String, required: true, length: 12 },
+    aadharNumber: { type: String,  length: 12 },
     panNumber: { type: String, required: true },
 
     vendorType: { type: String, enum: ["supply", "work"], required: true },
