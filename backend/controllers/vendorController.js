@@ -24,7 +24,6 @@ export const registerVendor = async (req, res) => {
       !email ||
       !contactNo ||
       !password ||
-      !aadharNumber ||
       !panNumber ||
       !vendorType ||
       !category
