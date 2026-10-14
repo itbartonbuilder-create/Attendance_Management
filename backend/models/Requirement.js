@@ -27,21 +27,14 @@ const requirementSchema = new mongoose.Schema(
         required: true,
         min: 0,
       },
-      // availableStock: {
-      //   type: Number,
-      //   default: 0,
-      // },
-      // shortageQuantity: {
-      //   type: Number,
-      //   default: 0,
-      // },
-      // requiredDate: {
-      //   type: Date,
-      //   required: true,
-      // },
-               priority: {
+      batchId: {
+  type: String,
+  index: true,
+},
+      
+         priority: {
       type: String,
-       enum: ["Normal", "Medium", "High"],
+      enum: ["Normal", "Medium", "High"],
       default: "Normal",
     },
 
