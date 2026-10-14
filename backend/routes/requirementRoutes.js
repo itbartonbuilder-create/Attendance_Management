@@ -12,15 +12,7 @@ router.post("/", async (req, res) => {
       material: req.body.material,
       unit: req.body.unit,
       quantity: Number(req.body.quantity || 0),
-      // availableStock: Number(
-      //   req.body.availableStock || 0
-      // ),
-
-      // shortageQuantity: Number(
-      //   req.body.shortageQuantity || 0
-      // ),
-
-      // requiredDate: req.body.requiredDate,
+      
       priority:
         req.body.priority || "Normal",
       purpose:
@@ -43,6 +35,76 @@ router.post("/", async (req, res) => {
     res.status(500).json({
       success: false,
       message: "Failed to create requirement",
+      error: error.message,
+    });
+  }
+});
+router.post("/batch", async (req, res) => {
+  try {
+    const {
+      batchId,
+      site,
+      date,
+      category,
+      priority,
+      purpose,
+      items,
+    } = req.body;
+
+    if (!site || !date || !category) {
+      return res.status(400).json({
+        success: false,
+        message: "Site, date and department are required",
+      });
+    }
+
+    if (!Array.isArray(items) || items.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: "Please add at least one material",
+      });
+    }
+
+    const documents = items.map((item) => ({
+      site,
+      date,
+      category,
+      material: String(item.material || "").trim(),
+      unit: String(item.unit || "").trim(),
+      quantity: Number(item.quantity),
+      priority: priority || "Normal",
+      purpose: purpose || "",
+      batchId,
+    }));
+
+    const invalid = documents.some(
+      (item) =>
+        !item.material ||
+        !item.unit ||
+        !Number.isFinite(item.quantity) ||
+        item.quantity <= 0
+    );
+
+    if (invalid) {
+      return res.status(400).json({
+        success: false,
+        message: "Every material needs a name, unit and valid quantity",
+      });
+    }
+
+    const saved = await Requirement.insertMany(documents);
+
+    return res.status(201).json({
+      success: true,
+      message: "Requirement batch saved successfully",
+      data: saved,
+    });
+  } catch (error) {
+    console.error("BATCH REQUIREMENT ERROR:", error);
+
+    return res.status(500).json({
+      success: false,
+      message: "Failed to save requirement batch",
       error: error.message,
     });
   }
