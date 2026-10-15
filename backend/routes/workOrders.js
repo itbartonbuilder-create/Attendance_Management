@@ -4,6 +4,7 @@ import WorkOrder from "../models/WorkOrder.js";
 import Vendor from "../models/vendorModel.js";
 
 const router = express.Router();
+
 function normalizeVendor(vendor) {
   if (!vendor) return null;
 
@@ -40,6 +41,7 @@ async function generateOrderNumber() {
 
   throw new Error("Could not generate work order number");
 }
+
 router.get("/vendors/search", async (req, res) => {
   try {
     const mobile = String(req.query.mobile || "")
@@ -51,6 +53,7 @@ router.get("/vendors/search", async (req, res) => {
       });
     }
 
+    // Search using the actual Vendor model and contactNo field
     const vendor = await Vendor.findOne({
       contactNo: mobile,
     }).select(
@@ -87,6 +90,7 @@ router.get("/vendors/search", async (req, res) => {
     });
   }
 });
+
 router.get("/", async (req, res) => {
   try {
     const { site, status, category } = req.query;
@@ -118,6 +122,7 @@ router.post("/", async (req, res) => {
       vendorName,
       vendorMobile,
       category,
+      subcategory,
       site,
       workDescription,
       quantity,
@@ -133,6 +138,7 @@ router.post("/", async (req, res) => {
       !vendorName ||
       !vendorMobile ||
       !category ||
+      ! subcategory||
       !site ||
       !workDescription ||
       quantity === undefined ||
@@ -206,6 +212,7 @@ router.post("/", async (req, res) => {
       vendorName: String(vendorName).trim(),
       vendorMobile: String(vendorMobile).trim(),
       category,
+      subcategory: String(subcategory).trim(),
       site: String(site).trim(),
       workDescription: String(workDescription).trim(),
       quantity: numericQuantity,
