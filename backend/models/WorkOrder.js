@@ -32,7 +32,11 @@ const workOrderSchema = new mongoose.Schema(
       enum: ["Composite", "Civil", "Electrical"],
       required: true,
     },
-
+  subcategory: {
+  type: String,
+  required: true,
+  trim: true,
+},
     site: {
       type: String,
       required: true,
