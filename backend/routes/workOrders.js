@@ -1,6 +1,7 @@
 import express from "express";
 import mongoose from "mongoose";
 import WorkOrder from "../models/WorkOrder.js";
+import Vendor from "../models/vendorModel.js";
 
 const router = express.Router();
 function normalizeVendor(vendor) {
@@ -42,8 +43,7 @@ async function generateOrderNumber() {
 router.get("/vendors/search", async (req, res) => {
   try {
     const mobile = String(req.query.mobile || "")
-      .replace(/\D/g, "")
-      .trim();
+      .replace(/\D/g, "");
 
     if (!mobile) {
       return res.status(400).json({
@@ -51,21 +51,11 @@ router.get("/vendors/search", async (req, res) => {
       });
     }
 
-    const vendorsCollection =
-      mongoose.connection.collection("vendors");
-
-    const mobileFields = [
-      "mobile",
-      "mobileNumber",
-      "phone",
-      "contactNumber",
-    ];
-
-    const vendor = await vendorsCollection.findOne({
-      $or: mobileFields.map((field) => ({
-        [field]: mobile,
-      })),
-    });
+    const vendor = await Vendor.findOne({
+      contactNo: mobile,
+    }).select(
+      "name email companyName contactNo category gstNumber status vendorCode"
+    );
 
     if (!vendor) {
       return res.status(404).json({
@@ -73,23 +63,21 @@ router.get("/vendors/search", async (req, res) => {
       });
     }
 
+    if (vendor.status !== "approved") {
+      return res.status(403).json({
+        message: "Vendor account is pending approval",
+      });
+    }
+
     return res.json({
       _id: vendor._id,
-      name:
-        vendor.name ||
-        vendor.vendorName ||
-        vendor.fullName ||
-        vendor.companyName ||
-        "",
-      mobile:
-        vendor.mobile ||
-        vendor.mobileNumber ||
-        vendor.phone ||
-        vendor.contactNumber ||
-        "",
+      name: vendor.name,
+      companyName: vendor.companyName || "",
+      mobile: vendor.contactNo,
       email: vendor.email || "",
-      address: vendor.address || "",
-      gstNumber: vendor.gstNumber || vendor.gstNo || "",
+      category: vendor.category || "",
+      gstNumber: vendor.gstNumber || "",
+      vendorCode: vendor.vendorCode || "",
     });
   } catch (error) {
     console.error("Vendor search error:", error);
@@ -98,7 +86,8 @@ router.get("/vendors/search", async (req, res) => {
       message: "Failed to search vendor",
     });
   }
-});router.get("/", async (req, res) => {
+});
+router.get("/", async (req, res) => {
   try {
     const { site, status, category } = req.query;
 
