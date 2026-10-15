@@ -39,10 +39,11 @@ async function generateOrderNumber() {
 
   throw new Error("Could not generate work order number");
 }
-
 router.get("/vendors/search", async (req, res) => {
   try {
-    const mobile = String(req.query.mobile || "").trim();
+    const mobile = String(req.query.mobile || "")
+      .replace(/\D/g, "")
+      .trim();
 
     if (!mobile) {
       return res.status(400).json({
@@ -53,18 +54,17 @@ router.get("/vendors/search", async (req, res) => {
     const vendorsCollection =
       mongoose.connection.collection("vendors");
 
-    const escapedMobile = mobile.replace(
-      /[.*+?^${}()|[\]\\]/g,
-      "\\$&"
-    );
+    const mobileFields = [
+      "mobile",
+      "mobileNumber",
+      "phone",
+      "contactNumber",
+    ];
 
     const vendor = await vendorsCollection.findOne({
-      $or: [
-        { mobile: { $regex: escapedMobile, $options: "i" } },
-        { mobileNumber: { $regex: escapedMobile, $options: "i" } },
-        { phone: { $regex: escapedMobile, $options: "i" } },
-        { contactNumber: { $regex: escapedMobile, $options: "i" } },
-      ],
+      $or: mobileFields.map((field) => ({
+        [field]: mobile,
+      })),
     });
 
     if (!vendor) {
@@ -73,7 +73,24 @@ router.get("/vendors/search", async (req, res) => {
       });
     }
 
-    return res.json(normalizeVendor(vendor));
+    return res.json({
+      _id: vendor._id,
+      name:
+        vendor.name ||
+        vendor.vendorName ||
+        vendor.fullName ||
+        vendor.companyName ||
+        "",
+      mobile:
+        vendor.mobile ||
+        vendor.mobileNumber ||
+        vendor.phone ||
+        vendor.contactNumber ||
+        "",
+      email: vendor.email || "",
+      address: vendor.address || "",
+      gstNumber: vendor.gstNumber || vendor.gstNo || "",
+    });
   } catch (error) {
     console.error("Vendor search error:", error);
 
@@ -81,9 +98,7 @@ router.get("/vendors/search", async (req, res) => {
       message: "Failed to search vendor",
     });
   }
-});
-
-router.get("/", async (req, res) => {
+});router.get("/", async (req, res) => {
   try {
     const { site, status, category } = req.query;
 
