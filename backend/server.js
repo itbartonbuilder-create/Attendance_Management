@@ -20,6 +20,7 @@ import weatherRoutes from "./routes/weatherRoutes.js";
 import measurementRoutes from "./routes/siteMeasurementRoutes.js";
 import voucherRoutes from "./routes/voucher.js";
 import requirementRoutes from "./routes/requirementRoutes.js";
+import workOrdersRouter from "./routes/workOrders.js";
 
 const app = express();
 app.use(cors());
@@ -56,6 +57,7 @@ app.use("/api/weather", weatherRoutes);
 app.use("/api/measurement", measurementRoutes);
 app.use("/api/vouchers", voucherRoutes);
 app.use("/api/requirements", requirementRoutes);
+app.use("/api/work-orders", workOrdersRouter);
 
 
 
