@@ -3,7 +3,6 @@ import mongoose from "mongoose";
 import WorkOrder from "../models/WorkOrder.js";
 
 const router = express.Router();
-
 function normalizeVendor(vendor) {
   if (!vendor) return null;
 
