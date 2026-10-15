@@ -11,7 +11,6 @@ const vendorSchema = new mongoose.Schema(
     aadharNumber: { type: String,  length: 12 },
     panNumber: { type: String, required: true },
 
-    vendorType: { type: String, enum: ["supply", "work"], required: true },
     category: { type: String, required: true },
     gstNumber: String,
 
