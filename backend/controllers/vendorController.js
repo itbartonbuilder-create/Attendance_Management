@@ -12,7 +12,6 @@ export const registerVendor = async (req, res) => {
       contactNo,
       aadharNumber,
       panNumber,
-      vendorType,
       category,
       gstNumber,
       password,
@@ -25,7 +24,6 @@ export const registerVendor = async (req, res) => {
       !contactNo ||
       !password ||
       !panNumber ||
-      !vendorType ||
       !category
     ) {
       return res.status(400).json({ message: "All required fields must be filled" });
@@ -50,7 +48,6 @@ export const registerVendor = async (req, res) => {
       contactNo,
       aadharNumber,
       panNumber,
-      vendorType,
       category,
       gstNumber,
       password: hashedPassword,
