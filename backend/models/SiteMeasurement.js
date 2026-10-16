@@ -20,7 +20,12 @@ const MeasurementSchema = new mongoose.Schema(
       index: true,
       trim: true,
     },
-
+workOrderId: {
+  type: mongoose.Schema.Types.ObjectId,
+  ref: "WorkOrder",
+  default: null,
+  index: true,
+},
     workType: {
       type: String,
       required: true,
