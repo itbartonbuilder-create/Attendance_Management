@@ -1,3 +1,4 @@
+
 import mongoose from "mongoose";
 
 const workOrderSchema = new mongoose.Schema(
@@ -12,7 +13,8 @@ const workOrderSchema = new mongoose.Schema(
     vendorId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Vendor",
-      default: null,
+      required: true,
+      index: true,
     },
 
     vendorName: {
@@ -29,14 +31,32 @@ const workOrderSchema = new mongoose.Schema(
 
     category: {
       type: String,
-      enum: ["Composite", "Civil", "Electrical"],
+      enum: [
+        "Composite",
+        "Civil",
+        "Electrical",
+        "Aggregate",
+        "Sand",
+        "Cement",
+        "Hardware",
+        "Tiles",
+        "Steel",
+        "Paints",
+        "Wood",
+        "Glass",
+        "Other",
+      ],
       required: true,
+      trim: true,
     },
-  subcategory: {
-  type: String,
-  required: true,
-  trim: true,
-},
+
+    subcategory: {
+      type: String,
+      required: true,
+      trim: true,
+      maxlength: 150,
+    },
+
     site: {
       type: String,
       required: true,
@@ -87,6 +107,7 @@ const workOrderSchema = new mongoose.Schema(
       type: String,
       enum: ["fixed", "calculating"],
       default: "fixed",
+      required: true,
     },
 
     status: {
@@ -98,9 +119,12 @@ const workOrderSchema = new mongoose.Schema(
     createdBy: {
       type: String,
       default: "Admin",
+      trim: true,
     },
   },
   { timestamps: true }
 );
+
+workOrderSchema.index({ site: 1, createdAt: -1 });
 
 export default mongoose.model("WorkOrder", workOrderSchema);
