@@ -6,6 +6,25 @@ import Vendor from "../models/vendorModel.js";
 import SiteMeasurement from "../models/SiteMeasurement.js";
 
 const router = express.Router();
+const workOrderCounterSchema = new mongoose.Schema(
+  {
+    _id: {
+      type: String,
+      required: true,
+    },
+    seq: {
+      type: Number,
+      default: 0,
+    },
+  },
+  {
+    collection: "workordercounters",
+  }
+);
+
+const WorkOrderCounter =
+  mongoose.models.WorkOrderCounter ||
+  mongoose.model("WorkOrderCounter", workOrderCounterSchema);
 
 const WORK_CATEGORIES = ["Composite", "Civil", "Electrical"];
 
@@ -113,20 +132,54 @@ function getAllowedCategories(vendor) {
 }
 
 async function generateOrderNumber() {
-  for (let attempt = 0; attempt < 5; attempt++) {
-    const orderNumber = `WO-${Date.now()}-${Math.floor(
-      1000 + Math.random() * 9000
-    )}`;
+  const counterId = "work-order";
 
-    if (!(await WorkOrder.exists({ orderNumber }))) {
-      return orderNumber;
+  let counter = await WorkOrderCounter.findById(counterId);
+
+  if (!counter) {
+    const existingOrders = await WorkOrder.find({
+      orderNumber: /^WO-\d+$/,
+    })
+      .select("orderNumber")
+      .lean();
+
+    const maxExistingNumber = existingOrders.reduce((max, order) => {
+      const match = order.orderNumber.match(/^WO-(\d+)$/);
+      return match ? Math.max(max, Number(match[1])) : max;
+    }, 0);
+
+   try {
+  await WorkOrderCounter.findOneAndUpdate(
+    { _id: counterId },
+    { $max: { seq: maxExistingNumber } },
+    {
+      upsert: true,
+      new: true,
+      setDefaultsOnInsert: true,
     }
+  );
+} catch (error) {
+
+  if (error.code !== 11000) {
+    throw error;
+  }
+}
   }
 
-  throw new Error("Could not generate work order number");
+  
+  counter = await WorkOrderCounter.findOneAndUpdate(
+    { _id: counterId },
+    { $inc: { seq: 1 } },
+    {
+      new: true,
+      upsert: true,
+      setDefaultsOnInsert: true,
+    }
+  );
+
+  return `WO-${String(counter.seq).padStart(2, "0")}`;
 }
 
-// Search approved registered vendors
 router.get("/vendors/search", async (req, res) => {
   try {
     const mobile = normalizeMobile(req.query.mobile);
@@ -184,8 +237,6 @@ router.get("/vendors/search", async (req, res) => {
     });
   }
 });
-
-// Get Work Orders
 router.get("/", async (req, res) => {
   try {
     const { site, status, category, vendorId } = req.query;
@@ -222,7 +273,6 @@ router.get("/", async (req, res) => {
   }
 });
 
-// Create Work Order
 router.post("/", async (req, res) => {
   let createdOrderId = null;
   let linkedMeasurementIds = [];
@@ -243,7 +293,6 @@ router.post("/", async (req, res) => {
       createdBy,
     } = req.body;
 
-    // 1. Validate vendor ID
     if (!mongoose.isValidObjectId(vendorId)) {
       return res.status(400).json({
         message: "Please search for a registered vendor first.",
@@ -285,7 +334,6 @@ router.post("/", async (req, res) => {
       });
     }
 
-    // 2. Validate subcategory
     const allowedSubcategories = SUBCATEGORIES[registeredCategory] || [];
     const selectedSubcategory = String(subcategory || "").trim();
 
@@ -320,7 +368,6 @@ router.post("/", async (req, res) => {
       });
     }
 
-    // Existing WorkOrder schema requires dates for both vendor types
     if (!startDate || !deadline) {
       return res.status(400).json({
         message: "Start Date and Deadline are required.",
@@ -351,7 +398,6 @@ router.post("/", async (req, res) => {
     let finalAmount;
     let finalMeasurementType = "fixed";
 
-    // 3. WORK vendor: use saved Measurements
     if (vendorType === "work") {
       if (
         !Array.isArray(measurementIds) ||
@@ -395,7 +441,6 @@ router.post("/", async (req, res) => {
         });
       }
 
-      // Do not mix Fixed and Calculating Measurements in one order
       const types = [
         ...new Set(
           measurements.map((item) =>
@@ -427,9 +472,6 @@ router.post("/", async (req, res) => {
         (sum, item) => sum + Number(item.quantity || 0),
         0
       );
-
-      // The WorkOrder schema has one unit field.
-      // Multiple units are preserved in the linked Measurement records.
       finalUnit = units.length === 1 ? units[0] : "Multiple units";
 
       if (finalMeasurementType === "fixed") {
@@ -459,9 +501,7 @@ router.post("/", async (req, res) => {
             ? Number((finalAmount / finalQuantity).toFixed(2))
             : 0;
       } else {
-        // Calculating measurements currently store no rate/amount.
-        // Avoid inventing a price; amount remains zero until rates
-        // are supported for Calculating Measurements.
+    
         finalRate = 0;
         finalAmount = 0;
       }
@@ -475,8 +515,6 @@ router.post("/", async (req, res) => {
         });
       }
     } else {
-      // 4. SUPPLY vendor: manual material details
-      // Supply orders must not attach Measurement records.
       if (Array.isArray(measurementIds) && measurementIds.length > 0) {
         return res.status(400).json({
           message:
@@ -522,7 +560,6 @@ router.post("/", async (req, res) => {
       linkedMeasurementIds = [];
     }
 
-    // 5. Create Work Order
     const orderNumber = await generateOrderNumber();
 
     const order = await WorkOrder.create({
@@ -551,9 +588,6 @@ router.post("/", async (req, res) => {
 
     createdOrderId = order._id;
 
-    // 6. Link selected Measurements to the new Work Order.
-    // Conditional update prevents linking records already assigned
-    // to another order.
     if (vendorType === "work") {
       const linkResult = await SiteMeasurement.updateMany(
         {
@@ -570,7 +604,7 @@ router.post("/", async (req, res) => {
       );
 
       if (linkResult.modifiedCount !== linkedMeasurementIds.length) {
-        // Roll back links created by this request and the new order
+       
         await SiteMeasurement.updateMany(
           {
             _id: { $in: linkedMeasurementIds },
@@ -598,7 +632,6 @@ router.post("/", async (req, res) => {
   } catch (error) {
     console.error("Create work order error:", error);
 
-    // Best-effort cleanup if linking failed after order creation
     if (createdOrderId) {
       try {
         await SiteMeasurement.updateMany(
@@ -624,7 +657,6 @@ router.post("/", async (req, res) => {
   }
 });
 
-// Update Work Order status
 router.patch("/:id/status", async (req, res) => {
   try {
     const { id } = req.params;
@@ -674,7 +706,6 @@ router.patch("/:id/status", async (req, res) => {
   }
 });
 
-// Delete Work Order
 router.delete("/:id", async (req, res) => {
   try {
     const { id } = req.params;
@@ -693,7 +724,6 @@ router.delete("/:id", async (req, res) => {
       });
     }
 
-    // Unlink Measurements when their Work Order is deleted
     await SiteMeasurement.updateMany(
       { workOrderId: order._id },
       { $set: { workOrderId: null } }
