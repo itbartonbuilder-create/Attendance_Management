@@ -7,7 +7,6 @@ import FixedMeasurementRate from "../models/FixedMeasurementRate.js";
 
 const router = express.Router();
 
-
 async function getNextMeasurementNo(site) {
   const cleanSite = String(site || "").trim();
   const siteKey = cleanSite.toLowerCase();
@@ -99,6 +98,7 @@ router.post("/", async (req, res) => {
       site,
       batchId,
       workType,
+       workOrderId,
       description,
       length,
       breadth,
@@ -176,6 +176,7 @@ router.post("/", async (req, res) => {
       site: cleanSite,
       measurementNo,
       batchId: batchId ? String(batchId).trim() : null,
+      workOrderId: workOrderId || null,
       workType: String(workType).trim(),
       description: String(description || "").trim(),
 
@@ -379,9 +380,22 @@ router.put("/:id", async (req, res) => {
       return res.status(404).json({ message: "Measurement not found" });
     }
 
+
     const body = req.body;
     const updates = {};
+if (body.workOrderId !== undefined) {
+  if (
+    body.workOrderId !== null &&
+    body.workOrderId !== "" &&
+    !mongoose.isValidObjectId(body.workOrderId)
+  ) {
+    return res.status(400).json({
+      message: "Invalid Work Order ID",
+    });
+  }
 
+  updates.workOrderId = body.workOrderId || null;
+}
     for (const field of [
       "site",
       "workType",
