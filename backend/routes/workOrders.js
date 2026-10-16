@@ -3,6 +3,7 @@ import express from "express";
 import mongoose from "mongoose";
 import WorkOrder from "../models/WorkOrder.js";
 import Vendor from "../models/vendorModel.js";
+import SiteMeasurement from "../models/SiteMeasurement.js";
 
 const router = express.Router();
 
@@ -22,14 +23,7 @@ const SUPPLY_CATEGORIES = [
 ];
 
 const SUBCATEGORIES = {
-
-  Aggregate: [
-    "10mm Aggregate",
-    "20mm Aggregate",
-    "40mm Aggregate",
-    "Stone Dust",
-    "Other",
-  ],
+  Aggregate: ["10mm Aggregate", "20mm Aggregate", "40mm Aggregate", "Stone Dust", "Other"],
   Sand: ["River Sand", "M-Sand", "Plaster Sand", "Other"],
   Cement: ["OPC Cement", "PPC Cement", "White Cement", "Other"],
   Hardware: ["Nails", "Screws", "Binding Wire", "Fasteners", "Other"],
@@ -44,14 +38,7 @@ const SUBCATEGORIES = {
     "Structural Steel",
     "Other",
   ],
-  Paints: [
-    "Primer",
-    "Interior Paint",
-    "Exterior Paint",
-    "Putty",
-    "Enamel Paint",
-    "Other",
-  ],
+  Paints: ["Primer", "Interior Paint", "Exterior Paint", "Putty", "Enamel Paint", "Other"],
   Wood: ["Plywood", "Timber", "Flush Door", "Other"],
   Glass: ["Clear Glass", "Toughened Glass", "Laminated Glass", "Other"],
   Other: ["Other"],
@@ -117,13 +104,10 @@ function getVendorCategory(vendor) {
 }
 
 function getAllowedCategories(vendor) {
-  if (vendor?.vendorType === "supply") {
-    return SUPPLY_CATEGORIES;
-  }
+  const type = String(vendor?.vendorType || "").toLowerCase();
 
-  if (vendor?.vendorType === "work") {
-    return WORK_CATEGORIES;
-  }
+  if (type === "supply") return SUPPLY_CATEGORIES;
+  if (type === "work") return WORK_CATEGORIES;
 
   return [];
 }
@@ -134,14 +118,15 @@ async function generateOrderNumber() {
       1000 + Math.random() * 9000
     )}`;
 
-    const exists = await WorkOrder.exists({ orderNumber });
-
-    if (!exists) return orderNumber;
+    if (!(await WorkOrder.exists({ orderNumber }))) {
+      return orderNumber;
+    }
   }
 
   throw new Error("Could not generate work order number");
 }
 
+// Search approved registered vendors
 router.get("/vendors/search", async (req, res) => {
   try {
     const mobile = normalizeMobile(req.query.mobile);
@@ -164,16 +149,15 @@ router.get("/vendors/search", async (req, res) => {
       });
     }
 
-    if (vendor.status !== "approved") {
+    if (String(vendor.status || "").toLowerCase() !== "approved") {
       return res.status(403).json({
         message: "Vendor account is pending approval.",
       });
     }
 
     const category = getVendorCategory(vendor);
-    const allowedCategories = getAllowedCategories(vendor);
 
-    if (!allowedCategories.includes(category)) {
+    if (!getAllowedCategories(vendor).includes(category)) {
       return res.status(400).json({
         message: "Vendor type or registered category is invalid.",
       });
@@ -186,7 +170,7 @@ router.get("/vendors/search", async (req, res) => {
       mobile: vendor.contactNo || "",
       contactNo: vendor.contactNo || "",
       email: vendor.email || "",
-      vendorType: vendor.vendorType,
+      vendorType: String(vendor.vendorType || "").toLowerCase(),
       category,
       gstNumber: vendor.gstNumber || "",
       vendorCode: vendor.vendorCode || "",
@@ -201,10 +185,10 @@ router.get("/vendors/search", async (req, res) => {
   }
 });
 
+// Get Work Orders
 router.get("/", async (req, res) => {
   try {
     const { site, status, category, vendorId } = req.query;
-
     const filter = {};
 
     if (site) filter.site = site;
@@ -224,9 +208,9 @@ router.get("/", async (req, res) => {
       filter.vendorId = vendorId;
     }
 
-    const orders = await WorkOrder.find(filter).sort({
-      createdAt: -1,
-    });
+    const orders = await WorkOrder.find(filter)
+      .populate("measurementIds")
+      .sort({ createdAt: -1 });
 
     return res.json(orders);
   } catch (error) {
@@ -238,7 +222,11 @@ router.get("/", async (req, res) => {
   }
 });
 
+// Create Work Order
 router.post("/", async (req, res) => {
+  let createdOrderId = null;
+  let linkedMeasurementIds = [];
+
   try {
     const {
       vendorId,
@@ -246,15 +234,16 @@ router.post("/", async (req, res) => {
       subcategory,
       site,
       workDescription,
+      measurementIds = [],
       quantity,
       unit,
       rate,
       startDate,
       deadline,
-      measurementType,
       createdBy,
     } = req.body;
 
+    // 1. Validate vendor ID
     if (!mongoose.isValidObjectId(vendorId)) {
       return res.status(400).json({
         message: "Please search for a registered vendor first.",
@@ -269,53 +258,54 @@ router.post("/", async (req, res) => {
       });
     }
 
-    if (vendor.status !== "approved") {
+    if (String(vendor.status || "").toLowerCase() !== "approved") {
       return res.status(403).json({
         message: "Only approved vendors can receive Work Orders.",
       });
     }
 
+    const vendorType = String(vendor.vendorType || "").toLowerCase();
     const registeredCategory = getVendorCategory(vendor);
-    const allowedCategories = getAllowedCategories(vendor);
 
-    if (!allowedCategories.includes(registeredCategory)) {
+    if (!["work", "supply"].includes(vendorType)) {
+      return res.status(400).json({
+        message: "Invalid vendor type.",
+      });
+    }
+
+    if (!getAllowedCategories(vendor).includes(registeredCategory)) {
       return res.status(400).json({
         message: "Vendor type or registered category is invalid.",
       });
     }
+
     if (String(category || "").trim() !== registeredCategory) {
       return res.status(400).json({
         message: "Category must match the vendor's registered category.",
       });
     }
 
-    const allowedSubcategories =
-      SUBCATEGORIES[registeredCategory] || [];
-
+    // 2. Validate subcategory
+    const allowedSubcategories = SUBCATEGORIES[registeredCategory] || [];
     const selectedSubcategory = String(subcategory || "").trim();
 
     if (
       !selectedSubcategory ||
-      selectedSubcategory.length > 150
+      selectedSubcategory.length > 150 ||
+      selectedSubcategory === "Other"
     ) {
       return res.status(400).json({
         message: "Please provide a valid subcategory.",
       });
     }
 
-    if (selectedSubcategory === "Other") {
-      return res.status(400).json({
-        message: "Please enter the custom subcategory instead of Other.",
-      });
-    }
-
-    const isPredefinedSubcategory =
+    const isPredefined =
       allowedSubcategories.includes(selectedSubcategory);
 
-    const allowsCustomSubcategory =
+    const allowsCustom =
       allowedSubcategories.includes("Other");
 
-    if (!isPredefinedSubcategory && !allowsCustomSubcategory) {
+    if (!isPredefined && !allowsCustom) {
       return res.status(400).json({
         message: "Invalid subcategory for this vendor category.",
       });
@@ -323,36 +313,17 @@ router.post("/", async (req, res) => {
 
     const cleanSite = String(site || "").trim();
     const cleanDescription = String(workDescription || "").trim();
-    const cleanUnit = String(unit || "").trim();
 
-    if (
-      !cleanSite ||
-      !cleanDescription ||
-      !cleanUnit ||
-      quantity === undefined ||
-      quantity === "" ||
-      rate === undefined ||
-      rate === "" ||
-      !startDate ||
-      !deadline
-    ) {
+    if (!cleanSite || !cleanDescription) {
       return res.status(400).json({
-        message: "Please fill all required Work Order fields.",
+        message: "Site and Work Description are required.",
       });
     }
 
-    const numericQuantity = Number(quantity);
-    const numericRate = Number(rate);
-
-    if (
-      !Number.isFinite(numericQuantity) ||
-      !Number.isFinite(numericRate) ||
-      numericQuantity <= 0 ||
-      numericRate < 0
-    ) {
+    // Existing WorkOrder schema requires dates for both vendor types
+    if (!startDate || !deadline) {
       return res.status(400).json({
-        message:
-          "Quantity must be greater than zero and rate cannot be negative.",
+        message: "Start Date and Deadline are required.",
       });
     }
 
@@ -374,16 +345,186 @@ router.post("/", async (req, res) => {
       });
     }
 
-    const validMeasurementTypes = ["fixed", "calculating"];
-    const selectedMeasurementType = measurementType || "fixed";
+    let finalQuantity;
+    let finalUnit;
+    let finalRate;
+    let finalAmount;
+    let finalMeasurementType = "fixed";
 
-    if (!validMeasurementTypes.includes(selectedMeasurementType)) {
-      return res.status(400).json({
-        message: "Invalid measurement type.",
+    // 3. WORK vendor: use saved Measurements
+    if (vendorType === "work") {
+      if (
+        !Array.isArray(measurementIds) ||
+        measurementIds.length === 0
+      ) {
+        return res.status(400).json({
+          message: "Select at least one saved Measurement.",
+        });
+      }
+
+      if (
+        measurementIds.some(
+          (id) => !mongoose.isValidObjectId(id)
+        )
+      ) {
+        return res.status(400).json({
+          message: "One or more Measurement IDs are invalid.",
+        });
+      }
+
+      linkedMeasurementIds = [
+        ...new Set(measurementIds.map(String)),
+      ];
+
+      const measurements = await SiteMeasurement.find({
+        _id: { $in: linkedMeasurementIds },
+        site: cleanSite,
       });
+
+      if (measurements.length !== linkedMeasurementIds.length) {
+        return res.status(400).json({
+          message:
+            "Some Measurements were not found or do not belong to the selected site.",
+        });
+      }
+
+      if (measurements.some((item) => item.workOrderId)) {
+        return res.status(409).json({
+          message:
+            "One or more Measurements are already linked to a Work Order.",
+        });
+      }
+
+      // Do not mix Fixed and Calculating Measurements in one order
+      const types = [
+        ...new Set(
+          measurements.map((item) =>
+            item.measurementType === "fixed"
+              ? "fixed"
+              : "calculating"
+          )
+        ),
+      ];
+
+      if (types.length !== 1) {
+        return res.status(400).json({
+          message:
+            "Select Measurements of the same type: Fixed or Calculating.",
+        });
+      }
+
+      finalMeasurementType = types[0];
+
+      const units = [
+        ...new Set(
+          measurements.map((item) =>
+            String(item.unit || "").trim()
+          )
+        ),
+      ];
+
+      finalQuantity = measurements.reduce(
+        (sum, item) => sum + Number(item.quantity || 0),
+        0
+      );
+
+      // The WorkOrder schema has one unit field.
+      // Multiple units are preserved in the linked Measurement records.
+      finalUnit = units.length === 1 ? units[0] : "Multiple units";
+
+      if (finalMeasurementType === "fixed") {
+        if (
+          measurements.some(
+            (item) =>
+              item.rate == null ||
+              item.amount == null ||
+              !Number.isFinite(Number(item.rate)) ||
+              !Number.isFinite(Number(item.amount))
+          )
+        ) {
+          return res.status(400).json({
+            message:
+              "A selected Fixed Measurement is missing its rate or amount.",
+          });
+        }
+
+        finalAmount = Number(
+          measurements
+            .reduce((sum, item) => sum + Number(item.amount), 0)
+            .toFixed(2)
+        );
+
+        finalRate =
+          finalQuantity > 0
+            ? Number((finalAmount / finalQuantity).toFixed(2))
+            : 0;
+      } else {
+        // Calculating measurements currently store no rate/amount.
+        // Avoid inventing a price; amount remains zero until rates
+        // are supported for Calculating Measurements.
+        finalRate = 0;
+        finalAmount = 0;
+      }
+
+      if (
+        !Number.isFinite(finalQuantity) ||
+        finalQuantity <= 0
+      ) {
+        return res.status(400).json({
+          message: "Selected Measurements must have valid quantities.",
+        });
+      }
+    } else {
+      // 4. SUPPLY vendor: manual material details
+      // Supply orders must not attach Measurement records.
+      if (Array.isArray(measurementIds) && measurementIds.length > 0) {
+        return res.status(400).json({
+          message:
+            "Supply orders use manual material details, not Measurements.",
+        });
+      }
+
+      const cleanUnit = String(unit || "").trim();
+
+      if (
+        !cleanUnit ||
+        quantity === undefined ||
+        quantity === "" ||
+        rate === undefined ||
+        rate === ""
+      ) {
+        return res.status(400).json({
+          message:
+            "Supply orders require quantity, unit and rate.",
+        });
+      }
+
+      finalQuantity = Number(quantity);
+      finalUnit = cleanUnit;
+      finalRate = Number(rate);
+
+      if (
+        !Number.isFinite(finalQuantity) ||
+        !Number.isFinite(finalRate) ||
+        finalQuantity <= 0 ||
+        finalRate < 0
+      ) {
+        return res.status(400).json({
+          message:
+            "Quantity must be greater than zero and rate cannot be negative.",
+        });
+      }
+
+      finalAmount = Number(
+        (finalQuantity * finalRate).toFixed(2)
+      );
+      finalMeasurementType = "fixed";
+      linkedMeasurementIds = [];
     }
 
+    // 5. Create Work Order
     const orderNumber = await generateOrderNumber();
+
     const order = await WorkOrder.create({
       orderNumber,
       vendorId: vendor._id,
@@ -396,16 +537,59 @@ router.post("/", async (req, res) => {
       subcategory: selectedSubcategory,
       site: cleanSite,
       workDescription: cleanDescription,
-      quantity: numericQuantity,
-      unit: cleanUnit,
-      rate: numericRate,
-      totalAmount: numericQuantity * numericRate,
+      quantity: finalQuantity,
+      unit: finalUnit,
+      rate: finalRate,
+      totalAmount: finalAmount,
+      measurementIds: linkedMeasurementIds,
       startDate: start,
       deadline: end,
-      measurementType: selectedMeasurementType,
+      measurementType: finalMeasurementType,
       status: "Issued",
       createdBy: String(createdBy || "Admin").trim(),
     });
+
+    createdOrderId = order._id;
+
+    // 6. Link selected Measurements to the new Work Order.
+    // Conditional update prevents linking records already assigned
+    // to another order.
+    if (vendorType === "work") {
+      const linkResult = await SiteMeasurement.updateMany(
+        {
+          _id: { $in: linkedMeasurementIds },
+          site: cleanSite,
+          $or: [
+            { workOrderId: null },
+            { workOrderId: { $exists: false } },
+          ],
+        },
+        {
+          $set: { workOrderId: order._id },
+        }
+      );
+
+      if (linkResult.modifiedCount !== linkedMeasurementIds.length) {
+        // Roll back links created by this request and the new order
+        await SiteMeasurement.updateMany(
+          {
+            _id: { $in: linkedMeasurementIds },
+            workOrderId: order._id,
+          },
+          {
+            $set: { workOrderId: null },
+          }
+        );
+
+        await WorkOrder.findByIdAndDelete(order._id);
+        createdOrderId = null;
+
+        return res.status(409).json({
+          message:
+            "One or more Measurements were linked elsewhere. Refresh and select available Measurements again.",
+        });
+      }
+    }
 
     return res.status(201).json({
       message: "Work Order created successfully.",
@@ -414,6 +598,25 @@ router.post("/", async (req, res) => {
   } catch (error) {
     console.error("Create work order error:", error);
 
+    // Best-effort cleanup if linking failed after order creation
+    if (createdOrderId) {
+      try {
+        await SiteMeasurement.updateMany(
+          {
+            _id: { $in: linkedMeasurementIds },
+            workOrderId: createdOrderId,
+          },
+          {
+            $set: { workOrderId: null },
+          }
+        );
+
+        await WorkOrder.findByIdAndDelete(createdOrderId);
+      } catch (cleanupError) {
+        console.error("Work Order cleanup error:", cleanupError);
+      }
+    }
+
     return res.status(500).json({
       message: "Failed to create work order.",
       error: error.message,
@@ -421,6 +624,7 @@ router.post("/", async (req, res) => {
   }
 });
 
+// Update Work Order status
 router.patch("/:id/status", async (req, res) => {
   try {
     const { id } = req.params;
@@ -469,6 +673,8 @@ router.patch("/:id/status", async (req, res) => {
     });
   }
 });
+
+// Delete Work Order
 router.delete("/:id", async (req, res) => {
   try {
     const { id } = req.params;
@@ -486,6 +692,12 @@ router.delete("/:id", async (req, res) => {
         message: "Work order not found.",
       });
     }
+
+    // Unlink Measurements when their Work Order is deleted
+    await SiteMeasurement.updateMany(
+      { workOrderId: order._id },
+      { $set: { workOrderId: null } }
+    );
 
     return res.json({
       message: "Work order deleted successfully.",
