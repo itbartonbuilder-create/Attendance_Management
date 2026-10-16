@@ -1,3 +1,4 @@
+
 import express from "express";
 import mongoose from "mongoose";
 import WorkOrder from "../models/WorkOrder.js";
@@ -5,27 +6,126 @@ import Vendor from "../models/vendorModel.js";
 
 const router = express.Router();
 
-function normalizeVendor(vendor) {
-  if (!vendor) return null;
+const WORK_CATEGORIES = ["Composite", "Civil", "Electrical"];
 
-  return {
-    _id: vendor._id,
-    name:
-      vendor.name ||
-      vendor.vendorName ||
-      vendor.fullName ||
-      vendor.companyName ||
-      "",
-    mobile:
-      vendor.mobile ||
-      vendor.mobileNumber ||
-      vendor.phone ||
-      vendor.contactNumber ||
-      "",
-    email: vendor.email || "",
-    address: vendor.address || "",
-    gstNumber: vendor.gstNumber || vendor.gstNo || "",
-  };
+const SUPPLY_CATEGORIES = [
+  "Aggregate",
+  "Sand",
+  "Cement",
+  "Hardware",
+  "Tiles",
+  "Steel",
+  "Paints",
+  "Wood",
+  "Glass",
+  "Other",
+];
+
+const SUBCATEGORIES = {
+
+  Aggregate: [
+    "10mm Aggregate",
+    "20mm Aggregate",
+    "40mm Aggregate",
+    "Stone Dust",
+    "Other",
+  ],
+  Sand: ["River Sand", "M-Sand", "Plaster Sand", "Other"],
+  Cement: ["OPC Cement", "PPC Cement", "White Cement", "Other"],
+  Hardware: ["Nails", "Screws", "Binding Wire", "Fasteners", "Other"],
+  Tiles: ["Floor Tiles", "Wall Tiles", "Parking Tiles", "Other"],
+  Steel: [
+    "TMT Bar 8mm",
+    "TMT Bar 10mm",
+    "TMT Bar 12mm",
+    "TMT Bar 16mm",
+    "TMT Bar 20mm",
+    "Binding Wire",
+    "Structural Steel",
+    "Other",
+  ],
+  Paints: [
+    "Primer",
+    "Interior Paint",
+    "Exterior Paint",
+    "Putty",
+    "Enamel Paint",
+    "Other",
+  ],
+  Wood: ["Plywood", "Timber", "Flush Door", "Other"],
+  Glass: ["Clear Glass", "Toughened Glass", "Laminated Glass", "Other"],
+  Other: ["Other"],
+
+  Composite: [
+    "Civil + Electrical",
+    "Civil + Plumbing",
+    "Civil + Electrical + Plumbing",
+    "Complete Building Work",
+    "Other",
+  ],
+  Civil: [
+    "Excavation",
+    "Earthwork",
+    "Backfilling",
+    "PCC",
+    "RCC",
+    "Reinforcement Steel",
+    "Shuttering / Formwork",
+    "Brick Work",
+    "Block Work",
+    "Plaster Work",
+    "Putty Work",
+    "Painting",
+    "Waterproofing",
+    "Flooring",
+    "Tiling",
+    "Marble / Granite",
+    "False Ceiling",
+    "Road Work",
+    "Interlock Paver",
+    "Demolition",
+    "Other",
+  ],
+  Electrical: [
+    "Conduit Installation",
+    "Wiring",
+    "Cable Laying",
+    "Cable Tray",
+    "Panel Installation",
+    "DB Installation",
+    "Switch / Socket Installation",
+    "Light Installation",
+    "Fan Installation",
+    "Earthing",
+    "Electrical Testing",
+    "Fire Alarm",
+    "CCTV",
+    "Other",
+  ],
+};
+
+function normalizeMobile(value) {
+  return String(value || "").replace(/\D/g, "");
+}
+
+function getVendorCategory(vendor) {
+  const category = vendor?.category;
+
+  return Array.isArray(category)
+    ? String(category[0] || "").trim()
+    : String(category || "").trim();
+}
+
+function getAllowedCategories(vendor) {
+  if (vendor?.vendorType === "supply") {
+    return SUPPLY_CATEGORIES;
+  }
+
+  if (vendor?.vendorType === "work") {
+    return WORK_CATEGORIES;
+  }
+
+  return [];
 }
 
 async function generateOrderNumber() {
@@ -44,62 +144,85 @@ async function generateOrderNumber() {
 
 router.get("/vendors/search", async (req, res) => {
   try {
-    const mobile = String(req.query.mobile || "")
-      .replace(/\D/g, "");
+    const mobile = normalizeMobile(req.query.mobile);
 
     if (!mobile) {
       return res.status(400).json({
-        message: "Vendor mobile number is required",
+        message: "Vendor mobile number is required.",
       });
     }
 
-    // Search using the actual Vendor model and contactNo field
     const vendor = await Vendor.findOne({
       contactNo: mobile,
     }).select(
-      "name email companyName contactNo category gstNumber status vendorCode"
+      "name email companyName contactNo category vendorType gstNumber status vendorCode"
     );
 
     if (!vendor) {
       return res.status(404).json({
-        message: "Registered vendor not found",
+        message: "Registered vendor not found.",
       });
     }
 
     if (vendor.status !== "approved") {
       return res.status(403).json({
-        message: "Vendor account is pending approval",
+        message: "Vendor account is pending approval.",
+      });
+    }
+
+    const category = getVendorCategory(vendor);
+    const allowedCategories = getAllowedCategories(vendor);
+
+    if (!allowedCategories.includes(category)) {
+      return res.status(400).json({
+        message: "Vendor type or registered category is invalid.",
       });
     }
 
     return res.json({
       _id: vendor._id,
-      name: vendor.name,
+      name: vendor.name || "",
       companyName: vendor.companyName || "",
-      mobile: vendor.contactNo,
+      mobile: vendor.contactNo || "",
+      contactNo: vendor.contactNo || "",
       email: vendor.email || "",
-      category: vendor.category || "",
+      vendorType: vendor.vendorType,
+      category,
       gstNumber: vendor.gstNumber || "",
       vendorCode: vendor.vendorCode || "",
+      status: vendor.status,
     });
   } catch (error) {
     console.error("Vendor search error:", error);
 
     return res.status(500).json({
-      message: "Failed to search vendor",
+      message: "Failed to search vendor.",
     });
   }
 });
 
 router.get("/", async (req, res) => {
   try {
-    const { site, status, category } = req.query;
+    const { site, status, category, vendorId } = req.query;
 
     const filter = {};
 
     if (site) filter.site = site;
     if (category) filter.category = category;
-    if (status && status !== "All") filter.status = status;
+
+    if (status && status !== "All") {
+      filter.status = status;
+    }
+
+    if (vendorId) {
+      if (!mongoose.isValidObjectId(vendorId)) {
+        return res.status(400).json({
+          message: "Invalid vendor ID.",
+        });
+      }
+
+      filter.vendorId = vendorId;
+    }
 
     const orders = await WorkOrder.find(filter).sort({
       createdAt: -1,
@@ -110,7 +233,7 @@ router.get("/", async (req, res) => {
     console.error("Fetch work orders error:", error);
 
     return res.status(500).json({
-      message: "Failed to fetch work orders",
+      message: "Failed to fetch work orders.",
     });
   }
 });
@@ -119,8 +242,6 @@ router.post("/", async (req, res) => {
   try {
     const {
       vendorId,
-      vendorName,
-      vendorMobile,
       category,
       subcategory,
       site,
@@ -134,29 +255,89 @@ router.post("/", async (req, res) => {
       createdBy,
     } = req.body;
 
+    if (!mongoose.isValidObjectId(vendorId)) {
+      return res.status(400).json({
+        message: "Please search for a registered vendor first.",
+      });
+    }
+
+    const vendor = await Vendor.findById(vendorId);
+
+    if (!vendor) {
+      return res.status(404).json({
+        message: "Registered vendor not found.",
+      });
+    }
+
+    if (vendor.status !== "approved") {
+      return res.status(403).json({
+        message: "Only approved vendors can receive Work Orders.",
+      });
+    }
+
+    const registeredCategory = getVendorCategory(vendor);
+    const allowedCategories = getAllowedCategories(vendor);
+
+    if (!allowedCategories.includes(registeredCategory)) {
+      return res.status(400).json({
+        message: "Vendor type or registered category is invalid.",
+      });
+    }
+    if (String(category || "").trim() !== registeredCategory) {
+      return res.status(400).json({
+        message: "Category must match the vendor's registered category.",
+      });
+    }
+
+    const allowedSubcategories =
+      SUBCATEGORIES[registeredCategory] || [];
+
+    const selectedSubcategory = String(subcategory || "").trim();
+
     if (
-      !vendorName ||
-      !vendorMobile ||
-      !category ||
-      ! subcategory||
-      !site ||
-      !workDescription ||
+      !selectedSubcategory ||
+      selectedSubcategory.length > 150
+    ) {
+      return res.status(400).json({
+        message: "Please provide a valid subcategory.",
+      });
+    }
+
+    if (selectedSubcategory === "Other") {
+      return res.status(400).json({
+        message: "Please enter the custom subcategory instead of Other.",
+      });
+    }
+
+    const isPredefinedSubcategory =
+      allowedSubcategories.includes(selectedSubcategory);
+
+    const allowsCustomSubcategory =
+      allowedSubcategories.includes("Other");
+
+    if (!isPredefinedSubcategory && !allowsCustomSubcategory) {
+      return res.status(400).json({
+        message: "Invalid subcategory for this vendor category.",
+      });
+    }
+
+    const cleanSite = String(site || "").trim();
+    const cleanDescription = String(workDescription || "").trim();
+    const cleanUnit = String(unit || "").trim();
+
+    if (
+      !cleanSite ||
+      !cleanDescription ||
+      !cleanUnit ||
       quantity === undefined ||
       quantity === "" ||
       rate === undefined ||
       rate === "" ||
-      !unit ||
       !startDate ||
       !deadline
     ) {
       return res.status(400).json({
-        message: "Please fill all required work order fields",
-      });
-    }
-
-    if (!["Composite", "Civil", "Electrical"].includes(category)) {
-      return res.status(400).json({
-        message: "Invalid work category",
+        message: "Please fill all required Work Order fields.",
       });
     }
 
@@ -170,7 +351,8 @@ router.post("/", async (req, res) => {
       numericRate < 0
     ) {
       return res.status(400).json({
-        message: "Quantity must be greater than zero and rate cannot be negative",
+        message:
+          "Quantity must be greater than zero and rate cannot be negative.",
       });
     }
 
@@ -182,13 +364,13 @@ router.post("/", async (req, res) => {
       Number.isNaN(end.getTime())
     ) {
       return res.status(400).json({
-        message: "Invalid start date or deadline",
+        message: "Invalid start date or deadline.",
       });
     }
 
     if (end < start) {
       return res.status(400).json({
-        message: "Deadline cannot be before start date",
+        message: "Deadline cannot be before start date.",
       });
     }
 
@@ -197,44 +379,43 @@ router.post("/", async (req, res) => {
 
     if (!validMeasurementTypes.includes(selectedMeasurementType)) {
       return res.status(400).json({
-        message: "Invalid measurement type",
+        message: "Invalid measurement type.",
       });
     }
 
     const orderNumber = await generateOrderNumber();
-
     const order = await WorkOrder.create({
       orderNumber,
-      vendorId:
-        vendorId && mongoose.isValidObjectId(vendorId)
-          ? vendorId
-          : null,
-      vendorName: String(vendorName).trim(),
-      vendorMobile: String(vendorMobile).trim(),
-      category,
-      subcategory: String(subcategory).trim(),
-      site: String(site).trim(),
-      workDescription: String(workDescription).trim(),
+      vendorId: vendor._id,
+      vendorName:
+        vendor.name ||
+        vendor.companyName ||
+        "Registered Vendor",
+      vendorMobile: String(vendor.contactNo || ""),
+      category: registeredCategory,
+      subcategory: selectedSubcategory,
+      site: cleanSite,
+      workDescription: cleanDescription,
       quantity: numericQuantity,
-      unit: String(unit).trim(),
+      unit: cleanUnit,
       rate: numericRate,
       totalAmount: numericQuantity * numericRate,
       startDate: start,
       deadline: end,
       measurementType: selectedMeasurementType,
       status: "Issued",
-      createdBy: createdBy || "Admin",
+      createdBy: String(createdBy || "Admin").trim(),
     });
 
     return res.status(201).json({
-      message: "Work order created successfully",
+      message: "Work Order created successfully.",
       order,
     });
   } catch (error) {
     console.error("Create work order error:", error);
 
     return res.status(500).json({
-      message: "Failed to create work order",
+      message: "Failed to create work order.",
       error: error.message,
     });
   }
@@ -247,7 +428,7 @@ router.patch("/:id/status", async (req, res) => {
 
     if (!mongoose.isValidObjectId(id)) {
       return res.status(400).json({
-        message: "Invalid work order ID",
+        message: "Invalid work order ID.",
       });
     }
 
@@ -260,7 +441,7 @@ router.patch("/:id/status", async (req, res) => {
 
     if (!allowedStatuses.includes(status)) {
       return res.status(400).json({
-        message: "Invalid work order status",
+        message: "Invalid work order status.",
       });
     }
 
@@ -272,30 +453,29 @@ router.patch("/:id/status", async (req, res) => {
 
     if (!order) {
       return res.status(404).json({
-        message: "Work order not found",
+        message: "Work order not found.",
       });
     }
 
     return res.json({
-      message: "Work order status updated successfully",
+      message: "Work order status updated successfully.",
       order,
     });
   } catch (error) {
     console.error("Update work order status error:", error);
 
     return res.status(500).json({
-      message: "Failed to update work order status",
+      message: "Failed to update work order status.",
     });
   }
 });
-
 router.delete("/:id", async (req, res) => {
   try {
     const { id } = req.params;
 
     if (!mongoose.isValidObjectId(id)) {
       return res.status(400).json({
-        message: "Invalid work order ID",
+        message: "Invalid work order ID.",
       });
     }
 
@@ -303,18 +483,18 @@ router.delete("/:id", async (req, res) => {
 
     if (!order) {
       return res.status(404).json({
-        message: "Work order not found",
+        message: "Work order not found.",
       });
     }
 
     return res.json({
-      message: "Work order deleted successfully",
+      message: "Work order deleted successfully.",
     });
   } catch (error) {
     console.error("Delete work order error:", error);
 
     return res.status(500).json({
-      message: "Failed to delete work order",
+      message: "Failed to delete work order.",
     });
   }
 });
