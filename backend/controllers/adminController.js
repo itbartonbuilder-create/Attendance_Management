@@ -12,7 +12,7 @@ export const approveVendor = async (req, res) => {
       });
     }
 
-    if (vendor.status === "approved") {
+    if (vendor.status === "Approved") {
       return res.json({
         message: "Vendor already approved",
         vendorCode: vendor.vendorCode,
@@ -37,7 +37,7 @@ export const approveVendor = async (req, res) => {
 
     const newCode = `VND-${String(maxNumber + 1).padStart(3, "0")}`;
 
-    vendor.status = "approved";
+    vendor.status = "Approved";
     vendor.vendorCode = newCode;
 
     await vendor.save();
