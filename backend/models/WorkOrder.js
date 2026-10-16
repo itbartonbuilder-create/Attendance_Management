@@ -1,4 +1,3 @@
-
 import mongoose from "mongoose";
 
 const workOrderSchema = new mongoose.Schema(
@@ -13,9 +12,14 @@ const workOrderSchema = new mongoose.Schema(
     vendorId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Vendor",
-      required: true,
-      index: true,
+      default: null,
     },
+    measurementIds: [
+  {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "SiteMeasurement",
+  },
+],
 
     vendorName: {
       type: String,
@@ -31,32 +35,14 @@ const workOrderSchema = new mongoose.Schema(
 
     category: {
       type: String,
-      enum: [
-        "Composite",
-        "Civil",
-        "Electrical",
-        "Aggregate",
-        "Sand",
-        "Cement",
-        "Hardware",
-        "Tiles",
-        "Steel",
-        "Paints",
-        "Wood",
-        "Glass",
-        "Other",
-      ],
+      enum: ["Composite", "Civil", "Electrical"],
       required: true,
-      trim: true,
     },
-
     subcategory: {
-      type: String,
-      required: true,
-      trim: true,
-      maxlength: 150,
+    type: String,
+    required: true,
+    trim: true,
     },
-
     site: {
       type: String,
       required: true,
@@ -107,7 +93,6 @@ const workOrderSchema = new mongoose.Schema(
       type: String,
       enum: ["fixed", "calculating"],
       default: "fixed",
-      required: true,
     },
 
     status: {
@@ -119,12 +104,9 @@ const workOrderSchema = new mongoose.Schema(
     createdBy: {
       type: String,
       default: "Admin",
-      trim: true,
     },
   },
   { timestamps: true }
 );
-
-workOrderSchema.index({ site: 1, createdAt: -1 });
 
 export default mongoose.model("WorkOrder", workOrderSchema);
