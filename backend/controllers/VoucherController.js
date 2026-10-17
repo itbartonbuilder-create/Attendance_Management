@@ -1,6 +1,9 @@
 
 import Voucher from "../models/Voucher.js";
 
+// ========================================
+// CREATE VOUCHER
+// ========================================
 export const createVoucher = async (req, res) => {
   try {
     const {
@@ -58,20 +61,21 @@ export const createVoucher = async (req, res) => {
       });
     }
 
-    // Use supplied voucher number or generate a fallback
+    const finalSite = String(site).trim();
     const finalVoucherNo =
-      voucherNo?.trim() || `VCH-${Date.now()}`;
+      String(voucherNo || "").trim() || `VCH-${Date.now()}`;
 
+    // Save voucher
     const newVoucher = new Voucher({
       voucherNo: finalVoucherNo,
       voucherDate,
-      payableTo,
-      particulars,
+      payableTo: String(payableTo).trim(),
+      particulars: String(particulars).trim(),
       paymentMode,
       screenshotUrl,
       amount: parsedAmount,
       amountInWords,
-      site,
+      site: finalSite,
       createdByName,
       createdByUserId,
     });
@@ -86,11 +90,11 @@ export const createVoucher = async (req, res) => {
   } catch (error) {
     console.error("CREATE VOUCHER ERROR:", error);
 
-    // Duplicate voucher number
     if (error.code === 11000) {
       return res.status(409).json({
         success: false,
-        message: "This voucher number already exists. Please generate a new number.",
+        message:
+          "This voucher number already exists for this site. Please refresh the voucher number and try again.",
         error: error.message,
       });
     }
@@ -113,9 +117,23 @@ export const createVoucher = async (req, res) => {
 };
 
 
+// ========================================
+// GET NEXT VOUCHER NUMBER FOR A SITE
+// ========================================
 export const getNextVoucherNumber = async (req, res) => {
   try {
+    const site = String(req.query.site || "").trim();
+
+    if (!site) {
+      return res.status(400).json({
+        success: false,
+        message: "Site is required to generate voucher number",
+      });
+    }
+
+    // Only vouchers belonging to the selected site
     const vouchers = await Voucher.find({
+      site,
       voucherNo: { $exists: true, $ne: "" },
     })
       .select("voucherNo")
@@ -124,7 +142,7 @@ export const getNextVoucherNumber = async (req, res) => {
     let maxNumber = 0;
 
     for (const voucher of vouchers) {
-      // Supports "01", "02", and "VCH-123" formats
+      // Supports "01", "02", "VCH-123"
       const match = String(voucher.voucherNo).match(
         /^(?:VCH-)?(\d+)$/
       );
@@ -132,7 +150,10 @@ export const getNextVoucherNumber = async (req, res) => {
       if (match) {
         const number = Number(match[1]);
 
-        if (Number.isSafeInteger(number) && number > maxNumber) {
+        if (
+          Number.isSafeInteger(number) &&
+          number > maxNumber
+        ) {
           maxNumber = number;
         }
       }
@@ -141,6 +162,8 @@ export const getNextVoucherNumber = async (req, res) => {
     const nextVoucherNo = String(maxNumber + 1).padStart(2, "0");
 
     return res.status(200).json({
+      success: true,
+      site,
       nextVoucherNo,
     });
   } catch (error) {
@@ -148,12 +171,16 @@ export const getNextVoucherNumber = async (req, res) => {
 
     return res.status(500).json({
       success: false,
-      message: error.message || "Failed to generate voucher number",
+      message:
+        error.message || "Failed to generate voucher number",
     });
   }
 };
 
 
+// ========================================
+// GET VOUCHERS
+// ========================================
 export const getVouchers = async (req, res) => {
   try {
     const { role, userId, site } = req.query;
@@ -162,14 +189,16 @@ export const getVouchers = async (req, res) => {
     if (["admin", "manager", "accountant"].includes(role)) {
       if (!site) {
         return res.status(400).json({
+          success: false,
           message: `Site is required for ${role}`,
         });
       }
 
-      filter = { site };
+      filter = { site: String(site).trim() };
     } else if (["vendor", "user"].includes(role)) {
       if (!userId) {
         return res.status(400).json({
+          success: false,
           message: "User ID required",
         });
       }
@@ -185,6 +214,7 @@ export const getVouchers = async (req, res) => {
     console.error("FETCH VOUCHER ERROR:", error);
 
     return res.status(500).json({
+      success: false,
       message: error.message || "Failed to fetch vouchers",
     });
   }
