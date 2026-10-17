@@ -80,7 +80,7 @@ console.log({
       site,
       vendor,
       sentTo,
-      amount,
+     amount: Number(Number(amount).toFixed(2)),
       quantity,
       gstType,
       gstPercent: gstType === "gst" ? gstPercent : 0,
