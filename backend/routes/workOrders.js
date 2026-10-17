@@ -259,11 +259,16 @@ router.get("/", async (req, res) => {
       filter.vendorId = vendorId;
     }
 
-    const orders = await WorkOrder.find(filter)
-      .populate("measurementIds")
-      .sort({ createdAt: -1 });
+const orders = await WorkOrder.find(filter)
+  .populate("measurementIds")
+  .populate(
+    "vendorId",
+    "name email companyName contactNo category vendorType gstNumber status vendorCode"
+  )
+  .sort({ createdAt: -1 });
 
-    return res.json(orders);
+return res.json(orders);
+
   } catch (error) {
     console.error("Fetch work orders error:", error);
 
