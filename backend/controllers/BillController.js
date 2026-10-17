@@ -31,16 +31,22 @@ export const createBill = async (req, res) => {
       createdByName,
     } = req.body;
 
-    const subtotal = Number(amount) * Number(quantity);
+  const subtotal = Number(
+  (Number(amount) * Number(quantity)).toFixed(2)
+);
 
     let gstAmount = 0;
-    let totalAmount = subtotal;
+let totalAmount = subtotal;
 
-    if (gstType === "gst") {
-      gstAmount = (subtotal * Number(gstPercent)) / 100;
-      totalAmount = subtotal + gstAmount;
-    }
+if (gstType === "gst") {
+  gstAmount = Number(
+    ((subtotal * Number(gstPercent)) / 100).toFixed(2)
+  );
 
+  totalAmount = Number(
+    (subtotal + gstAmount).toFixed(2)
+  );
+}
    const uploadedFile = await new Promise((resolve, reject) => {
  const uploadStream = cloudinary.uploader.upload_stream(
   {
