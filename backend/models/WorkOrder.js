@@ -20,6 +20,75 @@ const workOrderSchema = new mongoose.Schema(
     ref: "SiteMeasurement",
   },
 ],
+    rateApprovals: [
+  {
+    measurementId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "SiteMeasurement",
+      required: true,
+    },
+
+    rate: {
+      type: Number,
+      default: null,
+      min: 0,
+    },
+
+    amount: {
+      type: Number,
+      default: null,
+      min: 0,
+    },
+
+    status: {
+      type: String,
+      enum: ["Rate Pending", "Approved", "Revision Required"],
+      default: "Rate Pending",
+    },
+
+    approvedBy: {
+      type: String,
+      default: "",
+    },
+
+    approvedAt: {
+      type: Date,
+      default: null,
+    },
+
+    history: [
+      {
+        rate: {
+          type: Number,
+          required: true,
+          min: 0,
+        },
+
+        amount: {
+          type: Number,
+          required: true,
+          min: 0,
+        },
+
+        status: {
+          type: String,
+          enum: ["Rate Pending", "Approved", "Revision Required"],
+          required: true,
+        },
+
+        changedBy: {
+          type: String,
+          default: "Admin",
+        },
+
+        changedAt: {
+          type: Date,
+          default: Date.now,
+        },
+      },
+    ],
+  },
+],
 
     vendorName: {
       type: String,
