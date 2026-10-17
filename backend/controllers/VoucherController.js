@@ -1,9 +1,6 @@
 
 import Voucher from "../models/Voucher.js";
 
-// ========================================
-// CREATE VOUCHER
-// ========================================
 export const createVoucher = async (req, res) => {
   try {
     const {
@@ -23,7 +20,6 @@ export const createVoucher = async (req, res) => {
       ? req.file.path
       : (req.body.screenshotUrl || "");
 
-    // Validate required fields
     const requiredFields = {
       voucherDate,
       payableTo,
@@ -116,10 +112,6 @@ export const createVoucher = async (req, res) => {
   }
 };
 
-
-// ========================================
-// GET NEXT VOUCHER NUMBER FOR A SITE
-// ========================================
 export const getNextVoucherNumber = async (req, res) => {
   try {
     const site = String(req.query.site || "").trim();
@@ -131,7 +123,6 @@ export const getNextVoucherNumber = async (req, res) => {
       });
     }
 
-    // Only vouchers belonging to the selected site
     const vouchers = await Voucher.find({
       site,
       voucherNo: { $exists: true, $ne: "" },
@@ -142,7 +133,7 @@ export const getNextVoucherNumber = async (req, res) => {
     let maxNumber = 0;
 
     for (const voucher of vouchers) {
-      // Supports "01", "02", "VCH-123"
+    
       const match = String(voucher.voucherNo).match(
         /^(?:VCH-)?(\d+)$/
       );
@@ -177,10 +168,6 @@ export const getNextVoucherNumber = async (req, res) => {
   }
 };
 
-
-// ========================================
-// GET VOUCHERS
-// ========================================
 export const getVouchers = async (req, res) => {
   try {
     const { role, userId, site } = req.query;
