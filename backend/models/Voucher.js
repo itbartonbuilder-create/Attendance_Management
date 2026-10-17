@@ -18,6 +18,9 @@ const voucherSchema = new mongoose.Schema({
   createdAt: { type: Date, default: Date.now }
 });
 
-
+voucherSchema.index(
+  { site: 1, voucherNo: 1 },
+  { unique: true }
+);
 const Voucher = mongoose.model("Voucher", voucherSchema);
 export default Voucher;
