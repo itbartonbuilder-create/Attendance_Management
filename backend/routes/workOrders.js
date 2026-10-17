@@ -259,6 +259,7 @@ router.get("/", async (req, res) => {
       filter.vendorId = vendorId;
     }
 
+   
 const orders = await WorkOrder.find(filter)
   .populate("measurementIds")
   .populate(
@@ -582,9 +583,26 @@ router.post("/", async (req, res) => {
       quantity: finalQuantity,
       unit: finalUnit,
       rate: finalRate,
+          
       totalAmount: finalAmount,
       measurementIds: linkedMeasurementIds,
+
+      rateApprovals:
+        vendorType === "work" &&
+        finalMeasurementType === "calculating"
+          ? linkedMeasurementIds.map((measurementId) => ({
+              measurementId,
+              rate: null,
+              amount: null,
+              status: "Rate Pending",
+              approvedBy: "",
+              approvedAt: null,
+              history: [],
+            }))
+          : [],
+
       startDate: start,
+
       deadline: end,
       measurementType: finalMeasurementType,
       status: "Issued",
@@ -661,6 +679,183 @@ router.post("/", async (req, res) => {
     });
   }
 });
+
+
+router.patch("/:id/rate-approvals", async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { items, approvedBy } = req.body;
+
+    if (!mongoose.isValidObjectId(id)) {
+      return res.status(400).json({
+        message: "Invalid Work Order ID.",
+      });
+    }
+
+    if (!Array.isArray(items) || items.length === 0) {
+      return res.status(400).json({
+        message: "Measurement rates are required.",
+      });
+    }
+
+    const order = await WorkOrder.findById(id);
+
+    if (!order) {
+      return res.status(404).json({
+        message: "Work Order not found.",
+      });
+    }
+
+    if (order.measurementType !== "calculating") {
+      return res.status(400).json({
+        message:
+          "Rate approval is only for Calculating Measurements.",
+      });
+    }
+
+    const linkedIds = order.measurementIds.map(String);
+    const submittedIds = items.map((item) =>
+      String(item.measurementId || "")
+    );
+
+    if (
+      submittedIds.length !== linkedIds.length ||
+      new Set(submittedIds).size !== submittedIds.length ||
+      !linkedIds.every((measurementId) =>
+        submittedIds.includes(measurementId)
+      )
+    ) {
+      return res.status(400).json({
+        message:
+          "Submit a rate for every linked measurement exactly once.",
+      });
+    }
+
+    const measurements = await SiteMeasurement.find({
+      _id: { $in: order.measurementIds },
+      site: order.site,
+    }).lean();
+
+    if (measurements.length !== linkedIds.length) {
+      return res.status(400).json({
+        message: "Some linked measurements were not found.",
+      });
+    }
+
+    const measurementMap = new Map(
+      measurements.map((measurement) => [
+        String(measurement._id),
+        measurement,
+      ])
+    );
+
+    const changedBy = String(approvedBy || "Admin").trim();
+
+    if (!changedBy || changedBy.length > 150) {
+      return res.status(400).json({
+        message: "Invalid approver name.",
+      });
+    }
+
+    const now = new Date();
+    const updates = [];
+
+    // Validate all rates before modifying the order.
+    for (const item of items) {
+      const measurement = measurementMap.get(
+        String(item.measurementId)
+      );
+      const rate = Number(item.rate);
+
+      if (
+        item.rate === "" ||
+        item.rate === null ||
+        item.rate === undefined ||
+        !Number.isFinite(rate) ||
+        rate < 0 ||
+        !measurement ||
+        !Number.isFinite(Number(measurement.quantity)) ||
+        Number(measurement.quantity) <= 0
+      ) {
+        return res.status(400).json({
+          message: "Enter a valid non-negative rate for every item.",
+        });
+      }
+
+      updates.push({
+        measurementId: String(item.measurementId),
+        rate,
+        amount: Number(
+          (Number(measurement.quantity) * rate).toFixed(2)
+        ),
+      });
+    }
+
+    for (const update of updates) {
+      let approval = order.rateApprovals.find(
+        (entry) =>
+          String(entry.measurementId) === update.measurementId
+      );
+
+      if (!approval) {
+        order.rateApprovals.push({
+          measurementId: update.measurementId,
+          status: "Rate Pending",
+          history: [],
+        });
+
+        approval =
+          order.rateApprovals[order.rateApprovals.length - 1];
+      }
+
+      approval.history.push({
+        rate: update.rate,
+        amount: update.amount,
+        status: "Approved",
+        changedBy,
+        changedAt: now,
+      });
+
+      approval.rate = update.rate;
+      approval.amount = update.amount;
+      approval.status = "Approved";
+      approval.approvedBy = changedBy;
+      approval.approvedAt = now;
+    }
+
+    const totalAmount = Number(
+      order.rateApprovals
+        .filter((entry) => entry.status === "Approved")
+        .reduce(
+          (sum, entry) => sum + Number(entry.amount || 0),
+          0
+        )
+        .toFixed(2)
+    );
+
+    order.totalAmount = totalAmount;
+    order.rate =
+      Number(order.quantity) > 0
+        ? Number(
+            (totalAmount / Number(order.quantity)).toFixed(2)
+          )
+        : 0;
+
+    await order.save();
+
+    return res.json({
+      message: "Rates approved successfully.",
+      order,
+    });
+  } catch (error) {
+    console.error("Rate approval error:", error);
+
+    return res.status(500).json({
+      message: "Failed to approve rates.",
+    });
+  }
+});
+
 
 router.patch("/:id/status", async (req, res) => {
   try {
