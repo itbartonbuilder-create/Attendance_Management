@@ -1,7 +1,7 @@
 import mongoose from "mongoose";
 
 const voucherSchema = new mongoose.Schema({
-  voucherNo: { type: String, required: true, unique: true },
+  voucherNo: { type: String, required: true },
    voucherDate: {
     type: String,
     required: true
