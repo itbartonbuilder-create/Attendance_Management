@@ -80,8 +80,10 @@ const vendorpaymentbill = new mongoose.Schema(
 
 vendorpaymentbill.index({ workOrderId: 1, createdAt: -1 });
 
-const Bill =
-  mongoose.models.Bill ||
-  mongoose.model("Bill", vendorpaymentbill);
 
-export default Bill;
+const VendorPaymentBill =
+  mongoose.models.VendorPaymentBill ||
+  mongoose.model("VendorPaymentBill", vendorpaymentbill);
+
+export default VendorPaymentBill;
+
