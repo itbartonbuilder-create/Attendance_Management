@@ -971,7 +971,6 @@ router.get("/:id/bills", async (req, res) => {
   }
 });
 
-// POST: Create a separate bill for each partial payment
 router.post("/:id/bills", async (req, res) => {
   try {
     const { id } = req.params;
@@ -995,7 +994,6 @@ router.post("/:id/bills", async (req, res) => {
       return res.status(404).json({ message: "Work Order not found." });
     }
 
-    // Build a snapshot from the saved Work Order measurements.
     let items = [];
 
     if (order.measurementIds?.length) {
@@ -1051,7 +1049,6 @@ router.post("/:id/bills", async (req, res) => {
         });
       }
     } else {
-      // Supply order: quantity and rate are stored on the Work Order.
       items = [
         {
           description: order.workDescription,
@@ -1133,6 +1130,11 @@ router.post("/:id/bills", async (req, res) => {
     );
 
     const billNumber = await generateBillNumber();
+    console.log("Loaded Bill model:", Bill.modelName);
+console.log("Loaded Bill schema fields:", Object.keys(Bill.schema.paths));
+
+console.log("sentTo schema:", Bill.schema.paths.sentTo);
+console.log("vendor schema:", Bill.schema.paths.vendor);
 
     const bill = await Bill.create({
       billNumber,
