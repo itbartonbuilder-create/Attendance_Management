@@ -4,6 +4,7 @@ import mongoose from "mongoose";
 import WorkOrder from "../models/WorkOrder.js";
 import Vendor from "../models/vendorModel.js";
 import SiteMeasurement from "../models/SiteMeasurement.js";
+import Bill from "../models/vendorpaymentbill.js";
 
 const router = express.Router();
 const workOrderCounterSchema = new mongoose.Schema(
@@ -902,6 +903,270 @@ router.patch("/:id/status", async (req, res) => {
 
     return res.status(500).json({
       message: "Failed to update work order status.",
+    });
+  }
+});
+
+
+const billCounterSchema = new mongoose.Schema(
+  {
+    _id: { type: String, required: true },
+    seq: { type: Number, default: 0 },
+  },
+  { collection: "billcounters" }
+);
+
+const BillCounter =
+  mongoose.models.BillCounter ||
+  mongoose.model("BillCounter", billCounterSchema);
+
+async function generateBillNumber() {
+  const year = new Date().getFullYear();
+  const counterId = `bill-${year}`;
+
+  const counter = await BillCounter.findOneAndUpdate(
+    { _id: counterId },
+    { $inc: { seq: 1 } },
+    {
+      new: true,
+      upsert: true,
+      setDefaultsOnInsert: true,
+    }
+  );
+
+  return `BL-${year}-${String(counter.seq).padStart(4, "0")}`;
+}
+
+// GET: Is Work Order ke saare bills aur payment history
+router.get("/:id/bills", async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    if (!mongoose.isValidObjectId(id)) {
+      return res.status(400).json({ message: "Invalid Work Order ID." });
+    }
+
+    const order = await WorkOrder.findById(id).select("_id");
+
+    if (!order) {
+      return res.status(404).json({ message: "Work Order not found." });
+    }
+
+    const bills = await Bill.find({ workOrderId: id })
+      .sort({ createdAt: -1 })
+      .lean();
+
+    const totalPaid = Number(
+      bills.reduce((sum, bill) => sum + Number(bill.paymentAmount || 0), 0)
+        .toFixed(2)
+    );
+
+    return res.json({
+      bills,
+      totalPaid,
+    });
+  } catch (error) {
+    console.error("Fetch bill history error:", error);
+    return res.status(500).json({ message: "Failed to fetch bill history." });
+  }
+});
+
+// POST: Create a separate bill for each partial payment
+router.post("/:id/bills", async (req, res) => {
+  try {
+    const { id } = req.params;
+    const {
+      paymentAmount,
+      paymentMode = "Bank Transfer",
+      paymentDate,
+      remarks = "",
+      createdBy = "Admin",
+    } = req.body;
+
+    if (!mongoose.isValidObjectId(id)) {
+      return res.status(400).json({ message: "Invalid Work Order ID." });
+    }
+
+    const order = await WorkOrder.findById(id)
+      .populate("measurementIds")
+      .populate("vendorId", "name companyName contactNo");
+
+    if (!order) {
+      return res.status(404).json({ message: "Work Order not found." });
+    }
+
+    // Build a snapshot from the saved Work Order measurements.
+    let items = [];
+
+    if (order.measurementIds?.length) {
+      for (const measurement of order.measurementIds) {
+        let rate;
+        let amount;
+
+        if (order.measurementType === "calculating") {
+          const approval = order.rateApprovals.find(
+            (entry) =>
+              String(entry.measurementId) === String(measurement._id)
+          );
+
+          if (
+            !approval ||
+            approval.status !== "Approved" ||
+            approval.rate == null ||
+            approval.amount == null
+          ) {
+            return res.status(400).json({
+              message:
+                "All calculating measurements must have approved rates before billing.",
+            });
+          }
+
+          rate = Number(approval.rate);
+          amount = Number(approval.amount);
+        } else {
+          rate = Number(measurement.rate);
+          amount = Number(measurement.amount);
+
+          if (
+            measurement.rate == null ||
+            measurement.amount == null ||
+            !Number.isFinite(rate) ||
+            !Number.isFinite(amount)
+          ) {
+            return res.status(400).json({
+              message: "A fixed measurement is missing its rate or amount.",
+            });
+          }
+        }
+
+        items.push({
+          description:
+            measurement.description ||
+            measurement.workType ||
+            order.workDescription,
+          quantity: Number(measurement.quantity || 0),
+          unit: measurement.unit || "",
+          rate,
+          amount,
+        });
+      }
+    } else {
+      // Supply order: quantity and rate are stored on the Work Order.
+      items = [
+        {
+          description: order.workDescription,
+          quantity: Number(order.quantity),
+          unit: order.unit,
+          rate: Number(order.rate),
+          amount: Number(order.totalAmount),
+        },
+      ];
+    }
+
+    const approvedAmount = Number(
+      items.reduce((sum, item) => sum + item.amount, 0).toFixed(2)
+    );
+
+    if (!Number.isFinite(approvedAmount) || approvedAmount <= 0) {
+      return res.status(400).json({
+        message: "The approved bill amount must be greater than zero.",
+      });
+    }
+
+    const amount = Number(paymentAmount);
+
+    if (
+      paymentAmount === "" ||
+      paymentAmount === null ||
+      paymentAmount === undefined ||
+      !Number.isFinite(amount) ||
+      amount <= 0
+    ) {
+      return res.status(400).json({
+        message: "Enter a valid payment amount greater than zero.",
+      });
+    }
+
+    const allowedModes = [
+      "Cash",
+      "Bank Transfer",
+      "UPI",
+      "Cheque",
+      "Other",
+    ];
+
+    if (!allowedModes.includes(paymentMode)) {
+      return res.status(400).json({ message: "Invalid payment mode." });
+    }
+
+    const date = paymentDate ? new Date(paymentDate) : new Date();
+
+    if (Number.isNaN(date.getTime())) {
+      return res.status(400).json({ message: "Invalid payment date." });
+    }
+
+    const existingBills = await Bill.find({
+      workOrderId: order._id,
+    }).select("paymentAmount");
+
+    const previouslyPaid = Number(
+      existingBills
+        .reduce((sum, bill) => sum + Number(bill.paymentAmount || 0), 0)
+        .toFixed(2)
+    );
+
+    const outstanding = Number(
+      Math.max(0, approvedAmount - previouslyPaid).toFixed(2)
+    );
+
+    if (amount > outstanding + 0.001) {
+      return res.status(400).json({
+        message: `Payment exceeds the outstanding balance of ₹${outstanding.toFixed(2)}.`,
+        approvedAmount,
+        previouslyPaid,
+        outstanding,
+      });
+    }
+
+    const balanceAfter = Number(
+      Math.max(0, approvedAmount - previouslyPaid - amount).toFixed(2)
+    );
+
+    const billNumber = await generateBillNumber();
+
+    const bill = await Bill.create({
+      billNumber,
+      workOrderId: order._id,
+      orderNumber: order.orderNumber,
+      vendorId: order.vendorId?._id || order.vendorId || null,
+      vendorName:
+        order.vendorId?.name ||
+        order.vendorName ||
+        order.vendorId?.companyName ||
+        "Vendor",
+      vendorMobile:
+        order.vendorId?.contactNo || order.vendorMobile || "",
+      site: order.site,
+      items,
+      approvedAmount,
+      previouslyPaid,
+      paymentAmount: amount,
+      balanceAfter,
+      paymentMode,
+      paymentDate: date,
+      remarks: String(remarks || "").trim(),
+      createdBy: String(createdBy || "Admin").trim(),
+    });
+
+    return res.status(201).json({
+      message: "Bill and payment record created successfully.",
+      bill,
+    });
+  } catch (error) {
+    console.error("Create bill error:", error);
+    return res.status(500).json({
+      message: "Failed to create bill.",
+      error: error.message,
     });
   }
 });
