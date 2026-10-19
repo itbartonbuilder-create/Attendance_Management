@@ -6,7 +6,6 @@ import Vendor from "../models/vendorModel.js";
 import SiteMeasurement from "../models/SiteMeasurement.js";
 import Bill from "../models/vendorpaymentbill.js";
 
-
 const router = express.Router();
 const workOrderCounterSchema = new mongoose.Schema(
   {
@@ -922,8 +921,7 @@ const BillCounter =
   mongoose.model("BillCounter", billCounterSchema);
 
 async function generateBillNumber() {
-  const year = new Date().getFullYear();
-  const counterId = `bill-${year}`;
+  const counterId = "bill";
 
   const counter = await BillCounter.findOneAndUpdate(
     { _id: counterId },
@@ -935,10 +933,9 @@ async function generateBillNumber() {
     }
   );
 
-  return `BL-${year}-${String(counter.seq).padStart(4, "0")}`;
+  return `BILL-${String(counter.seq).padStart(2, "0")}`;
 }
 
-// GET: Is Work Order ke saare bills aur payment history
 router.get("/:id/bills", async (req, res) => {
   try {
     const { id } = req.params;
