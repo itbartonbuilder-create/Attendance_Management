@@ -178,4 +178,8 @@ const workOrderSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-export default mongoose.model("WorkOrder", workOrderSchema);
+const WorkOrder =
+  mongoose.models.WorkOrder ||
+  mongoose.model("WorkOrder", workOrderSchema);
+
+export default WorkOrder;
