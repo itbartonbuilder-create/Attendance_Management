@@ -976,7 +976,7 @@ router.get("/:id/bills", async (req, res) => {
   }
 });
 
-router.post("/:id/bills", async (req, res) => {
+router.post("/:id/bills",uploadBill.single("paymentProof"),async (req, res) => {
   try {
     const { id } = req.params;
     const {
