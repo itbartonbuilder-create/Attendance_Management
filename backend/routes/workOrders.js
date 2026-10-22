@@ -1092,10 +1092,6 @@ router.post("/:id/bills",uploadBill.single("paymentProof"),async (req, res) => {
  const allowedModes = [
   "Cash",
   "UPI / Online",
-  "Bank Transfer",
-  "UPI",
-  "Cheque",
-  "Other",
 ];
 
 const normalizedMode = String(paymentMode || "").trim();
@@ -1154,15 +1150,18 @@ if (
       Math.max(0, approvedAmount - previouslyPaid - amount).toFixed(2)
     );
 
-    const billNumber = await generateBillNumber();
-    const paymentProofUrl = req.file
-  ? (req.file.path || req.file.location || "")
-  : "";
-    console.log("Loaded Bill model:", Bill.modelName);
-console.log("Loaded Bill schema fields:", Object.keys(Bill.schema.paths));
+   
+const billNumber = await generateBillNumber();
 
-console.log("sentTo schema:", Bill.schema.paths.sentTo);
-console.log("vendor schema:", Bill.schema.paths.vendor);
+const paymentProofUrl = req.file?.path || "";
+const paymentProofPublicId = req.file?.filename || "";
+
+if (normalizedMode === "UPI / Online" && !paymentProofUrl) {
+  return res.status(400).json({
+    message: "Payment proof image upload nahi ho payi. Please try again.",
+  });
+}
+
 
     const bill = await Bill.create({
       billNumber,
@@ -1182,8 +1181,9 @@ console.log("vendor schema:", Bill.schema.paths.vendor);
       previouslyPaid,
       paymentAmount: amount,
       balanceAfter,
-      paymentMode: normalizedMode,
+     paymentMode: normalizedMode,
       paymentProofUrl,
+      paymentProofPublicId,
       paymentDate: date,
       remarks: String(remarks || "").trim(),
       createdBy: String(createdBy || "Admin").trim(),
@@ -1237,6 +1237,7 @@ router.delete("/:id", async (req, res) => {
   }
 });
 
+
 router.get("/site-bills", async (req, res) => {
   try {
     const { site } = req.query;
@@ -1278,7 +1279,5 @@ router.get("/site-bills", async (req, res) => {
     });
   }
 });
-
-
 
 export default router;
