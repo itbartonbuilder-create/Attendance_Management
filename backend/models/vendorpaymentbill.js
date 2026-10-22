@@ -63,9 +63,18 @@ const vendorpaymentbill = new mongoose.Schema(
 
     paymentMode: {
       type: String,
-      enum: ["Cash", "Bank Transfer", "UPI", "Cheque", "Other"],
+      enum: ["Cash", "UPI / Online"],
       default: "Bank Transfer",
     },
+          paymentProofUrl: {
+        type: String,
+        default: "",
+      },
+
+      paymentProofPublicId: {
+        type: String,
+        default: "",
+      },
 
     paymentDate: {
       type: Date,
