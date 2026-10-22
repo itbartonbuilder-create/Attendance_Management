@@ -1258,7 +1258,8 @@ router.get("/site-bills", async (req, res) => {
       isWorkOrderBill: true,
       isVoucher: false,
 
-      workName: `Work Order Payment - ${b.orderNumber || "—"}`,
+     workName:b.items?.map((item) => item.description).filter(Boolean)
+    .join(", ") ||b.Description ||b.subcategory ||"N/A",
       billNo: b.billNumber || "—",
       amount: b.paymentAmount ?? 0,
       quantity: "—",
