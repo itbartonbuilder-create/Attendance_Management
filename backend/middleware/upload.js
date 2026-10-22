@@ -20,14 +20,23 @@ export const uploadEmployee = multer({
 
 
 
-const memoryStorage = multer.memoryStorage();
+
+const billStorage = new CloudinaryStorage({
+  cloudinary,
+  params: {
+    folder: "work-order-payment-proofs",
+    resource_type: "image",
+    allowed_formats: ["jpg", "jpeg", "png", "webp"],
+  },
+});
 
 export const uploadBill = multer({
-  storage: memoryStorage,
+  storage: billStorage,
   limits: {
     fileSize: 10 * 1024 * 1024,
   },
 });
+
 
 
 const managerDocStorage = new CloudinaryStorage({
@@ -91,7 +100,7 @@ export const uploadSiteExpense = multer({
 const voucherStorage = new CloudinaryStorage({
   cloudinary,
   params: {
-    folder: "vouchers", 
+    folder: "vouchers",
     resource_type: "image",
     allowed_formats: ["jpg", "jpeg", "png", "pdf"],
   },
@@ -99,5 +108,5 @@ const voucherStorage = new CloudinaryStorage({
 
 export const uploadVoucher = multer({
   storage: voucherStorage,
-  limits: { fileSize: 10 * 1024 * 1024 }, // 10MB limit
+  limits: { fileSize: 10 * 1024 * 1024 }, 
 });
