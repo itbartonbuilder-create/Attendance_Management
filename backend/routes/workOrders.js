@@ -5,6 +5,8 @@ import WorkOrder from "../models/WorkOrder.js";
 import Vendor from "../models/vendorModel.js";
 import SiteMeasurement from "../models/SiteMeasurement.js";
 import Bill from "../models/vendorpaymentbill.js";
+import { uploadBill } from "../middleware/upload.js";
+
 
 const router = express.Router();
 const workOrderCounterSchema = new mongoose.Schema(
@@ -941,13 +943,17 @@ router.get("/:id/bills", async (req, res) => {
     const { id } = req.params;
 
     if (!mongoose.isValidObjectId(id)) {
-      return res.status(400).json({ message: "Invalid Work Order ID." });
+      return res.status(400).json({
+        message: "Invalid Work Order ID.",
+      });
     }
 
     const order = await WorkOrder.findById(id).select("_id");
 
     if (!order) {
-      return res.status(404).json({ message: "Work Order not found." });
+      return res.status(404).json({
+        message: "Work Order not found.",
+      });
     }
 
     const bills = await Bill.find({ workOrderId: id })
@@ -955,30 +961,31 @@ router.get("/:id/bills", async (req, res) => {
       .lean();
 
     const totalPaid = Number(
-      bills.reduce((sum, bill) => sum + Number(bill.paymentAmount || 0), 0)
+      bills
+        .reduce((sum, bill) => sum + Number(bill.paymentAmount || 0), 0)
         .toFixed(2)
     );
 
-    return res.json({
-      bills,
-      totalPaid,
-    });
+    return res.json({ bills, totalPaid });
   } catch (error) {
     console.error("Fetch bill history error:", error);
-    return res.status(500).json({ message: "Failed to fetch bill history." });
+
+    return res.status(500).json({
+      message: "Failed to fetch bill history.",
+    });
   }
 });
 
-router.post("/:id/bills", async (req, res) => {
+router.post("/:id/bills",uploadBill.single("paymentProof"),async (req, res) => {
   try {
     const { id } = req.params;
     const {
-      paymentAmount,
-      paymentMode = "Bank Transfer",
-      paymentDate,
-      remarks = "",
-      createdBy = "Admin",
-    } = req.body;
+  paymentAmount,
+  paymentMode = "Cash",
+  paymentDate,
+  remarks = "",
+  createdBy = "Admin",
+} = req.body || {};
 
     if (!mongoose.isValidObjectId(id)) {
       return res.status(400).json({ message: "Invalid Work Order ID." });
@@ -1082,17 +1089,37 @@ router.post("/:id/bills", async (req, res) => {
       });
     }
 
-    const allowedModes = [
-      "Cash",
-      "Bank Transfer",
-      "UPI",
-      "Cheque",
-      "Other",
-    ];
+ const allowedModes = [
+  "Cash",
+  "UPI / Online",
+  "Bank Transfer",
+  "UPI",
+  "Cheque",
+  "Other",
+];
 
-    if (!allowedModes.includes(paymentMode)) {
-      return res.status(400).json({ message: "Invalid payment mode." });
-    }
+const normalizedMode = String(paymentMode || "").trim();
+
+if (!allowedModes.includes(normalizedMode)) {
+  return res.status(400).json({
+    message: "Invalid payment mode.",
+  });
+}
+
+if (normalizedMode === "UPI / Online" && !req.file) {
+  return res.status(400).json({
+    message: "UPI / Online payment ke liye proof image upload karein.",
+  });
+}
+
+if (
+  req.file &&
+  !["image/jpeg", "image/png", "image/webp"].includes(req.file.mimetype)
+) {
+  return res.status(400).json({
+    message: "Only JPG, PNG or WEBP images are allowed.",
+  });
+}
 
     const date = paymentDate ? new Date(paymentDate) : new Date();
 
@@ -1128,6 +1155,9 @@ router.post("/:id/bills", async (req, res) => {
     );
 
     const billNumber = await generateBillNumber();
+    const paymentProofUrl = req.file
+  ? (req.file.path || req.file.location || "")
+  : "";
     console.log("Loaded Bill model:", Bill.modelName);
 console.log("Loaded Bill schema fields:", Object.keys(Bill.schema.paths));
 
@@ -1152,7 +1182,8 @@ console.log("vendor schema:", Bill.schema.paths.vendor);
       previouslyPaid,
       paymentAmount: amount,
       balanceAfter,
-      paymentMode,
+      paymentMode: normalizedMode,
+      paymentProofUrl,
       paymentDate: date,
       remarks: String(remarks || "").trim(),
       createdBy: String(createdBy || "Admin").trim(),
