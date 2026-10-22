@@ -1237,4 +1237,48 @@ router.delete("/:id", async (req, res) => {
   }
 });
 
+router.get("/site-bills", async (req, res) => {
+  try {
+    const { site } = req.query;
+
+    if (!site) {
+      return res.status(400).json({
+        message: "Site is required",
+      });
+    }
+
+    const bills = await Bill.find({ site })
+      .sort({ createdAt: -1 })
+      .lean();
+
+    const formattedBills = bills.map((b) => ({
+      ...b,
+
+      isWorkOrderBill: true,
+      isVoucher: false,
+
+      workName: `Work Order Payment - ${b.orderNumber || "—"}`,
+      billNo: b.billNumber || "—",
+      amount: b.paymentAmount ?? 0,
+      quantity: "—",
+      gstType: "not-applicable",
+      gstPercent: null,
+      gstAmount: null,
+      totalAmount: b.paymentAmount ?? 0,
+      billDate: b.paymentDate || b.createdAt,
+      billFile: b.paymentProofUrl || "",
+    }));
+
+    res.json(formattedBills);
+  } catch (error) {
+    console.error("Error fetching site work order bills:", error);
+
+    res.status(500).json({
+      message: "Failed to fetch Work Order bills",
+    });
+  }
+});
+
+
+
 export default router;
