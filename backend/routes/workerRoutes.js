@@ -979,13 +979,14 @@ router.get("/:id/bills", async (req, res) => {
 router.post("/:id/bills",uploadBill.single("paymentProof"),async (req, res) => {
   try {
     const { id } = req.params;
-    const {
-      paymentAmount,
-      paymentMode = "Bank Transfer",
-      paymentDate,
-      remarks = "",
-      createdBy = "Admin",
-    } = req.body;
+      const {
+  paymentAmount,
+  paymentMode = "Cash",
+  paymentDate,
+  remarks = "",
+  createdBy = "Admin",
+} = req.body || {};
+
 
     if (!mongoose.isValidObjectId(id)) {
       return res.status(400).json({ message: "Invalid Work Order ID." });
