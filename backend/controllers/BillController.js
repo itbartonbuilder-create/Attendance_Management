@@ -1,7 +1,6 @@
 import Bill from "../models/BillModel.js";
-import cloudinary from "../utils/cloudinary.js";
-import streamifier from "streamifier";
-
+// import cloudinary from "../utils/cloudinary.js";
+// import streamifier from "streamifier";
 
 const generateBillNo = async () => {
   const lastBill = await Bill.findOne().sort({ billNo: -1 });
@@ -26,16 +25,15 @@ export const createBill = async (req, res) => {
       quantity,
       gstType,
       gstPercent,
-      
       billDate,
       createdByName,
     } = req.body;
 
-  const subtotal = Number(
+   const subtotal = Number(
   (Number(amount) * Number(quantity)).toFixed(2)
 );
 
-    let gstAmount = 0;
+   let gstAmount = 0;
 let totalAmount = subtotal;
 
 if (gstType === "gst") {
@@ -47,23 +45,11 @@ if (gstType === "gst") {
     (subtotal + gstAmount).toFixed(2)
   );
 }
-   const uploadedFile = await new Promise((resolve, reject) => {
- const uploadStream = cloudinary.uploader.upload_stream(
-  {
-    folder: "bills",
-    resource_type: "auto",
 
-    public_id: `bill_${Date.now()}`,
-    overwrite: true,
-  },
-    (error, result) => {
-      if (error) return reject(error);
-      resolve(result);
-    }
-  );
-
-  streamifier.createReadStream(req.file.buffer).pipe(uploadStream);
-});
+  const uploadedFile = {
+  secure_url: req.file.path,
+  public_id: req.file.filename,
+};
 console.log("UPLOADED FILE =>", uploadedFile);
 
 console.log({
@@ -80,13 +66,12 @@ console.log({
       site,
       vendor,
       sentTo,
-     amount: Number(Number(amount).toFixed(2)),
+      amount: Number(Number(amount).toFixed(2)),
       quantity,
       gstType,
       gstPercent: gstType === "gst" ? gstPercent : 0,
       gstAmount,
       totalAmount,
-      
       billDate,
 
       billFile: uploadedFile.secure_url,
