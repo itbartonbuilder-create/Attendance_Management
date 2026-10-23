@@ -937,7 +937,134 @@ async function generateBillNumber() {
 
   return `BILL-${String(counter.seq).padStart(2, "0")}`;
 }
+router.get("/site-vendor-payment-summary", async (req, res) => {
+  try {
+    const site = String(req.query.site || "").trim();
 
+    if (!site) {
+      return res.status(400).json({
+        message: "Site is required.",
+      });
+    }
+
+    const orders = await WorkOrder.find({
+      site,
+      vendorId: { $ne: null },
+    })
+      .populate(
+        "vendorId",
+        "name companyName contactNo"
+      )
+      .lean();
+
+    if (orders.length === 0) {
+      return res.json([]);
+    }
+
+    const orderIds = orders.map((order) => order._id);
+
+    const bills = await Bill.find({
+      workOrderId: { $in: orderIds },
+    })
+      .select("workOrderId paymentAmount")
+      .lean();
+
+    const paidByOrder = new Map();
+
+    for (const bill of bills) {
+      const orderId = String(bill.workOrderId);
+      const paid =
+        (paidByOrder.get(orderId) || 0) +
+        Number(bill.paymentAmount || 0);
+
+      paidByOrder.set(orderId, paid);
+    }
+
+    const vendorMap = new Map();
+
+    for (const order of orders) {
+      const vendor = order.vendorId;
+
+      if (!vendor?._id) continue;
+
+      const vendorId = String(vendor._id);
+      const orderId = String(order._id);
+
+      if (!vendorMap.has(vendorId)) {
+        vendorMap.set(vendorId, {
+          vendorId,
+          vendorName:
+            vendor.name ||
+            vendor.companyName ||
+            order.vendorName ||
+            "Vendor",
+          vendorMobile:
+            vendor.contactNo ||
+            order.vendorMobile ||
+            "",
+          site,
+          totalBill: 0,
+          totalPaid: 0,
+          balance: 0,
+          workOrders: [],
+        });
+      }
+
+      const summary = vendorMap.get(vendorId);
+      const totalAmount = Number(order.totalAmount || 0);
+      const totalPaid = Number(
+        (paidByOrder.get(orderId) || 0).toFixed(2)
+      );
+
+      summary.totalBill += totalAmount;
+      summary.totalPaid += totalPaid;
+
+      summary.workOrders.push({
+        workOrderId: orderId,
+        orderNumber: order.orderNumber || "",
+        workDescription: order.workDescription || "",
+        status: order.status || "",
+        totalAmount,
+        totalPaid,
+        balance: Number(
+          Math.max(0, totalAmount - totalPaid).toFixed(2)
+        ),
+      });
+    }
+
+    const result = Array.from(vendorMap.values()).map(
+      (vendor) => {
+        vendor.totalBill = Number(
+          vendor.totalBill.toFixed(2)
+        );
+
+        vendor.totalPaid = Number(
+          vendor.totalPaid.toFixed(2)
+        );
+
+        vendor.balance = Number(
+          Math.max(
+            0,
+            vendor.totalBill - vendor.totalPaid
+          ).toFixed(2)
+        );
+
+        return vendor;
+      }
+    );
+
+    return res.json(result);
+  } catch (error) {
+    console.error(
+      "Vendor payment summary error:",
+      error
+    );
+
+    return res.status(500).json({
+      message: "Failed to fetch vendor payment summary.",
+    });
+  }
+});
 router.get("/:id/bills", async (req, res) => {
   try {
     const { id } = req.params;
