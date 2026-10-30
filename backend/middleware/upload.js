@@ -23,17 +23,36 @@ export const uploadEmployee = multer({
 
 const billStorage = new CloudinaryStorage({
   cloudinary,
-  params: {
-    folder: "work-order-payment-proofs",
-    resource_type: "image",
-    allowed_formats: ["jpg", "jpeg", "png", "webp"],
+  params: async (req, file) => {
+    const isPDF = file.mimetype === "application/pdf";
+
+    return {
+      folder: "bills",
+      resource_type: isPDF ? "raw" : "image",
+      allowed_formats: isPDF
+        ? ["pdf"]
+        : ["jpg", "jpeg", "png", "webp"],
+    };
   },
 });
-
 export const uploadBill = multer({
   storage: billStorage,
   limits: {
     fileSize: 10 * 1024 * 1024,
+  },
+  fileFilter: (req, file, cb) => {
+    const allowedTypes = [
+      "application/pdf",
+      "image/jpeg",
+      "image/png",
+      "image/webp",
+    ];
+
+    if (allowedTypes.includes(file.mimetype)) {
+      cb(null, true);
+    } else {
+      cb(new Error("Only PDF, JPG, PNG and WEBP files are allowed."));
+    }
   },
 });
 
