@@ -119,11 +119,13 @@ export const uploadSiteExpense = multer({
 const voucherStorage = new CloudinaryStorage({
   cloudinary,
   params: async (req, file) => {
-    const isPDF = file.mimetype === "application/pdf";
+    const isPDF =
+      file.mimetype === "application/pdf" ||
+      file.originalname.toLowerCase().endsWith(".pdf");
 
     return {
       folder: "vouchers",
-      resource_type: isPDF ? "raw" : "image",
+      resource_type: "image",
       allowed_formats: isPDF
         ? ["pdf"]
         : ["jpg", "jpeg", "png", "webp"],
@@ -134,17 +136,20 @@ const voucherStorage = new CloudinaryStorage({
 export const uploadVoucher = multer({
   storage: voucherStorage,
   limits: {
-    fileSize: 10 * 1024 * 1024, // 10 MB
+    fileSize: 10 * 1024 * 1024,
   },
   fileFilter: (req, file, cb) => {
-    const allowedTypes = [
-      "application/pdf",
+    const isPDF =
+      file.mimetype === "application/pdf" ||
+      file.originalname.toLowerCase().endsWith(".pdf");
+
+    const isImage = [
       "image/jpeg",
       "image/png",
       "image/webp",
-    ];
+    ].includes(file.mimetype);
 
-    if (allowedTypes.includes(file.mimetype)) {
+    if (isPDF || isImage) {
       cb(null, true);
     } else {
       cb(new Error("Only PDF, JPG, PNG and WEBP files are allowed."));
