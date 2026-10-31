@@ -20,15 +20,16 @@ export const uploadEmployee = multer({
 
 
 
-
 const billStorage = new CloudinaryStorage({
   cloudinary,
   params: async (req, file) => {
-    const isPDF = file.mimetype === "application/pdf";
+    const isPDF =
+      file.mimetype === "application/pdf" ||
+      file.originalname.toLowerCase().endsWith(".pdf");
 
     return {
       folder: "bills",
-      resource_type: isPDF ? "raw" : "image",
+      resource_type: "image",
       allowed_formats: isPDF
         ? ["pdf"]
         : ["jpg", "jpeg", "png", "webp"],
