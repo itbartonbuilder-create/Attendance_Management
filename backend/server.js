@@ -21,6 +21,8 @@ import measurementRoutes from "./routes/siteMeasurementRoutes.js";
 import voucherRoutes from "./routes/voucher.js";
 import requirementRoutes from "./routes/requirementRoutes.js";
 import workOrdersRouter from "./routes/workOrders.js";
+import supplierRateRoutes from "./routes/supplierRate.js";
+
 
 const app = express();
 app.use(cors());
@@ -58,6 +60,7 @@ app.use("/api/measurement", measurementRoutes);
 app.use("/api/vouchers", voucherRoutes);
 app.use("/api/requirements", requirementRoutes);
 app.use("/api/work-orders", workOrdersRouter);
+app.use("/api/supplier-rates", supplierRateRoutes);
 
 
 
