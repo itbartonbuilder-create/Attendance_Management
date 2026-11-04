@@ -33,9 +33,15 @@ const supplierRateSchema = new mongoose.Schema(
       required: true,
       default: Date.now,
     },
+     createdBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Manager",
+      default: null,
+    },
   },
   { timestamps: true }
 );
+
 
 supplierRateSchema.index({
   supplierName: "text",
