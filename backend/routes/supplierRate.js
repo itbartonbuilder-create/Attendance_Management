@@ -20,17 +20,17 @@ const getRole = (actor) =>
 const isAdmin = (actor) =>
   ["admin", "superadmin", "super admin"].includes(getRole(actor));
 
-const isManager = (actor) => getRole(actor).includes("manager");
+const isManager = (actor) =>
+  getRole(actor).includes("manager");
 
-const actorId = (actor) => actor?._id || actor?.id || null;
+const actorId = (actor) =>
+  actor?._id || actor?.id || actor?.userId || null;
 
-const actorSite = (actor) =>
-  String(actor?.site || actor?.siteName || "").trim();
 
 const requireAccess = (req, res, next) => {
   const actor = getActor(req);
 
-  if (!actor || !actorId(actor)) {
+  if (!actor) {
     return res.status(401).json({
       success: false,
       message: "Authentication user not found.",
@@ -44,16 +44,25 @@ const requireAccess = (req, res, next) => {
     });
   }
 
+  if (isManager(actor) && !actorId(actor)) {
+    return res.status(401).json({
+      success: false,
+      message: "Manager ID missing from authentication token.",
+    });
+  }
+
   req.supplierRateActor = actor;
+
   next();
 };
 
 router.use(requireAccess);
 
-const cleanText = (value) => String(value ?? "").trim();
 
+const cleanText = (value) =>
+  String(value ?? "").trim();
 
-const validatePayload = (body) => {
+const validatePayload = (body = {}) => {
   const required = [
     "supplierName",
     "category",
@@ -78,7 +87,10 @@ const validatePayload = (body) => {
     return "Please enter a valid amount";
   }
 
-  if (!body.purchaseDate || Number.isNaN(new Date(body.purchaseDate).getTime())) {
+  if (
+    !body.purchaseDate ||
+    Number.isNaN(new Date(body.purchaseDate).getTime())
+  ) {
     return "Please enter a valid purchase date";
   }
 
@@ -93,6 +105,7 @@ const buildPayload = (body) => ({
   purchaseDate: new Date(body.purchaseDate),
 });
 
+
 const canManageRecord = (actor, record) => {
   if (isAdmin(actor)) return true;
 
@@ -102,24 +115,34 @@ const canManageRecord = (actor, record) => {
   );
 };
 
+
 router.get("/summary", async (req, res) => {
   try {
-    const [totalRecords, suppliers, categories, totalAmount] =
-      await Promise.all([
-        SupplierRate.countDocuments(),
-        SupplierRate.distinct("supplierName"),
-        SupplierRate.distinct("category"),
-        SupplierRate.aggregate([
-          {
-            $group: {
-              _id: null,
-              total: { $sum: "$amount" },
+    const [
+      totalRecords,
+      suppliers,
+      categories,
+      totalAmount,
+    ] = await Promise.all([
+      SupplierRate.countDocuments(),
+
+      SupplierRate.distinct("supplierName"),
+
+      SupplierRate.distinct("category"),
+
+      SupplierRate.aggregate([
+        {
+          $group: {
+            _id: null,
+            total: {
+              $sum: "$amount",
             },
           },
-        ]),
-      ]);
+        },
+      ]),
+    ]);
 
-    res.json({
+    return res.json({
       success: true,
       data: {
         totalRecords,
@@ -128,24 +151,27 @@ router.get("/summary", async (req, res) => {
         totalAmount: totalAmount[0]?.total || 0,
       },
     });
+
   } catch (error) {
     console.error("SUPPLIER RATE SUMMARY ERROR:", error);
 
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       message: "Failed to load supplier summary",
     });
   }
 });
-
 router.get("/", async (req, res) => {
   try {
-    const { search = "", category = "" } = req.query;
+    const {
+      search = "",
+      category = "",
+    } = req.query;
 
     const filter = {};
 
-    if (category) {
-      filter.category = category;
+    if (cleanText(category)) {
+      filter.category = cleanText(category);
     }
 
     if (cleanText(search)) {
@@ -164,7 +190,10 @@ router.get("/", async (req, res) => {
     }
 
     const rows = await SupplierRate.find(filter)
-      .sort({ purchaseDate: -1, createdAt: -1 })
+      .sort({
+        purchaseDate: -1,
+        createdAt: -1,
+      })
       .limit(1000)
       .lean();
 
@@ -176,19 +205,21 @@ router.get("/", async (req, res) => {
       canDelete: isAdmin(actor),
     }));
 
-    res.json({
+    return res.json({
       success: true,
       data,
     });
+
   } catch (error) {
     console.error("GET SUPPLIER RATES ERROR:", error);
 
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       message: "Failed to fetch supplier records",
     });
   }
 });
+
 
 router.post("/", async (req, res) => {
   try {
@@ -207,24 +238,27 @@ router.post("/", async (req, res) => {
 
     const saved = await SupplierRate.create({
       ...payload,
+
       createdBy: actorId(actor),
     });
 
-    res.status(201).json({
+    return res.status(201).json({
       success: true,
       message: "Supplier record added successfully",
       data: saved,
     });
+
   } catch (error) {
     console.error("CREATE SUPPLIER RATE ERROR:", error);
 
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       message: "Failed to add supplier record",
       error: error.message,
     });
   }
 });
+
 
 router.put("/:id", async (req, res) => {
   try {
@@ -266,15 +300,16 @@ router.put("/:id", async (req, res) => {
 
     await record.save();
 
-    res.json({
+    return res.json({
       success: true,
       message: "Supplier record updated successfully",
       data: record,
     });
+
   } catch (error) {
     console.error("UPDATE SUPPLIER RATE ERROR:", error);
 
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       message: "Failed to update supplier record",
       error: error.message,
@@ -282,9 +317,12 @@ router.put("/:id", async (req, res) => {
   }
 });
 
+
 router.delete("/:id", async (req, res) => {
   try {
-    if (!isAdmin(req.supplierRateActor)) {
+    const actor = req.supplierRateActor;
+
+    if (!isAdmin(actor)) {
       return res.status(403).json({
         success: false,
         message: "Only Admin can delete supplier records.",
@@ -298,7 +336,9 @@ router.delete("/:id", async (req, res) => {
       });
     }
 
-    const deleted = await SupplierRate.findByIdAndDelete(req.params.id);
+    const deleted = await SupplierRate.findByIdAndDelete(
+      req.params.id
+    );
 
     if (!deleted) {
       return res.status(404).json({
@@ -307,16 +347,18 @@ router.delete("/:id", async (req, res) => {
       });
     }
 
-    res.json({
+    return res.json({
       success: true,
       message: "Supplier record deleted successfully",
     });
+
   } catch (error) {
     console.error("DELETE SUPPLIER RATE ERROR:", error);
 
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       message: "Failed to delete supplier record",
+      error: error.message,
     });
   }
 });
