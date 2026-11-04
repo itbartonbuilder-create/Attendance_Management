@@ -2,11 +2,13 @@
 import express from "express";
 import mongoose from "mongoose";
 import SupplierRate from "../models/SupplierRate.js";
+import authMiddleware from "../middleware/auth.js";
 
 const router = express.Router();
 
 
 const getActor = (req) => req.user || req.currentUser || null;
+
 
 const getRole = (actor) =>
   String(
@@ -22,6 +24,7 @@ const isAdmin = (actor) =>
 
 const isManager = (actor) =>
   getRole(actor).includes("manager");
+
 
 const actorId = (actor) =>
   actor?._id || actor?.id || actor?.userId || null;
@@ -52,12 +55,11 @@ const requireAccess = (req, res, next) => {
   }
 
   req.supplierRateActor = actor;
-
   next();
 };
 
+router.use(authMiddleware);
 router.use(requireAccess);
-
 
 const cleanText = (value) =>
   String(value ?? "").trim();
@@ -125,11 +127,8 @@ router.get("/summary", async (req, res) => {
       totalAmount,
     ] = await Promise.all([
       SupplierRate.countDocuments(),
-
       SupplierRate.distinct("supplierName"),
-
       SupplierRate.distinct("category"),
-
       SupplierRate.aggregate([
         {
           $group: {
@@ -161,6 +160,7 @@ router.get("/summary", async (req, res) => {
     });
   }
 });
+
 router.get("/", async (req, res) => {
   try {
     const {
@@ -238,8 +238,7 @@ router.post("/", async (req, res) => {
 
     const saved = await SupplierRate.create({
       ...payload,
-
-      createdBy: actorId(actor),
+      createdBy: isManager(actor) ? actorId(actor) : null,
     });
 
     return res.status(201).json({
