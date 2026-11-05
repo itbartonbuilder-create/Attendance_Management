@@ -1,333 +1,437 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import API from "../api";
 import { useLocation } from "react-router-dom";
-import * as XLSX from "xlsx";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
+import {
+  downloadSingleVoucherPDF,
+  convertNumberToWords,
+  formatDateDMY
+} from "../utils/VoucherUtils";
 
 const AdminBills = () => {
   const user = JSON.parse(localStorage.getItem("user"));
-
-  const [bills, setBills] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
-  const [selectedBills, setSelectedBills] = useState([]);
-
   const location = useLocation();
   const queryParams = new URLSearchParams(location.search);
   const selectedSite = queryParams.get("siteId");
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [bills, setBills] = useState([]);
+  const [selectedBills, setSelectedBills] = useState([]);
+  const [billType, setBillType] = useState("gst");
+  const [voucherForm, setVoucherForm] = useState({
+    
 
-  if (!user || (user.role !== "admin" && user.role !== "accountant")) {
-    return <h2 style={{ color: "white", padding: 40 }}>Access Denied</h2>;
+    payableTo: "",
+    site: selectedSite || "",
+    particulars: "",
+    paymentMode: "Cash",
+    amount: "",
+    amountWords: "",
+    remarks: "",
+    billFile: null,
+  });
+
+  if (
+    !user ||
+    (user.role !== "admin" &&
+      user.role !== "accountant")
+  ) {
+    return (
+      <h2
+        style={{
+          color: "#fff",
+          padding: 40,
+        }}
+      >
+        Access Denied
+      </h2>
+    );
   }
 
-  const fetchBills = async () => {
-    try {
-      setLoading(true);
-      const res = await API.get("/bill", {
+const fetchBills = async () => {
+  try {
+    setLoading(true);
+    setError("");
+
+    const res = await API.get("/bill", {
+      params: {
+        role: user.role,
+        site: selectedSite,
+      },
+    });
+
+    let managerBills = res.data || [];
+
+    let workOrderBills = [];
+
+    if (selectedSite) {
+      const workOrderRes = await API.get("/work-orders/site-bills", {
         params: {
-          role: user.role,
           site: selectedSite,
         },
       });
-      setBills(res.data || []);
-    } catch (err) {
-      console.error(err);
-      setError("Failed to load bills");
-    } finally {
-      setLoading(false);
+
+      workOrderBills = (workOrderRes.data || []).map((b) => ({
+        ...b,
+        isWorkOrderBill: true,
+        isVoucher: false,
+        gstType: "non-gst",
+        payableTo: b.vendorName || "—",
+        vendor: {
+          name: b.vendorName || "—",
+        },
+        createdByName: b.createdBy || "Admin",
+        paymentMode: b.paymentMode || "Cash",
+      }));
     }
-  };
+
+    setBills([...workOrderBills, ...managerBills]);
+  } catch (err) {
+    console.error("Fetch admin bills error:", err);
+    setError("Failed to load bills");
+  } finally {
+    setLoading(false);
+  }
+};
 
   useEffect(() => {
-    if (selectedSite) fetchBills();
+    fetchBills();
   }, [selectedSite]);
+  const filteredBills = useMemo(() => {
+
+    let data = [...bills];
+    if (billType === "gst") {
+      data = data.filter(
+        (x) => x.gstType === "gst"
+      );
+    } else {
+      data = data.filter(
+        (x) =>
+          x.gstType === "non-gst" ||
+          x.isVoucher
+      );
+    }
+    return data;
+  }, [bills, billType]);
 
   const toggleBillSelection = (id) => {
-  setSelectedBills((prev) =>
-    prev.includes(id) ? prev.filter((b) => b !== id) : [...prev, id]
-  );
-};
+    setSelectedBills((prev) =>
+      prev.includes(id)
+        ? prev.filter((x) => x !== id)
+        : [...prev, id]
 
-const toggleSelectAll = () => {
-  if (selectedBills.length === bills.length) {
-    setSelectedBills([]);
-  } else {
-    setSelectedBills(bills.map((b) => b._id));
-  }
-};
- const downloadBill = async (url) => {
-  try {
-    const response = await fetch(url);
-
-    if (!response.ok) {
-      throw new Error("Failed to download");
-    }
-
-    const blob = await response.blob();
-
-    const link = document.createElement("a");
-    link.href = URL.createObjectURL(blob);
-
-    const contentType = response.headers.get("content-type");
-
-    if (contentType?.includes("pdf")) {
-      link.download = "bill.pdf";
-    } else if (contentType?.includes("jpeg")) {
-      link.download = "bill.jpg";
-    } else if (contentType?.includes("png")) {
-      link.download = "bill.png";
-    } else {
-      link.download = "bill-file";
-    }
-
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-
-    URL.revokeObjectURL(link.href);
-  } catch (err) {
-    console.error(err);
-  }
-};
-
-  const changeStatus = async (billId, status) => {
-    const confirmMsg = status === "approved" ? "Approve this bill?" : "Reject this bill?";
-    if (!window.confirm(confirmMsg)) return;
-
-    try {
-      await API.put(`/bill/${billId}/status`, { status });
-      setBills((prev) => prev.map((b) => (b._id === billId ? { ...b, status } : b)));
-    } catch (err) {
-      console.error(err);
-      alert("Failed to update bill status");
-    }
-  };
-
-  const exportToExcel = () => {
-    const ws = XLSX.utils.json_to_sheet(
-      bills.map((b) => ({
-        Vendor: b.vendor?.name || "Manager",
-        // Company: b.vendor?.companyName || "-",
-        Work: b.workName,
-        "Bill No": b.billNo,
-        Site: b.site,
-        Amount: b.amount,
-        Quantity: b.quantity,
-        GST: b.gstType === "gst" ? `${b.gstPercent}%` : "No GST",
-        Total: b.totalAmount,
-        Date: new Date(b.billDate).toLocaleDateString(),
-        Status: b.status || "pending",
-      }))
     );
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "Bills");
-    XLSX.writeFile(wb, `AdminBills_${selectedSite}.xlsx`);
+
   };
 
-const downloadSelectedPDF = () => {
-  if (selectedBills.length === 0) {
-    alert("Select at least one bill");
-    return;
-  }
+  const toggleSelectAll = () => {
 
-  const selectedData = bills.filter((b) =>
-    selectedBills.includes(b._id)
-  );
+    if (
+      selectedBills.length ===
+      filteredBills.length
+    ) {
 
-  const doc = new jsPDF();
-  doc.text(`Selected Bills - ${selectedSite}`, 14, 15);
+      setSelectedBills([]);
 
-  const columns = [
-    "Vendor","Work","Bill No","Site",
-    "Amount","Qty","GST","Total","Date","Status"
-  ];
+    } else {
+      setSelectedBills(
+        filteredBills.map((x) => x._id)
+      );
+    }
+  };
+  const downloadBill = async (url) => {
+    try {
+      const response = await fetch(url);
+      if (!response.ok) throw new Error("Download Failed");
+      const blob = await response.blob();
+      const link = document.createElement("a");
+      link.href = URL.createObjectURL(blob);
+      const type = response.headers.get("content-type");
+      if (type?.includes("pdf")) {
+        link.download = "Bill.pdf";
+      } else if (type?.includes("png")) {
+        link.download = "Bill.png";
+      } else if (type?.includes("jpeg")) {
+        link.download = "Bill.jpg";
+      } else {
+        link.download = "Bill";
+      }
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(link.href);
+    } catch (err) {
+      console.log(err);
+    }
+  };
 
-  const rows = selectedData.map((b) => [
-    b.vendor?.name || "Manager",
-    // b.vendor?.companyName || "-",
-    b.workName,
-    b.billNo,
-    b.site,
-    b.amount,
-    b.quantity,
-    b.gstType === "gst" ? `${b.gstPercent}%` : "No GST",
-    b.totalAmount,
-    new Date(b.billDate).toLocaleDateString(),
-    b.status || "pending",
-  ]);
+ const triggerDownload = (b) => {
 
-  autoTable(doc, { head: [columns], body: rows, startY: 20 });
+  const dateToUse = formatDateDMY(
+  b.billDate || b.createdAt
+);
+  const paymentModeToUse = b.paymentMode || "Cash";
 
-  doc.save(`Selected_Bills_${selectedSite}.pdf`);
+  const normalizedData = {
+    voucherNo: b.billNo || "01",
+    payableTo: b.vendor?.name || b.payableTo || "N/A", 
+    particulars: b.workName || b.particulars || "N/A",
+    paymentMode: paymentModeToUse, 
+    amount: b.amount || 0,
+    screenshotUrl: b.screenshotUrl || b.billFile || null,
+    site: b.site || selectedSite,
+    createdByName: b.createdByName || "Manager"
+  };
+
+  downloadSingleVoucherPDF(normalizedData, {
+    currentDate: dateToUse, 
+    loggedInName: user?.name || "Manager",
+    currentSite: selectedSite || b.site
+  });
 };
 
-  return (
-    <div style={page}>
-      <h2 style={{ marginBottom: 20 }}>All Vendor / Manager Bills</h2>
+  const downloadSelectedPDF = () => {
+    const rows = filteredBills
+      .filter((x) =>
+        selectedBills.includes(x._id)
+      )
+      .map((x) => [
+        x.vendor?.name,
+        x.billNo,
+        x.site,
+        x.amount,
+      ]);
+    const doc = new jsPDF();
+    autoTable(doc, {
+      head: [[
+        "Vendor",
+        "Bill",
+        "Site",
+        "Amount",
+      ]],
+      body: rows,
+    });
+    doc.save("Bills.pdf"); };
+return (
+<div style={page}>
+<h2 style={{marginBottom:20}}>
+All Manager Bills</h2>
+<div
+  style={{
+    marginBottom: "20px",
+  }}
+>
+  <label
+    style={{
+      color: "#fff",
+      marginRight: "10px",
+      fontWeight: "600",
+    }}
+  >
+    Bill Type :
+  </label>
+  <select
+    value={billType}
+    onChange={(e) => setBillType(e.target.value)}
+    style={{
+      padding: "10px 15px",
+      borderRadius: "6px",
+      width: "220px",
+      fontSize: "15px",
+      cursor: "pointer",
+    }}
+  >
+    <option value="gst">GST Bill</option>
+    <option value="non-gst">Non GST Voucher</option>
+  </select>
+</div>
 
-      <div style={{ marginBottom: 20, display: "flex", gap: "10px" }}>
-        <button style={btn} onClick={exportToExcel}>Download Excel</button>
-        <button style={btn} onClick={downloadSelectedPDF}>Download PDF</button>
-      </div>
-
-      {loading && <p>Loading...</p>}
-      {error && <p style={{ color: "red" }}>{error}</p>}
-      {!loading && bills.length === 0 && <p>No bills found</p>}
-
-      {!loading && bills.length > 0 && (
-        <table style={table}>
-          <thead>
-            <tr style={tableHead}>
-            <th style={th}>
-              <input
-                type="checkbox"
-                checked={selectedBills.length === bills.length && bills.length > 0}
-                onChange={toggleSelectAll}/> </th>
-              <th style={th}>Created By</th>
-              {/* <th style={th}>Company</th> */}
-              <th style={th}>Shop_name/material</th>
-              <th style={th}>Bill No</th>
-              <th style={th}>Site</th>
-              <th style={th}>Amount</th>
-              <th style={th}>Quantity</th>
-              <th style={th}>GST</th>
-              <th style={th}>Total</th>
-              <th style={th}>Date</th>
-              <th style={th}>Status</th>
-              <th style={th}>Bill</th>
-              <th style={th}>Action</th>
-            </tr>
-          </thead>
-          <tbody>
-            {bills.map((b) => {
-              const status = b.status || "pending";
-              return (
-                <tr key={b._id} style={row}>
-                <td style={td}>
-                <input
-                  type="checkbox"
-                  checked={selectedBills.includes(b._id)}
-                  onChange={() => toggleBillSelection(b._id)}
-                />
-              </td>
-                  <td style={td}>{b.vendor?.name || "Manager"}</td>
-                  {/* <td style={td}>{b.vendor?.companyName || "-"}</td> */}
-                  <td style={td}>{b.workName}</td>
-                  <td style={td}>{b.billNo}</td>
-                  <td style={td}>{b.site}</td>
-                  <td style={td}>₹{b.amount}</td>
-                  <td style={td}>{b.quantity}</td>
-                  <td style={td}>{b.gstType === "gst" ? `${b.gstPercent}%` : "No GST"}</td>
-                  <td style={td}>₹{b.totalAmount}</td>
-                  <td style={td}>{new Date(b.billDate).toLocaleDateString()}</td>
-                  <td style={{ ...td, fontWeight: 600, color: status === "approved" ? "lightgreen" : status === "rejected" ? "salmon" : "orange" }}>
-                    {status}
-                  </td>
-                  <td style={td}>
-  {b.billFile ? (
-    <>
+{loading && <p>Loading...</p>}
+{error && (
+<p style={{color:"red"}}>
+{error}
+</p>
+)}
+{!loading && filteredBills.length > 0 && (
+  <>
+    {billType === "gst" ? (
+      <table style={table}>
+        <thead>
+          <tr style={tableHead}>
+            <th style={th}>Created By</th>
+            <th style={th}>Shop / Material</th>
+            <th style={th}>Bill No</th>
+            <th style={th}>Site</th>
+            <th style={th}>Amount</th>
+            <th style={th}>Qty</th>
+            <th style={th}>GST</th>
+            <th style={th}>Total</th>
+            <th style={th}>Date</th>
+            <th style={th}>Bill</th>
+          </tr>
+        </thead>
+        <tbody>
+          {filteredBills.map((b) => (
+            
+            <tr key={b._id} style={row}>
+              <td style={td}>{b.createdByName || "Manager"}</td>
+              <td style={td}>{b.workName}</td>
+              <td style={td}>{b.billNo}</td>
+              <td style={td}>{b.site}</td>
+              <td style={td}>₹{b.amount}</td>
+              <td style={td}>{b.quantity}</td>
+              <td style={td}>{b.gstPercent}%</td>
+              <td style={td}>₹{b.totalAmount}</td>
+              <td style={td}>{formatDateDMY(b.billDate || b.createdAt)}</td>
+            <td style={td}>
+  {(b.billFile || b.screenshotUrl) ? (
+    <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
       <a
-        href={b.billFile}
+        href={b.billFile || b.screenshotUrl}
         target="_blank"
-        rel="noreferrer"
+        rel="noopener noreferrer"
         style={viewBtn}
       >
-        View
+        View Proof
       </a>
 
       <button
         style={downloadBtn}
-        onClick={() => downloadBill(b.billFile)}
+        onClick={() => downloadBill(b.billFile || b.screenshotUrl)}
       >
         Download
       </button>
-    </>
+    </div>
   ) : (
-    "-"
+    "No Proof Uploaded"
   )}
 </td>
-                  <td style={td}>
-                    {status === "pending" ? (
-                      <>
-                        <button style={approveBtn} onClick={() => changeStatus(b._id, "approved")}>Approve</button>
-                        <button style={rejectBtn} onClick={() => changeStatus(b._id, "rejected")}>Reject</button>
-                      </>
-                    ) : "-"}
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
-      )}
-    </div>
-  );
-};
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    ) : (
 
-const page = { 
-  padding: "100px 30px", 
-  background: "#121212", 
-  minHeight: "100vh", 
-  color: "white" 
-};
-const table = { 
-  width: "100%", 
-  borderCollapse: "collapse", 
-  marginTop: 20 
-};
-const tableHead = { 
-  background: "#2c3e50" 
-};
-const th = { 
-  padding: "12px", 
-  textAlign: "left" 
-};
-const td = { 
-  padding: "12px" 
-};
-const row = { 
-  borderBottom: "1px solid #444" 
-};
-const btn = { 
-  background: "#1e88e5", 
-  padding: "10px 15px", 
-  border: "none", 
-  borderRadius: "6px", 
-  color: "white", 
-  cursor: "pointer" 
-};
-const approveBtn = { 
-  background: "green", 
-  color: "white", 
-  border: "none", 
-  padding: "6px 10px", 
-  marginRight: "6px", 
-  borderRadius: "4px", 
-  cursor: "pointer" 
-};
-const rejectBtn = { 
-  background: "crimson", 
-  color: "white", 
-  border: "none", 
-  padding: "6px 10px", 
-  borderRadius: "4px", 
-  cursor: "pointer" 
-};
-const viewBtn = { 
-  background: "#3498db", 
-  color: "white", 
-  padding: "6px 10px", 
-  borderRadius: "4px", 
-  marginRight: "6px", 
-  textDecoration: "none" 
-};
-const downloadBtn = { 
-  background: "#2ecc71", 
-  color: "white", 
-  padding: "6px 10px", 
-  borderRadius: "4px", 
-  cursor: "pointer" 
-};
+      <table style={table}>
+        <thead>
+          <tr style={tableHead}>
+            <th style={th}>Payable To</th>
+            <th style={th}>Shop / Material</th>
+            <th style={th}>Created By</th>
+            <th style={th}>Site</th>
+            <th style={th}>Voucher No</th>
+            <th style={th}>Amount</th>
+            <th style={th}>Date</th>
+            <th style={th}>Bill</th>
+          </tr>
+        </thead>
+        <tbody>
+          {filteredBills.map((b) => (
+            <tr key={b._id} style={row}>
+              <td style={td}>{b.vendor?.name || "-"}</td>
+              <td style={td}>{b.workName || "-"}</td>
+              <td style={td}>{b.createdByName || "Manager"}</td>
+              <td style={td}>{b.site || "-"}</td>
+              <td style={td}>{b.billNo}</td>
+              <td style={td}>₹{b.amount}</td>
+              <td style={td}>{formatDateDMY(b.billDate || b.createdAt)}</td>
+            <td style={td}>
+  <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
+    {(b.screenshotUrl || b.billFile) ? (
+      <>
+        <a
+          href={b.screenshotUrl || b.billFile}
+          target="_blank"
+          rel="noopener noreferrer"
+          style={viewBtn}
+        >
+          View Proof
+        </a>
 
+        <button
+          style={downloadBtn}
+          onClick={() => downloadBill(b.screenshotUrl || b.billFile)}
+        >
+          Download Proof
+        </button>
+      </>
+    ) : (
+      <span>No Proof</span>
+    )}
+
+    <button
+      style={downloadBtn}
+      onClick={() => triggerDownload(b)}
+    >
+      Voucher PDF
+    </button>
+  </div>
+</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    )}
+  </>
+)}
+</div>
+);
+};
+const page = {
+  padding: "100px 30px",
+  background: "#121212",
+  minHeight: "100vh",
+  color: "#fff",
+};
+const table = {
+  width: "100%",
+  borderCollapse: "collapse",
+  marginTop: 20,
+  background: "#1f1f1f",
+};
+const tableHead = {
+  background: "#2563eb",
+};
+const row = {
+  borderBottom: "1px solid #374151",
+};
+const th = {
+  padding: "12px",
+  textAlign: "left",
+  // color: "#fff",
+  fontWeight: "600",
+  whiteSpace: "nowrap",
+};
+const td = {
+  padding: "12px",
+  borderBottom: "1px solid #374151",
+  whiteSpace: "nowrap",
+};
+const btn = {
+  background: "#2563eb",
+  color: "#fff",
+  border: "none",
+  padding: "10px 18px",
+  borderRadius: "6px",
+  cursor: "pointer",
+  fontWeight: "600",
+};
+const viewBtn = {
+  background: "#2563eb",
+  color: "#fff",
+  textDecoration: "none",
+  padding: "6px 12px",
+  borderRadius: "5px",
+  marginRight: "8px",
+  display: "inline-block",
+};
+const downloadBtn = {
+  background: "#16a34a",
+  color: "#fff",
+  border: "none",
+  padding: "6px 12px",
+  borderRadius: "5px",
+  cursor: "pointer",
+};
 export default AdminBills;
