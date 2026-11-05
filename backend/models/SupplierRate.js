@@ -8,6 +8,7 @@ const supplierRateSchema = new mongoose.Schema(
       trim: true,
       index: true,
     },
+    
 
     category: {
       type: String,
