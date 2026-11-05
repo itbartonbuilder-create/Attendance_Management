@@ -8,6 +8,7 @@ import { Capacitor } from "@capacitor/core";
 import { Filesystem, Directory } from "@capacitor/filesystem";
 import { Share } from "@capacitor/share";
 
+
 const formatDate = (value) => {
   if (!value) return "-";
   const date = new Date(value);
