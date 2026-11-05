@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from "react";
 import API from "../api";
 import { useLocation } from "react-router-dom";
-
 function SiteExpense() {
   const location = useLocation();
   const queryParams = new URLSearchParams(location.search);
