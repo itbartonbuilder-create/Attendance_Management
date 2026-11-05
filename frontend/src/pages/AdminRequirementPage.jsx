@@ -5,7 +5,6 @@ import autoTable from "jspdf-autotable";
 
 function AdminRequirementPage() {
   const location = useLocation();
-
   const params = new URLSearchParams(location.search);
 
   const selectedSite =
