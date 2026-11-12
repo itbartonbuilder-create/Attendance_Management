@@ -3,12 +3,9 @@ import API from "../api";
 import { useLocation } from "react-router-dom";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
-import {
-  downloadSingleVoucherPDF,
-  convertNumberToWords,
-  formatDateDMY
-} from "../utils/VoucherUtils";
-
+import * as XLSX from "xlsx";
+import { downloadSingleVoucherPDF,
+  convertNumberToWords, formatDateDMY } from "../utils/VoucherUtils";
 
 const AdminBills = () => {
   const user = JSON.parse(localStorage.getItem("user"));
@@ -20,8 +17,8 @@ const AdminBills = () => {
   const [bills, setBills] = useState([]);
   const [selectedBills, setSelectedBills] = useState([]);
   const [billType, setBillType] = useState("gst");
+  const [selectedMonth, setSelectedMonth] = useState("");
   const [voucherForm, setVoucherForm] = useState({
-    
 
     payableTo: "",
     site: selectedSite || "",
@@ -35,18 +32,9 @@ const AdminBills = () => {
 
   if (
     !user ||
-    (user.role !== "admin" &&
-      user.role !== "accountant")
+    (user.role !== "admin" && user.role !== "accountant")
   ) {
-    return (
-      <h2
-        style={{
-          color: "#fff",
-          padding: 40,
-        }}
-      >
-        Access Denied
-      </h2>
+    return (<h2 style={{ color: "#fff",padding: 40,}}>Access Denied</h2>
     );
   }
 
@@ -63,9 +51,7 @@ const fetchBills = async () => {
     });
 
     let managerBills = res.data || [];
-
     let workOrderBills = [];
-
     if (selectedSite) {
       const workOrderRes = await API.get("/work-orders/site-bills", {
         params: {
@@ -115,7 +101,114 @@ const fetchBills = async () => {
     }
     return data;
   }, [bills, billType]);
+ 
+const availableMonths = useMemo(() => {
+  const months = filteredBills
+    .map((bill) => {
+      const date = new Date(bill.billDate || bill.createdAt);
 
+      if (isNaN(date.getTime())) return null;
+
+      return {
+        value: `${date.getFullYear()}-${String(
+          date.getMonth() + 1
+        ).padStart(2, "0")}`,
+        label: date.toLocaleString("en-IN", {
+          month: "long",
+          year: "numeric",
+        }),
+      };
+    })
+    .filter(Boolean);
+
+  return [...new Map(months.map((m) => [m.value, m])).values()]
+    .sort((a, b) => b.value.localeCompare(a.value));
+}, [filteredBills]);
+
+
+const monthFilteredBills = useMemo(() => {
+  if (!selectedMonth) return [];
+
+  return filteredBills.filter((bill) => {
+    const date = new Date(bill.billDate || bill.createdAt);
+
+    if (isNaN(date.getTime())) return false;
+
+    const month =
+      `${date.getFullYear()}-${String(
+        date.getMonth() + 1
+      ).padStart(2, "0")}`;
+
+    return month === selectedMonth;
+  });
+}, [filteredBills, selectedMonth]);
+
+const downloadBillsExcel = (data, fileName) => {
+  if (!data.length) {
+    alert("No bills available to download!");
+    return;
+  }
+
+  const excelData = data.map((b) => ({
+    Date: formatDateDMY(b.billDate || b.createdAt),
+    "Created By": b.createdByName || "Manager",
+    "Vendor / Payable To":
+      b.vendor?.name || b.payableTo || b.vendorName || "-",
+    "Shop / Material": b.workName || b.particulars || "-",
+    "Bill Number": b.billNo || "-",
+    Site: b.site || "-",
+    Amount: Number(b.amount || 0),
+    // Quantity: b.quantity || "-",
+    "GST Percentage": b.gstPercent
+      ? `${b.gstPercent}%`
+      : "-",
+    "Total Amount": Number(
+      b.totalAmount || b.amount || 0
+    ),
+    // "Bill Type": b.gstType || (b.isVoucher ? "Voucher" : "Non-GST"),
+    // "Payment Mode": b.paymentMode || "-",
+  }));
+
+  const worksheet = XLSX.utils.json_to_sheet(excelData);
+
+  worksheet["!cols"] = [
+    { wch: 15 },
+    { wch: 20 },
+    { wch: 25 },
+    { wch: 25 },
+    { wch: 15 },
+    { wch: 15 },
+    { wch: 15 },
+    { wch: 12 },
+    { wch: 15 },
+    { wch: 18 },
+    { wch: 15 },
+    { wch: 15 },
+  ];
+
+  const workbook = XLSX.utils.book_new();
+
+  XLSX.utils.book_append_sheet( workbook, worksheet,"Bills" );
+  XLSX.writeFile(workbook, fileName);
+};
+
+const downloadMonthlyExcel = () => {
+  if (!selectedMonth) {
+    alert("Please select a month first!");
+    return;
+  }
+
+  downloadBillsExcel(
+    monthFilteredBills,
+    `Bills_${selectedMonth}.xlsx`
+  );
+};
+const downloadAllBillsExcel = () => {
+  downloadBillsExcel(
+    filteredBills,
+    `All_Bills_${billType.toUpperCase()}.xlsx`
+  );
+};
   const toggleBillSelection = (id) => {
     setSelectedBills((prev) =>
       prev.includes(id)
@@ -173,7 +266,6 @@ const fetchBills = async () => {
   b.billDate || b.createdAt
 );
   const paymentModeToUse = b.paymentMode || "Cash";
-
   const normalizedData = {
     voucherNo: b.billNo || "01",
     payableTo: b.vendor?.name || b.payableTo || "N/A", 
@@ -184,14 +276,12 @@ const fetchBills = async () => {
     site: b.site || selectedSite,
     createdByName: b.createdByName || "Manager"
   };
-
   downloadSingleVoucherPDF(normalizedData, {
     currentDate: dateToUse, 
     loggedInName: user?.name || "Manager",
     currentSite: selectedSite || b.site
   });
 };
-
   const downloadSelectedPDF = () => {
     const rows = filteredBills
       .filter((x) =>
@@ -205,47 +295,67 @@ const fetchBills = async () => {
       ]);
     const doc = new jsPDF();
     autoTable(doc, {
-      head: [[
-        "Vendor",
-        "Bill",
-        "Site",
-        "Amount",
-      ]],
+      head: [[ "Vendor", "Bill", "Site", "Amount", ]],
       body: rows,
     });
     doc.save("Bills.pdf"); };
 return (
-<div style={page}>
-<h2 style={{marginBottom:20}}>
-All Manager Bills</h2>
-<div
-  style={{
-    marginBottom: "20px",
-  }}
->
-  <label
+    <div style={page}>
+    <h2 style={{marginBottom:20}}> All Manager Bills</h2>
+    <div style={{ marginBottom: "20px", }}>
+      <label style={{ color: "#fff", marginRight: "10px", fontWeight: "600", }}> Bill Type : </label>
+      <select value={billType} onChange={(e) => setBillType(e.target.value)}
+      style={{ padding: "10px 15px", borderRadius: "6px", width: "220px", fontSize: "15px", cursor: "pointer", }}>
+      <option value="gst">GST Bill</option>
+      <option value="non-gst">Non GST Voucher</option>
+      </select>
+    </div>
+    <div style={{
+    display: "flex",
+    gap: "12px",
+    flexWrap: "wrap",
+    alignItems: "center",
+    marginBottom: "25px",
+    }}
+    >
+  <select value={selectedMonth} onChange={(e) => setSelectedMonth(e.target.value)}
     style={{
-      color: "#fff",
-      marginRight: "10px",
-      fontWeight: "600",
+      padding: "10px", borderRadius: "6px", minWidth: "190px",
+      fontSize: "14px",
     }}
   >
-    Bill Type :
-  </label>
-  <select
-    value={billType}
-    onChange={(e) => setBillType(e.target.value)}
-    style={{
-      padding: "10px 15px",
-      borderRadius: "6px",
-      width: "220px",
-      fontSize: "15px",
-      cursor: "pointer",
-    }}
-  >
-    <option value="gst">GST Bill</option>
-    <option value="non-gst">Non GST Voucher</option>
+    <option value="">Select Month</option>
+    {availableMonths.map((month) => (
+      <option key={month.value} value={month.value}>
+        {month.label}
+      </option>
+    ))}
   </select>
+
+  <button
+    onClick={downloadMonthlyExcel}
+    disabled={!selectedMonth || monthFilteredBills.length === 0}
+    style={{
+      ...downloadBtn,
+      padding: "11px 18px",
+      opacity: !selectedMonth || monthFilteredBills.length === 0 ? 0.5 : 1,
+    }}
+  >
+    Download Monthly Excel
+  </button>
+
+  <button
+    onClick={downloadAllBillsExcel}
+    disabled={filteredBills.length === 0}
+    style={{
+      ...btn,
+      background: "#16a34a",
+      padding: "11px 18px",
+      opacity: filteredBills.length === 0 ? 0.5 : 1,
+    }}
+  >
+    Download All Bills Excel
+  </button>
 </div>
 
 {loading && <p>Loading...</p>}
@@ -274,7 +384,6 @@ All Manager Bills</h2>
         </thead>
         <tbody>
           {filteredBills.map((b) => (
-            
             <tr key={b._id} style={row}>
               <td style={td}>{b.createdByName || "Manager"}</td>
               <td style={td}>{b.workName}</td>
@@ -285,29 +394,15 @@ All Manager Bills</h2>
               <td style={td}>{b.gstPercent}%</td>
               <td style={td}>₹{b.totalAmount}</td>
               <td style={td}>{formatDateDMY(b.billDate || b.createdAt)}</td>
-            <td style={td}>
-  {(b.billFile || b.screenshotUrl) ? (
-    <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
-      <a
-        href={b.billFile || b.screenshotUrl}
-        target="_blank"
-        rel="noopener noreferrer"
-        style={viewBtn}
-      >
-        View Proof
-      </a>
-
-      <button
-        style={downloadBtn}
-        onClick={() => downloadBill(b.billFile || b.screenshotUrl)}
-      >
-        Download
-      </button>
-    </div>
-  ) : (
-    "No Proof Uploaded"
-  )}
-</td>
+              <td style={td}>
+                {(b.billFile || b.screenshotUrl) ? (
+                <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
+                  <a href={b.billFile || b.screenshotUrl} target="_blank" rel="noopener noreferrer" 
+                  style={viewBtn}> View Proof</a>
+                  <button style={downloadBtn} onClick={() => downloadBill(b.billFile || b.screenshotUrl)} >Download</button>
+                </div>
+                ) : ( "No Proof Uploaded" )}
+              </td>
             </tr>
           ))}
         </tbody>
@@ -338,37 +433,19 @@ All Manager Bills</h2>
               <td style={td}>₹{b.amount}</td>
               <td style={td}>{formatDateDMY(b.billDate || b.createdAt)}</td>
             <td style={td}>
-  <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
-    {(b.screenshotUrl || b.billFile) ? (
-      <>
-        <a
-          href={b.screenshotUrl || b.billFile}
-          target="_blank"
-          rel="noopener noreferrer"
-          style={viewBtn}
-        >
-          View Proof
-        </a>
+              <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
+              {(b.screenshotUrl || b.billFile) ? (
+              <>
+              <a href={b.screenshotUrl || b.billFile} target="_blank" rel="noopener noreferrer"
+              style={viewBtn} > View Proof </a>
 
-        <button
-          style={downloadBtn}
-          onClick={() => downloadBill(b.screenshotUrl || b.billFile)}
-        >
-          Download Proof
-        </button>
-      </>
-    ) : (
-      <span>No Proof</span>
-    )}
-
-    <button
-      style={downloadBtn}
-      onClick={() => triggerDownload(b)}
-    >
-      Voucher PDF
-    </button>
-  </div>
-</td>
+        <button style={downloadBtn} onClick={() => downloadBill(b.screenshotUrl || b.billFile)} >
+          Download Proof </button>
+        </>
+          ) : ( <span>No Proof</span>)}
+      <button style={downloadBtn} onClick={() => triggerDownload(b)} > Voucher PDF </button>
+      </div>
+      </td>
             </tr>
           ))}
         </tbody>
@@ -380,7 +457,7 @@ All Manager Bills</h2>
 );
 };
 const page = {
-  padding: "100px 30px",
+  padding: "74px 14px",
   background: "#121212",
   minHeight: "100vh",
   color: "#fff",
@@ -405,7 +482,7 @@ const th = {
   whiteSpace: "nowrap",
 };
 const td = {
-  padding: "12px",
+  padding: "5px",
   borderBottom: "1px solid #374151",
   whiteSpace: "nowrap",
 };
@@ -436,3 +513,4 @@ const downloadBtn = {
   cursor: "pointer",
 };
 export default AdminBills;
+
