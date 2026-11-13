@@ -1,7 +1,6 @@
 import Vendor from "../models/vendorModel.js";
 import bcrypt from "bcryptjs";
 import axios from "axios";
-
 import { sendPendingMail } from "../utils/emailService.js";
 export const registerVendor = async (req, res) => {
   try {
