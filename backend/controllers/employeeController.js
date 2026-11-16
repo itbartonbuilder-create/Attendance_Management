@@ -1,7 +1,6 @@
 import Employee from "../models/employeeModel.js";
 import cloudinary from "../utils/cloudinary.js";
 
-
 export const addEmployee = async (req, res) => {
   try {
     const { name, role, site, contactNo, salary } = req.body;
